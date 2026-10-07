@@ -1951,5 +1951,20 @@ window.MIGRACOES = [
     "ordem": 530
    }
   }
+ },
+ {
+  "id": "2026-10-07-vinhos-remover",
+  "apagar": [
+   "vinho-saima-baga-corga-2020",
+   "vinho-bageiras-reserva",
+   "vinho-reserva-do-comendador",
+   "vinho-mob-encruzado",
+   "vinho-quinta-vale-da-roca-pinot-noir",
+   "vinho-ataide-semedo-garrafeira",
+   "vinho-oboe",
+   "vinho-botao-bical",
+   "vinho-silica-super-reserva-bdn",
+   "vinho-mm-baga"
+  ]
  }
 ];
