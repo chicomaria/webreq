@@ -1004,5 +1004,308 @@ window.MIGRACOES = [
     }
    }
   }
+ },
+ {
+  "id": "2026-10-07-folha-francisco",
+  "atualizar": {
+   "alface-do-mar": {
+    "habitual": 4.0
+   },
+   "erva-patinha": {
+    "semanal": false
+   },
+   "cabelo-de-velha": {
+    "habitual": 4.0
+   },
+   "azeite": {
+    "preco": 90.0,
+    "semanal": false,
+    "precoUnidade": "caixa"
+   },
+   "gelo": {
+    "habitual": 5.0,
+    "fornecedor": "Makro"
+   },
+   "agua": {
+    "habitual": 6.0,
+    "fornecedor": "CAT"
+   },
+   "cafe": {
+    "fornecedor": "Delta"
+   },
+   "descafeinado": {
+    "fornecedor": "Delta"
+   },
+   "adamvs": {
+    "fornecedor": "Paulino"
+   },
+   "adamvs-signature": {
+    "fornecedor": "Paulino"
+   },
+   "sharish": {
+    "fornecedor": "Garrafeira"
+   },
+   "black-pig": {
+    "fornecedor": "Paulino"
+   },
+   "arbun-medronho": {
+    "fornecedor": "Garrafeira"
+   },
+   "foxtale": {
+    "fornecedor": "Paulino"
+   },
+   "black-wolf-citrus": {
+    "fornecedor": "Garrafeira"
+   },
+   "ventozelo-dry": {
+    "fornecedor": "Garrafeira"
+   },
+   "aguardente-medronho": {
+    "fornecedor": "Garrafeira"
+   },
+   "whisky-centeio-black-wolf": {
+    "fornecedor": "Garrafeira"
+   },
+   "rum-william-hinton-3": {
+    "fornecedor": "Garrafeira"
+   },
+   "rum-william-hinton-smoked": {
+    "fornecedor": "Garrafeira"
+   },
+   "aguardente-crf": {
+    "fornecedor": "Paulino"
+   },
+   "bagaceira-s-domingos": {
+    "fornecedor": "Paulino"
+   },
+   "vermute-soberbo": {
+    "fornecedor": "Garrafeira"
+   },
+   "ginjinha-vila-das-rainhas": {
+    "fornecedor": "Garrafeira"
+   },
+   "licor-beirao": {
+    "fornecedor": "Paulino"
+   },
+   "licor-de-cafe": {
+    "fornecedor": "Paulino",
+    "preco": 9.0,
+    "obs": ""
+   },
+   "amarguinha": {
+    "fornecedor": "Paulino"
+   },
+   "sagres-33": {
+    "fornecedor": "Paulino"
+   },
+   "sagres-zero-33": {
+    "fornecedor": "Paulino"
+   },
+   "sagres-preta-33": {
+    "fornecedor": "Paulino"
+   },
+   "bandida": {
+    "fornecedor": "Paulino"
+   },
+   "cerveja-2-clowns": {
+    "fornecedor": "Garrafeira",
+    "preco": 5.0,
+    "obs": ""
+   },
+   "praxis-imperial-stout": {
+    "fornecedor": "Garrafeira",
+    "preco": 1.9,
+    "obs": ""
+   },
+   "praxis-encruzado-grape-ale": {
+    "fornecedor": "Garrafeira",
+    "preco": 6.0,
+    "obs": ""
+   },
+   "sumol-laranja": {
+    "fornecedor": "Paulino"
+   },
+   "sumol-ananas": {
+    "fornecedor": "Paulino"
+   },
+   "why-not-cola": {
+    "fornecedor": "Delta"
+   },
+   "why-not-roma-pepino": {
+    "fornecedor": "Delta"
+   },
+   "why-not-limao": {
+    "fornecedor": "Delta"
+   },
+   "why-not-framboesa": {
+    "fornecedor": "Delta"
+   },
+   "why-not-pessego": {
+    "fornecedor": "Delta"
+   },
+   "tonica-fever-tree": {
+    "fornecedor": "Makro"
+   },
+   "tonica-litro": {
+    "fornecedor": "Paulino"
+   },
+   "ginger-beer": {
+    "fornecedor": "Makro"
+   },
+   "agua-pedras": {
+    "fornecedor": "Paulino"
+   },
+   "pedras-limao": {
+    "fornecedor": "Paulino"
+   },
+   "pedras-framboesa": {
+    "fornecedor": "Paulino"
+   },
+   "pedras-tangerina": {
+    "fornecedor": "Paulino"
+   },
+   "compal": {
+    "fornecedor": "Paulino"
+   },
+   "compal-laranja-algarve": {
+    "fornecedor": "Paulino"
+   },
+   "compal-pera-rocha": {
+    "fornecedor": "Paulino"
+   },
+   "agua-luso-1l": {
+    "fornecedor": "Paulino",
+    "preco": 0.5,
+    "obs": ""
+   },
+   "t-bone": {
+    "preco": 21.0,
+    "semanal": false,
+    "obs": ""
+   },
+   "entrecote": {
+    "preco": 23.0,
+    "obs": ""
+   },
+   "presa-de-porco-preto": {
+    "preco": 27.0,
+    "obs": ""
+   },
+   "lombinhos-de-porco": {
+    "preco": 8.5,
+    "obs": "Já se pediu 5"
+   },
+   "lombelos": {
+    "preco": 14.0,
+    "obs": ""
+   },
+   "costeletao": {
+    "preco": 21.0,
+    "precoUnidade": "kg",
+    "obs": "Já se pediu 8"
+   },
+   "pa-de-porco-desossada": {
+    "preco": 6.0,
+    "precoUnidade": "kg",
+    "obs": ""
+   },
+   "barriga-de-porco": {
+    "semanal": false
+   },
+   "banha-de-porco": {
+    "semanal": false
+   },
+   "frutos-vermelhos": {
+    "semanal": false
+   },
+   "pure-de-abacate": {
+    "semanal": false
+   },
+   "castanhas": {
+    "habitual": 2.5,
+    "fornecedor": "Makro"
+   },
+   "coco-ralado": {
+    "semanal": false
+   },
+   "gelado-cosi": {
+    "semanal": true
+   },
+   "gelado-de-hibisco": {
+    "preco": 15.0,
+    "precoUnidade": "L",
+    "obs": ""
+   },
+   "gelado-de-maca-assada": {
+    "preco": 15.0,
+    "obs": ""
+   },
+   "philadelphia": {
+    "semanal": false
+   },
+   "ovos": {
+    "preco": 12.0,
+    "precoUnidade": "caixa"
+   },
+   "luvas-de-latex": {
+    "semanal": false
+   },
+   "sacos-de-pasteleiro": {
+    "semanal": false
+   },
+   "grao-de-bico": {
+    "semanal": false
+   },
+   "mel": {
+    "semanal": false
+   },
+   "leite-de-coco-lata": {
+    "semanal": false
+   },
+   "vinagre-balsamico": {
+    "semanal": false
+   },
+   "brioche-bun": {
+    "fornecedor": "Jovial"
+   },
+   "pao-da-avo": {
+    "preco": 2.4,
+    "obs": "Por vezes 10"
+   },
+   "pao-sem-gluten": {
+    "fornecedor": "Makro"
+   },
+   "wraps": {
+    "semanal": false
+   },
+   "massa-quebrada": {
+    "fornecedor": "Makro"
+   },
+   "polvo": {
+    "semanal": false
+   },
+   "chocos": {
+    "semanal": false
+   },
+   "camarao": {
+    "semanal": false
+   },
+   "flor-de-sal": {
+    "fornecedor": "Makro"
+   },
+   "sal-grosso": {
+    "fornecedor": "Makro"
+   },
+   "sal-fino": {
+    "fornecedor": "Makro"
+   },
+   "gengibre-em-po": {
+    "semanal": false
+   },
+   "cominhos": {
+    "semanal": false
+   }
+  },
+  "apagar": []
  }
 ];
