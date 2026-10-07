@@ -1966,5 +1966,15 @@ window.MIGRACOES = [
    "vinho-silica-super-reserva-bdn",
    "vinho-mm-baga"
   ]
+ },
+ {
+  "id": "2026-10-07-pa-de-porco",
+  "atualizar": {
+   "pa-de-porco-desossada": {
+    "preco": 19.6,
+    "precoUnidade": "un",
+    "obs": "5,60 €/kg; cada peça tem 3 a 4 kg (custo calculado com 3,5 kg)."
+   }
+  }
  }
 ];
