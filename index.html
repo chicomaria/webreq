@@ -704,6 +704,12 @@ const fileDownloads = {
           const p = S.produtos.get(id);
           if (p && Number(p.preco) === x.se && (p.precoUnidade || "") === x.seUn) await S.db.collection("produtos").doc(id).update(x.set);
         }
+        // updates from the spreadsheet the team filled in: overwrite these fields, keep order counts
+        for (const [id, d] of Object.entries(m.atualizar || {})) {
+          if (S.produtos.has(id)) await S.db.collection("produtos").doc(id).update(d);
+          else await S.db.collection("produtos").doc(id).set(d);
+        }
+        for (const id of m.apagar || []) if (S.produtos.has(id)) await S.db.collection("produtos").doc(id).delete();
         feitas.add(m.id);
         await S.db.doc("config/migracoes").set({ feitas: [...feitas] });
       }
