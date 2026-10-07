@@ -1,0 +1,357 @@
+<!doctype html>
+<html lang="pt" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#e9e8e4">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Source+Sans+3:wght@400;600;700&family=IBM+Plex+Mono:wght@500&family=EB+Garamond:wght@700&family=News+Cycle:wght@400;700&family=Oswald:wght@300;400;500;700&family=Homemade+Apple&family=UnifrakturMaguntia&family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Lexend:wght@300&display=swap">
+<link rel="stylesheet" href="base.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="db.js"></script>
+<script src="ui.js"></script>
+<script src="dados.js"></script>
+<script src="carta-dados.js"></script>
+<script src="painel.js"></script>
+<title>Carta · Chico Maria</title>
+<style>
+/* The menu itself: black on white like the printed carta, whatever the phone's theme. */
+body { background: #e9e8e4; color: #111; }
+.barra { position: sticky; top: 0; z-index: 20; background: #e9e8e4; border-bottom: 1px solid #d3d1cb; }
+.barra .in { max-width: 1648px; margin: 0 auto; padding: 8px 16px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.barra h1 { font-family: var(--font-display); font-weight: 700; font-size: 19px; letter-spacing: .02em; margin: 0; text-transform: uppercase; }
+.barra h1 a { color: var(--accent); text-decoration: none; padding-right: 4px; }
+.barra .sub { color: var(--muted); font-size: 11px; flex: 1; min-width: 120px; }
+.barra .btn[aria-pressed="true"] { background: var(--accent); color: #fff; border-color: var(--accent); }
+.aviso-edit { max-width: 1648px; margin: 8px auto 0; padding: 0 16px; font-size: 13px; color: var(--muted); }
+.aviso-edit a { color: var(--accent); }
+
+.folha { background: #fff; width: calc(100% - 32px); max-width: 1600px; margin: 16px auto; padding: 26px 22px 22px; box-shadow: 0 1px 3px rgba(0,0,0,.12); display: grid; gap: 30px; grid-template-columns: 1fr; color: #111; }
+@media (min-width: 720px) { .folha { grid-template-columns: 1fr 1fr; } .folha .larga { grid-column: span 2; } }
+@media (min-width: 1140px) { .folha { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.col { min-width: 0; }
+
+h2.cab { font-family: "EB Garamond", Garamond, serif; font-weight: 700; font-size: 44px; line-height: 1; margin: 0 0 22px; letter-spacing: -.005em; }
+.f2 h2.cab { font-size: 30px; margin: 44px 0 22px; }
+.f2 .col:not(.coq):not(.jornal) { padding-top: 30px; }
+.f2 .col > h2.cab:first-child { margin-top: 12px; }
+.f2 .col h2.cab + .bebs { margin-top: -2px; }
+hr.duplo { border: 0; height: 9px; border-top: 3px solid #4a4a4a; border-bottom: 3px solid #4a4a4a; margin: 26px 0 30px; }
+
+/* dishes */
+.prato { margin-bottom: 22px; font-family: "News Cycle", "Arial Narrow", sans-serif; }
+.lin { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+.prato .nome { font-size: 31px; line-height: 1.08; letter-spacing: .01em; }
+.prato .desc { margin: 4px 0 0; font-size: 16px; line-height: 1.45; }
+.prato .lin > .pr.multi { margin-bottom: -44px; }
+.prato .lin:has(> .pr.multi) + .desc { margin-right: 52px; }
+.prato .alt { align-items: flex-end; }
+.prato .alt .desc { margin-top: 0; }
+.prato.destaque .nome { font-weight: 700; font-size: 31px; }
+.pr { font-family: "News Cycle", sans-serif; font-size: 23px; line-height: 1; white-space: nowrap; display: grid; justify-items: end; gap: 2px; padding-top: 4px; }
+.pr .p { display: inline-flex; align-items: center; gap: 2px; }
+.pr .p.pq { font-size: 17px; }
+.pr .sob { font-size: 13px; line-height: 1.05; text-align: right; }
+.pr svg { width: 14px; height: 14px; flex: none; }
+.pr svg.pax { width: auto; height: 16px; }
+.rodape { text-align: center; font-family: "News Cycle", sans-serif; font-size: 13px; line-height: 1.55; margin-top: 10px; }
+
+/* wines */
+.binho .grid { display: grid; gap: 0 30px; grid-template-columns: 1fr; }
+@media (min-width: 720px) { .binho .grid { grid-template-columns: 1fr 1fr; grid-template-areas: "esp ." "esq dir"; } .binho .esp { grid-area: esp; } .binho .esq { grid-area: esq; } .binho .dir { grid-area: dir; } }
+.binho h3 { font-family: "Oswald", sans-serif; font-weight: 500; font-size: 23px; margin: 0 0 6px; letter-spacing: .005em; }
+.binho .bloco { margin-bottom: 26px; }
+.nivel { font-family: "Homemade Apple", cursive; color: #a9a9a9; font-size: 12.5px; text-align: center; letter-spacing: .08em; margin: 6px 0 2px; }
+.vinho, .beb { font-family: "Oswald", "Arial Narrow", sans-serif; font-weight: 300; }
+.vinho { margin-bottom: 3px; }
+.vinho .lin, .beb .lin { align-items: baseline; }
+.vinho .nome { font-size: 22.5px; line-height: 1.02; }
+.vinho .preco, .beb .preco { font-size: 22px; white-space: nowrap; }
+.vinho .sub, .beb .sub { font-size: 9.5px; line-height: 1.15; }
+
+/* page 2: drinks */
+.beb { margin-bottom: 9px; }
+.beb .nome { font-size: 24px; line-height: 1.1; }
+.coq { background: repeating-linear-gradient(90deg, #dbe4f4 0 11px, transparent 11px 25px); padding: 70px 18px 30px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.coq h2.cab { font-size: 60px; text-align: center; margin: 24px 0 40px; background: linear-gradient(transparent 20%, rgba(255,255,255,.0)); }
+.coq .item { background: #fff; display: table; max-width: 100%; margin-bottom: 26px; padding-right: 6px; }
+.coq .item div { display: block; }
+.coq .nome { font-family: "Oswald", sans-serif; font-weight: 400; font-size: 34px; line-height: 1.12; text-transform: uppercase; }
+.coq .nota { font-family: "Oswald", sans-serif; font-weight: 300; font-size: 13px; line-height: 1.4; }
+.coq .nota strong { font-weight: 500; }
+.coq .preco { font-family: "Oswald", sans-serif; font-weight: 300; font-size: 22px; margin-left: 10px; }
+
+/* page 2: newspaper column */
+.jornal { font-family: "Lexend", sans-serif; }
+.mast { border-top: 1px solid #111; border-bottom: 3px double #111; }
+.mast .t { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; border-bottom: 1px solid #111; }
+.mast .t span, .mast .b span { font-family: "Playfair Display", serif; font-style: italic; font-weight: 700; font-size: 7px; letter-spacing: .14em; text-transform: uppercase; text-align: center; }
+.mast .t .logo { font-style: normal; letter-spacing: 0; text-transform: none; font-weight: 400; font-family: "UnifrakturMaguntia", serif; font-size: 32px; padding: 6px 18px; border-left: 1px solid #111; border-right: 1px solid #111; text-align: center; white-space: nowrap; }
+.mast .b { display: grid; grid-template-columns: 1fr 3fr 1fr; align-items: center; padding: 6px 0 4px; }
+.aviso { font-family: "Oswald", sans-serif; font-weight: 700; font-size: 13px; line-height: 1.1; text-transform: uppercase; text-align: center; margin: 40px auto 0; max-width: 300px; }
+.aviso::after { content: ""; display: block; width: 70%; height: 4px; margin: 3px auto 0; border-top: 1px solid #111; border-bottom: 1px solid #111; }
+.jornal h2.tit { font-family: "Playfair Display", serif; font-weight: 900; font-size: 44px; line-height: 1; text-transform: uppercase; text-align: center; letter-spacing: -.02em; margin: 14px 0 26px; }
+.texto { columns: 2; column-gap: 18px; font-size: 12px; line-height: 1.5; }
+.texto p { margin: 0 0 10px; }
+.texto p:first-child::first-letter { float: left; background: #111; color: #fff; font-family: "UnifrakturMaguntia", serif; font-size: 15px; line-height: 1; padding: 6px 6px; margin: 2px 7px 0 0; }
+.ilus { margin-top: 40px; }
+.ilus img { width: 100%; display: block; }
+.ilus figcaption { font-family: "Playfair Display", serif; font-style: italic; font-size: 11.5px; text-align: right; margin-top: 4px; }
+
+.vazio { color: #888; font-family: var(--font-body); font-size: 14px; }
+/* edit mode: drinks open a form, dishes and wines go to their own page */
+.editar .ed { cursor: pointer; outline: 1px dashed #b8b8b8; outline-offset: 2px; }
+.editar .ed:hover { background: #f4f6fc; }
+.mais { display: none; font-family: var(--font-body); font-size: 12px; margin: 0 0 10px; }
+.editar .mais { display: inline-flex; }
+
+@media (max-width: 719px) {
+  h2.cab { font-size: 38px; }
+  .coq { padding-top: 24px; }
+  .coq h2.cab { font-size: 46px; }
+  .jornal h2.tit { font-size: 36px; white-space: normal; }
+  .texto { columns: 1; font-size: 13px; }
+}
+
+/* Printing gives two A4 landscape pages, like the PDF: each sheet is laid out 1950 px wide and scaled to the page. */
+@page { size: A4 landscape; margin: 0; }
+@media print {
+  body { background: #fff; }
+  .barra, .aviso-edit, .mais { display: none !important; }
+  .folha { width: 1950px; max-width: none; height: 1380px; margin: 0; zoom: .575; box-shadow: none; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 44px; overflow: hidden; break-after: page; padding: 14px 22px 10px; }
+  .folha:last-of-type { break-after: auto; }
+  .binho .grid { grid-template-columns: 1fr 1fr; grid-template-areas: "esp ." "esq dir"; }
+  .folha .larga { grid-column: span 2; }
+  .jornal h2.tit { white-space: nowrap; }
+  .texto { text-align: justify; hyphens: auto; }
+  .editar .ed { outline: 0; }
+}
+</style>
+</head>
+<body>
+<div class="barra"><div class="in">
+  <h1><a href="./" aria-label="Início">‹</a> Carta</h1>
+  <span class="sub" id="sub">A ligar…</span>
+  <button type="button" class="btn" id="b-textos" hidden>Textos</button>
+  <button type="button" class="btn" id="b-editar" aria-pressed="false">Editar</button>
+  <button type="button" class="btn" id="b-imprimir">Imprimir</button>
+</div></div>
+<p class="aviso-edit" id="aviso-edit" hidden>Toque numa bebida para a mudar. Os pratos mudam-se no <a href="manual.html">Manual de pratos</a> (só entram os marcados “na carta”) e os vinhos no <a href="vinhos.html">Mapa de vinhos</a>.</p>
+<main id="main"></main>
+<script>
+(async () => {
+  const SEC_PRATOS = [["Sustento", "Paparicos"], ["Comedeirices", "Lambarices"]];
+  const SEC_BEB = [["Gin", "Espirituosas", "Cerveja"], ["Laranjadas caseiras", "Bicas", "Pingas sem álcool"]];
+  const NIVEIS = [["leve", "Leves e entusiásticos"], ["medio", "Versáteis e curiosos"], ["serio", "Sérios e complexos"]];
+  // words marked in bold as allergens when a description has no **bold** of its own
+  const ALERG = /(?<!\p{L})(pão|manteiga|tremoço|amêndoas?|nozes|queijo fresco|queijos?|berbigão|maionese|gema|ovos?|nata|leite)(?!\p{L})/giu;
+  const S = { db: null, pratos: null, vinhos: null, bebidas: null, cfg: null, editar: false };
+
+  const ordem = (a, b) => (a.ordem ?? 1e9) - (b.ordem ?? 1e9) || String(a.nome || "").localeCompare(String(b.nome || ""), "pt");
+  const fmt = (v) => typeof v === "number" ? v.toLocaleString("pt-PT", { maximumFractionDigits: 2 }) : String(v).trim().replace(/(\d)\.(\d)/, "$1,$2");
+  const NS = "http://www.w3.org/2000/svg";
+  function svg(cls, w, paths) {
+    const s = document.createElementNS(NS, "svg"); s.setAttribute("viewBox", "0 0 " + w + " 16"); s.setAttribute("class", cls); s.setAttribute("aria-hidden", "true");
+    for (const d of paths) { const p = document.createElementNS(NS, "path"); p.setAttribute("d", d); p.setAttribute("fill", "currentColor"); s.append(p); }
+    return s;
+  }
+  const folha = () => svg("veg", 16, ["M8 1.2a6.8 6.8 0 1 0 0 13.6A6.8 6.8 0 0 0 8 1.2zm0 1.5a5.3 5.3 0 0 1 2.9.9C7 4.4 4.6 7.4 4.4 11.6A5.3 5.3 0 0 1 8 2.7zm3.9 1.7a5.3 5.3 0 0 1-5.9 8.7c.3-2.6 1.8-5.3 4.3-7.1-1.6 2.1-2.5 4.2-2.7 6.3 2.5-1.6 3.9-4.6 4.3-7.9z"]);
+  const pessoa = (n) => svg("pax", 6 * n, Array.from({ length: n }, (_, i) => { const x = i * 6; return `M${x + 3} 1.2a1.7 1.7 0 1 1 0 3.4a1.7 1.7 0 0 1 0-3.4zM${x + 1} 5.4h4l.5 5.4h-1.2l-.3 4h-2l-.3-4H${x + 0.5}z`; }));
+  const veg = (dieta) => /^\s*(vegan|vegetarian)/i.test(dieta || "");
+
+  // text with **bold**; in dish descriptions the allergen words are bolded when nothing is marked
+  function rico(txt, auto) {
+    txt = String(txt || "");
+    const out = [];
+    if (/\*\*/.test(txt) || !auto) {
+      txt.split(/\*\*/).forEach((part, i) => { if (part) out.push(i % 2 ? h("strong", {}, part) : part); });
+      return out;
+    }
+    let last = 0;
+    for (const m of txt.matchAll(ALERG)) { out.push(txt.slice(last, m.index), h("strong", {}, m[0])); last = m.index + m[0].length; }
+    out.push(txt.slice(last));
+    return out;
+  }
+
+  // "6,5", 18, "Sob consulta", "22 (1 pax) · 38 (2 pax) · 18 vegano"
+  function precos(p, ehVeg) {
+    if (p == null || p === "") return null;
+    if (typeof p === "string" && /consulta/i.test(p)) return h("span", { class: "pr" }, h("span", { class: "sob" }, "sob", h("br"), "consulta"));
+    const partes = (typeof p === "number" ? [String(p)] : String(p).split(/·|\|/)).map((s) => {
+      const m = s.match(/\d+(?:[.,]\d+)?/), pax = s.match(/(\d)\s*pax/i);
+      return { v: m ? fmt(m[0]) : s.trim(), pax: pax ? Number(pax[1]) : 0, veg: /vegan|vegetarian/i.test(s) };
+    }).filter((x) => x.v);
+    if (partes.length > 1) partes.sort((a, b) => (a.veg - b.veg) || (b.pax - a.pax));
+    return h("span", { class: "pr" + (partes.length > 1 ? " multi" : "") }, partes.map((x, i) => h("span", { class: "p" + (i ? " pq" : "") },
+      x.pax ? pessoa(Math.min(x.pax, 4)) : null, x.veg || (ehVeg && partes.length === 1) ? folha() : null, x.v)));
+  }
+
+  function prato(p) {
+    let desc = String(p.curta || "").trim(), alt = null;
+    // "… Versão vegetariana com cogumelos (6 €)" becomes its own line with its own price
+    const m = desc.match(/^(.*?)[.;]\s*((?:Versão|Opção)\s+veg[^()]*?)\s*\((\d+(?:[.,]\d+)?)\s*€\)\.?$/i);
+    if (m) { desc = m[1]; alt = { txt: m[2], preco: m[3] }; }
+    const el = h("div", { class: "prato ed" + (/trilogia/i.test(p.nome) ? " destaque" : ""), onclick: () => { if (S.editar) location.href = "manual.html"; } },
+      h("div", { class: "lin" }, h("span", { class: "nome" }, p.nome), precos(p.preco, veg(p.dieta))),
+      desc ? h("p", { class: "desc" }, rico(desc, true)) : null,
+      alt ? h("div", { class: "lin alt" }, h("p", { class: "desc" }, rico(alt.txt, true)), h("span", { class: "pr" }, h("span", { class: "p pq" }, folha(), fmt(alt.preco)))) : null);
+    return el;
+  }
+
+  function colPratos(secs, extra) {
+    const col = h("div", { class: "col" });
+    secs.forEach((sec, i) => {
+      const lista = S.pratos.filter((p) => p.carta && p.seccao === sec).sort(ordem);
+      if (i) col.append(h("hr", { class: "duplo" }));
+      col.append(h("h2", { class: "cab" }, sec), ...(lista.length ? lista.map(prato) : [h("p", { class: "vazio" }, "Sem pratos na carta.")]));
+    });
+    if (extra) col.append(extra);
+    return col;
+  }
+
+  function vinho(v) {
+    const sub = [v.regiao, v.castas].filter(Boolean).join(" | ") + (v.formato ? ", " + v.formato : "");
+    const preco = v.pvp ?? v.pvpCopo;
+    return h("div", { class: "vinho ed", onclick: () => { if (S.editar) location.href = "vinhos.html"; } },
+      h("div", { class: "lin" }, h("span", { class: "nome" }, v.nome), preco != null ? h("span", { class: "preco" }, fmt(preco)) : null),
+      sub ? h("div", { class: "sub" }, sub) : null);
+  }
+  function blocoVinhos(tipo, titulo, porNivel) {
+    const lista = S.vinhos.filter((v) => v.naCarta && v.tipo === tipo).sort(ordem);
+    if (!lista.length) return null;
+    const b = h("div", { class: "bloco" }, h("h3", {}, titulo));
+    if (!porNivel) { b.append(...lista.map(vinho)); return b; }
+    for (const [n, lab] of NIVEIS) {
+      const sub = lista.filter((v) => v.nivel === n);
+      if (sub.length) b.append(h("div", { class: "nivel" }, lab), ...sub.map(vinho));
+    }
+    const resto = lista.filter((v) => !NIVEIS.some(([n]) => n === v.nivel));
+    b.append(...resto.map(vinho));
+    return b;
+  }
+
+  function beb(b) {
+    return h("div", { class: "beb ed", onclick: () => editarBebida(b) },
+      h("div", { class: "lin" }, h("span", { class: "nome" }, b.nome), b.preco != null && b.preco !== "" ? h("span", { class: "preco" }, fmt(b.preco)) : null),
+      b.nota ? h("div", { class: "sub" }, rico(b.nota)) : null,
+      b.nota2 ? h("div", { class: "sub" }, rico(b.nota2)) : null);
+  }
+  const daCarta = (sec) => S.bebidas.filter((b) => b.naCarta !== false && b.seccao === sec).sort(ordem);
+  function colBebidas(secs) {
+    const col = h("div", { class: "col" });
+    for (const sec of secs) {
+      const lista = daCarta(sec);
+      col.append(h("h2", { class: "cab" }, sec), h("button", { type: "button", class: "btn mais", onclick: () => editarBebida({ seccao: sec }) }, "+ " + sec), h("div", { class: "bebs" }, lista.map(beb)));
+    }
+    return col;
+  }
+
+  function render() {
+    const m = $("main"); m.replaceChildren();
+    document.body.classList.toggle("editar", S.editar);
+    $("b-editar").setAttribute("aria-pressed", String(S.editar));
+    $("b-textos").hidden = !S.editar; $("aviso-edit").hidden = !S.editar;
+    if (!S.db || !S.pratos || !S.vinhos || !S.bebidas || !S.cfg) {
+      m.append(h("div", { class: "folha" }, h("p", { class: "vazio" }, S.db === false ? "Sem ligação à base de dados." : "A carregar a carta…")));
+      return;
+    }
+    const c = S.cfg;
+    // page 1: food and wine
+    const conhecidas = SEC_PRATOS.flat();
+    const outras = [...new Set(S.pratos.filter((p) => p.carta && p.seccao && !conhecidas.includes(p.seccao)).map((p) => p.seccao))];
+    const rodape = c.rodape ? h("div", { class: "rodape" }, String(c.rodape).split("\n").map((l, i) => [i ? h("br") : null, rico(l)])) : null;
+    const binho = h("div", { class: "col larga binho" }, h("h2", { class: "cab" }, "Binho"),
+      h("div", { class: "grid" },
+        h("div", { class: "esp" }, blocoVinhos("espumante", "Espumantes")),
+        h("div", { class: "esq" }, blocoVinhos("branco", "Branco", true), blocoVinhos("rose", "Rosé")),
+        h("div", { class: "dir" }, blocoVinhos("tinto", "Tinto", true), blocoVinhos("sobremesa", "Sobremesa"))));
+    m.append(h("section", { class: "folha f1", "aria-label": "Comida e vinho" },
+      colPratos(SEC_PRATOS[0]), colPratos(SEC_PRATOS[1].concat(outras), rodape), binho));
+
+    // page 2: drinks, cocktails and the house text
+    const beConhecidas = SEC_BEB.flat().concat("Coquetéis");
+    const beOutras = [...new Set(S.bebidas.filter((b) => b.naCarta !== false && b.seccao && !beConhecidas.includes(b.seccao)).map((b) => b.seccao))];
+    const coq = h("div", { class: "col coq" }, h("h2", { class: "cab" }, "Coquetéis"),
+      h("button", { type: "button", class: "btn mais", onclick: () => editarBebida({ seccao: "Coquetéis" }) }, "+ Coquetéis"),
+      daCarta("Coquetéis").map((b) => h("div", { class: "item ed", onclick: () => editarBebida(b) },
+        h("div", {}, h("span", { class: "nome" }, b.nome), b.preco != null && b.preco !== "" ? h("span", { class: "preco" }, fmt(b.preco)) : null),
+        b.nota ? h("div", { class: "nota" }, rico(b.nota)) : null, b.nota2 ? h("div", { class: "nota" }, rico(b.nota2)) : null)));
+    const paras = String(c.texto || "").split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
+    const jornal = h("div", { class: "col jornal" },
+      h("div", { class: "mast" },
+        h("div", { class: "t" }, h("span", {}, c.desde || ""), h("span", { class: "logo" }, "Chico Maria"), h("span", {}, c.local || "")),
+        h("div", { class: "b" }, h("span", {}, c.volume || ""), h("span", {}, c.lema ? "✺  " + c.lema + "  ✺" : ""), h("span"))),
+      c.aviso ? h("div", { class: "aviso" }, c.aviso) : null,
+      c.titulo ? h("h2", { class: "tit" }, c.titulo) : null,
+      h("div", { class: "texto" }, paras.map((p) => h("p", {}, rico(p)))),
+      h("figure", { class: "ilus", style: "margin-left:0;margin-right:0" }, h("img", { src: "carta-patarra.jpg", alt: "Quatro cartazes ilustrados a preto e branco com o Chico Maria" }),
+        c.legenda ? h("figcaption", {}, c.legenda) : null));
+    m.append(h("section", { class: "folha f2", "aria-label": "Bebidas" }, colBebidas(SEC_BEB[0]), colBebidas(SEC_BEB[1].concat(beOutras)), coq, jornal));
+  }
+  const pedir = agendar(render);
+
+  function editarBebida(b) {
+    if (!S.editar) return;
+    const novo = !b.id;
+    const secs = [...new Set(SEC_BEB.flat().concat("Coquetéis", S.bebidas.map((x) => x.seccao).filter(Boolean)))];
+    document.getElementById("dl-sec") || document.body.append(h("datalist", { id: "dl-sec" }, secs.map((s) => h("option", { value: s }))));
+    abrirEditor({
+      titulo: novo ? "Nova bebida" : b.nome,
+      dados: { naCarta: true, ...b, preco: b.preco == null ? "" : fmt(b.preco) },
+      campos: [
+        { k: "nome", label: "Nome" },
+        { k: "seccao", label: "Secção", lista: "dl-sec" },
+        { k: "preco", label: "Preço (€)", dica: "Só o número, ou vazio" },
+        { k: "nota", label: "Linha pequena", dica: "Ex.: sabores ou ingredientes. **assim** fica a negrito" },
+        { k: "nota2", label: "Segunda linha (coquetéis)" },
+        { k: "ordem", label: "Ordem", tipo: "number", dica: "Números mais baixos aparecem primeiro" },
+        { k: "naCarta", label: "Aparece na carta", tipo: "check" },
+      ],
+      guardar: async (o) => {
+        const preco = num(o.preco);
+        const data = { ...b, ...o, preco: preco ?? (o.preco || null) };
+        delete data.id;
+        if (data.ordem == null) data.ordem = Math.max(0, ...S.bebidas.filter((x) => x.seccao === data.seccao).map((x) => x.ordem || 0)) + 10;
+        if (novo) await S.db.collection("bebidas").add(data); else await S.db.collection("bebidas").doc(b.id).set(data);
+      },
+      apagar: novo ? null : () => S.db.collection("bebidas").doc(b.id).delete(),
+    });
+  }
+
+  function editarTextos() {
+    abrirEditor({
+      titulo: "Textos da carta",
+      dados: S.cfg,
+      campos: [
+        { k: "titulo", label: "Título" },
+        { k: "aviso", label: "Aviso por cima do título" },
+        { k: "texto", label: "Texto", tipo: "textarea", rows: 14, dica: "Uma linha em branco separa parágrafos" },
+        { k: "desde", label: "Cabeçalho, esquerda" },
+        { k: "local", label: "Cabeçalho, direita" },
+        { k: "volume", label: "Volume" },
+        { k: "lema", label: "Lema" },
+        { k: "legenda", label: "Legenda das ilustrações" },
+        { k: "rodape", label: "Nota dos alergénios (folha 1)", tipo: "textarea", rows: 3 },
+      ],
+      guardar: (o) => S.db.doc("config/carta").set({ ...S.cfg, ...o }),
+    });
+  }
+
+  $("b-editar").onclick = () => { S.editar = !S.editar; render(); };
+  $("b-textos").onclick = editarTextos;
+  $("b-imprimir").onclick = () => window.print();
+  render();
+
+  const db = await abrirPainel();
+  if (!db) { S.db = false; render(); return; }
+  S.db = db;
+  $("sub").textContent = "Atualiza sozinha com o manual de pratos e o mapa de vinhos";
+  const lista = (col, key) => db.collection(col).onSnapshot((snap) => { S[key] = snap.docs.map((d) => ({ id: d.id, ...d.data() })); pedir(); });
+  lista("pratos", "pratos"); lista("vinhos", "vinhos"); lista("bebidas", "bebidas");
+  db.doc("config/carta").onSnapshot((s) => { S.cfg = s.exists ? s.data() : {}; pedir(); });
+})();
+</script>
+</body>
+</html>
