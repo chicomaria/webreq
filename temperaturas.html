@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#eef1ee">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Source+Sans+3:wght@400;600;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="base.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="db.js"></script>
+<script src="ui.js"></script>
+<title>Temperaturas · Chico Maria</title>
+<style>
+.frios { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 12px; }
+@media (min-width: 640px) { .frios { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+button.frio { text-align: left; padding: 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--paper); display: grid; gap: 2px; }
+button.frio .t { font-family: var(--font-display); font-weight: 700; font-size: 15px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+button.frio .v { font-family: var(--font-mono); font-size: 28px; }
+button.frio .w { font-size: 12px; color: var(--muted); }
+button.frio.hoje { border-color: var(--ok); }
+button.frio.hoje .w { color: var(--ok); font-weight: 600; }
+.big { display: flex; align-items: center; gap: 8px; justify-content: center; margin: 6px 0; }
+.big input { width: 140px; text-align: center; font-family: var(--font-mono); font-size: 34px; padding: 8px; border: 1px solid var(--line); border-radius: 10px; background: var(--paper); }
+.big button { width: 52px; height: 52px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); font-size: 22px; font-weight: 700; }
+.big .u { font-size: 20px; color: var(--muted); }
+.panel h3 { margin: 0; font-family: var(--font-display); font-size: 22px; text-transform: uppercase; letter-spacing: .04em; }
+ul.today { list-style: none; margin: 4px 0 0; padding: 0; font-size: 14px; }
+ul.today li { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 4px 0; border-top: 1px solid var(--line); }
+ul.today .btn { padding: 3px 8px; font-size: 12px; }
+table.mat td.n { font-size: 13px; }
+table.mat td.n small { display: block; color: var(--muted); font-size: 10px; font-family: var(--font-body); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand"><h1><a href="./" class="home" aria-label="Início">‹</a> Temperaturas</h1><span class="sub" id="sub">A ligar…</span></div>
+    <nav class="tabs" role="tablist">
+      <button role="tab" data-tab="reg" aria-selected="true">Registar</button>
+      <button role="tab" data-tab="his" aria-selected="false">Histórico</button>
+    </nav>
+  </header>
+  <main id="main"></main>
+</div>
+<script>
+(() => {
+  const FRIOS = [1, 2, 3, 4, 5, 6];
+  const S = { db: null, loaded: false, regs: [], tab: "reg", mes: mesKey(new Date().toISOString()) };
+  const fmtT = (t) => Number(t).toLocaleString("pt-PT", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  try { const t = localStorage.getItem("tmp-tab"); if (t) S.tab = t; } catch (e) {}
+  document.querySelectorAll("nav.tabs button").forEach((b) => b.addEventListener("click", () => { S.tab = b.dataset.tab; try { localStorage.setItem("tmp-tab", S.tab); } catch (e) {} render(); }));
+
+  function render() {
+    document.querySelectorAll("nav.tabs button").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.tab === S.tab)));
+    const m = $("main"); m.replaceChildren();
+    if (!S.db) { m.append(h("div", { class: "empty" }, h("strong", { text: "Sem ligação à base de dados" }), "Verifique a internet e recarregue a página.")); return; }
+    if (!S.loaded) { m.append(h("div", { class: "empty" }, h("strong", { text: "A carregar…" }))); return; }
+    m.append(S.tab === "reg" ? viewReg() : viewHis());
+  }
+
+  function ultimo(frio) { let u = null; for (const r of S.regs) if (r.frio === frio && (!u || r.em > u.em)) u = r; return u; }
+  function quando(iso) {
+    const hoje = diaKey(new Date().toISOString()), d = diaKey(iso);
+    if (d === hoje) return "hoje às " + hora(iso);
+    const ontem = diaKey(new Date(Date.now() - 864e5).toISOString());
+    return (d === ontem ? "ontem às " : fmtDia(d) + " às ") + hora(iso);
+  }
+  function viewReg() {
+    const frag = document.createDocumentFragment();
+    const hoje = diaKey(new Date().toISOString());
+    const feitos = FRIOS.filter((f) => S.regs.some((r) => r.frio === f && diaKey(r.em) === hoje)).length;
+    frag.append(h("p", { class: "note", text: feitos + " de 6 frios registados hoje. Toque num frio para registar a temperatura." }));
+    frag.append(h("div", { class: "frios" }, FRIOS.map((f) => {
+      const u = ultimo(f), isHoje = u && diaKey(u.em) === hoje;
+      return h("button", { type: "button", class: "frio" + (isHoje ? " hoje" : ""), onclick: () => registar(f) },
+        h("span", { class: "t", text: "Frio " + f }),
+        h("span", { class: "v", text: u ? fmtT(u.temp) + " °C" : "—" }),
+        h("span", { class: "w", text: u ? quando(u.em) : "sem registos" }));
+    })));
+    return frag;
+  }
+  function registar(frio) {
+    const u = ultimo(frio);
+    const inp = h("input", { type: "text", inputmode: "decimal", "aria-label": "Temperatura do frio " + frio, value: u ? fmtT(u.temp) : "" });
+    const val = () => { const s = inp.value.trim().replace(",", ".").replace("−", "-"); return s === "" ? NaN : Number(s); };
+    const step = (d) => { const v = isNaN(val()) ? (u ? u.temp : 0) : val(); inp.value = fmtT(Math.round((v + d) * 10) / 10); };
+    const err = h("p", { class: "note", style: "color:var(--warn)" }); err.hidden = true;
+    const ok = h("button", { type: "submit", class: "btn primary" }, "Registar");
+    const hoje = diaKey(new Date().toISOString());
+    const deHoje = S.regs.filter((r) => r.frio === frio && diaKey(r.em) === hoje).sort((a, b) => b.em.localeCompare(a.em));
+    const list = deHoje.length ? h("div", {}, h("p", { class: "note", text: "Registos de hoje" }), h("ul", { class: "today" }, deHoje.map((r) =>
+      h("li", {}, h("span", {}, hora(r.em) + "  ", h("strong", { text: fmtT(r.temp) + " °C" })), confirmBtn("Apagar", "Tocar de novo", () => S.db.collection("temperaturas").doc(r.id).delete().then(() => { toast("Registo apagado"); ov.remove(); }).catch(() => toast("Não foi possível apagar."))))))) : null;
+    const form = h("form", { class: "form" },
+      h("h3", { text: "Frio " + frio }),
+      h("div", { class: "big" }, h("button", { type: "button", "aria-label": "Menos 0,1", onclick: () => step(-0.1) }, "−"), inp, h("span", { class: "u", text: "°C" }), h("button", { type: "button", "aria-label": "Mais 0,1", onclick: () => step(0.1) }, "+")),
+      err, h("div", { class: "row-actions" }, h("button", { type: "button", class: "btn", onclick: () => ov.remove() }, "Cancelar"), ok), list);
+    form.addEventListener("submit", async (ev) => {
+      ev.preventDefault();
+      const t = Math.round(val() * 10) / 10;
+      if (isNaN(t) || t < -40 || t > 40) { err.textContent = "Escreva a temperatura, por exemplo 3,5 ou -18,2."; err.hidden = false; return; }
+      ok.disabled = true;
+      const em = new Date().toISOString();
+      try { await S.db.collection("temperaturas").doc(newId()).set({ frio, temp: t, em, dia: diaKey(em), mes: mesKey(em) }); toast("Frio " + frio + ": " + fmtT(t) + " °C registado"); ov.remove(); }
+      catch (e) { ok.disabled = false; toast("Não foi possível guardar. Tente de novo."); }
+    });
+    const ov = h("div", { class: "overlay", onclick: (e) => { if (e.target === ov) ov.remove(); } }, h("div", { class: "panel", role: "dialog", "aria-modal": "true", "aria-label": "Registar frio " + frio }, form));
+    document.body.append(ov); inp.focus(); inp.select();
+  }
+
+  function viewHis() {
+    const frag = document.createDocumentFragment();
+    const meses = [...new Set([mesKey(new Date().toISOString()), ...S.regs.map((r) => r.mes || mesKey(r.em))])].sort().reverse();
+    if (!meses.includes(S.mes)) S.mes = meses[0];
+    const sel = h("select", { "aria-label": "Mês" }, meses.map((k) => h("option", { value: k, selected: k === S.mes }, fmtMes(k))));
+    sel.addEventListener("change", () => { S.mes = sel.value; render(); });
+    const regs = S.regs.filter((r) => (r.mes || mesKey(r.em)) === S.mes).sort((a, b) => a.em.localeCompare(b.em));
+    const csv = h("button", { class: "btn", disabled: !regs.length, onclick: () => downloadCsv("temperaturas-" + S.mes + ".csv", [["Data", "Hora", "Frio", "Temperatura (°C)"], ...regs.map((r) => [diaKey(r.em), hora(r.em), r.frio, String(r.temp).replace(".", ",")])]) }, "Descarregar (Excel)");
+    frag.append(h("div", { class: "tools" }, sel, csv));
+    if (!regs.length) { frag.append(h("div", { class: "card empty" }, h("strong", { text: "Sem registos neste mês" }))); return frag; }
+    const dias = [...new Set(regs.map((r) => diaKey(r.em)))].sort().reverse();
+    const tb = h("tbody");
+    for (const d of dias) {
+      tb.append(h("tr", {}, h("td", { text: fmtDia(d) }), FRIOS.map((f) => {
+        const rs = regs.filter((r) => r.frio === f && diaKey(r.em) === d);
+        return h("td", { class: "n" }, rs.length ? rs.map((r) => h("div", {}, fmtT(r.temp), h("small", { text: hora(r.em) }))) : "—");
+      })));
+    }
+    frag.append(h("div", { class: "card scroll" }, h("table", { class: "data mat" }, h("thead", {}, h("tr", {}, h("th", { text: "Dia" }), FRIOS.map((f) => h("th", { class: "n", text: "F" + f })))), tb)));
+    frag.append(h("p", { class: "note", text: regs.length + " registos em " + fmtMes(S.mes).toLowerCase() + ". Temperaturas em °C." }));
+    return frag;
+  }
+
+  render();
+  const db = openDb();
+  if (!db) { $("sub").textContent = "Sem ligação"; render(); return; }
+  S.db = db; $("sub").textContent = "6 frios";
+  let t; db.collection("temperaturas").onSnapshot((s) => { S.regs = s.docs.map((d) => ({ id: d.id, ...d.data() })); S.loaded = true; clearTimeout(t); t = setTimeout(() => { if (!document.querySelector(".overlay")) render(); }, 50); });
+})();
+</script>
+</body>
+</html>

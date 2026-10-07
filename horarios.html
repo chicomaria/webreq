@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#eef1ee">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Source+Sans+3:wght@400;600;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="base.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="db.js"></script>
+<script src="ui.js"></script>
+<title>Horários · Chico Maria</title>
+<style>
+.people { display: grid; gap: 8px; margin-top: 10px; }
+.person { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 12px; background: var(--paper); border: 1px solid var(--line); border-radius: 12px; }
+.person.in { border-color: var(--ok); background: var(--ok-soft); }
+.person .nm { font-family: var(--font-display); font-weight: 700; font-size: 22px; letter-spacing: .03em; text-transform: uppercase; }
+.person .st { font-size: 13px; color: var(--muted); }
+.person.in .st { color: var(--ok); font-weight: 600; }
+.clock { border: 0; border-radius: 10px; padding: 14px 14px; min-width: 132px; font-family: var(--font-display); font-weight: 700; font-size: 18px; letter-spacing: .04em; text-transform: uppercase; color: #fff; }
+.clock.in { background: var(--ok); }
+.clock.out { background: var(--warn); }
+.clock:disabled { opacity: .6; }
+.extra-tools { display: flex; gap: 6px; margin-top: 4px; }
+.extra-tools .btn { padding: 2px 8px; font-size: 12px; }
+.sum { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+.sum span { background: var(--paper); border: 1px solid var(--line); border-radius: 99px; padding: 4px 10px; font-size: 13px; }
+.sum b { font-family: var(--font-mono); font-weight: 500; }
+table.data tr.edit { cursor: pointer; }
+table.data td.open { color: var(--warn); font-weight: 600; }
+.panel h3 { margin: 0; font-family: var(--font-display); font-size: 22px; text-transform: uppercase; letter-spacing: .04em; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand"><h1><a href="./" class="home" aria-label="Início">‹</a> Horários</h1><span class="sub" id="sub">A ligar…</span></div>
+    <nav class="tabs" role="tablist">
+      <button role="tab" data-tab="picar" aria-selected="true">Entradas</button>
+      <button role="tab" data-tab="reg" aria-selected="false">Registos</button>
+      <button role="tab" data-tab="ext" aria-selected="false">Extras</button>
+    </nav>
+  </header>
+  <main id="main"></main>
+</div>
+<script>
+(() => {
+  const FIXOS = [["guilherme", "Guilherme"], ["tiago", "Tiago"], ["vanessa", "Vanessa"], ["francisco", "Francisco"]];
+  const S = { db: null, loaded: { eq: false, pic: false }, equipa: [], pics: [], tab: "picar", mes: mesKey(new Date().toISOString()), busy: new Set() };
+  try { const t = localStorage.getItem("hor-tab"); if (t) S.tab = t; } catch (e) {}
+  document.querySelectorAll("nav.tabs button").forEach((b) => b.addEventListener("click", () => { S.tab = b.dataset.tab; try { localStorage.setItem("hor-tab", S.tab); } catch (e) {} render(); }));
+  const fmtH = (min) => Math.floor(min / 60) + "h" + pad(Math.round(min % 60));
+
+  function render() {
+    document.querySelectorAll("nav.tabs button").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.tab === S.tab)));
+    const m = $("main"); m.replaceChildren();
+    if (!S.db) { m.append(h("div", { class: "empty" }, h("strong", { text: "Sem ligação à base de dados" }), "Verifique a internet e recarregue a página.")); return; }
+    if (!S.loaded.eq || !S.loaded.pic) { m.append(h("div", { class: "empty" }, h("strong", { text: "A carregar…" }))); return; }
+    m.append(S.tab === "picar" ? viewPicar() : viewRegistos(S.tab === "ext"));
+  }
+
+  // last clock event per person decides whether the button says ENTRADA or SAÍDA
+  function ultima(pid) { let u = null; for (const p of S.pics) if (p.pessoa === pid && (!u || p.em > u.em)) u = p; return u; }
+  const dentro = (pid) => { const u = ultima(pid); return !!u && u.tipo === "entrada"; };
+  function estado(pid) {
+    const u = ultima(pid); if (!u) return "Sem registos";
+    const hoje = diaKey(new Date().toISOString()), d = diaKey(u.em);
+    const q = d === hoje ? hora(u.em) : fmtDia(d) + " " + hora(u.em);
+    return u.tipo === "entrada" ? "Na casa desde " + q : "Saiu " + (d === hoje ? "às " : "") + q;
+  }
+  async function picar(p) {
+    if (S.busy.has(p.id)) return;
+    S.busy.add(p.id); render();
+    const tipo = dentro(p.id) ? "saida" : "entrada", em = new Date().toISOString();
+    try {
+      await S.db.collection("picagens").doc(newId()).set({ pessoa: p.id, nome: p.nome, extra: !!p.extra, tipo, em, dia: diaKey(em), mes: mesKey(em) });
+      toast((tipo === "entrada" ? "Entrada" : "Saída") + " de " + p.nome + " às " + hora(em));
+    } catch (e) { toast("Não foi possível registar. Tente de novo."); }
+    setTimeout(() => { S.busy.delete(p.id); render(); }, 1500);
+  }
+  function personCard(p) {
+    const inn = dentro(p.id);
+    const extraTools = p.extra && !inn ? h("div", { class: "extra-tools" }, confirmBtn("Retirar da lista", "Tocar de novo", () => S.db.collection("equipa").doc(p.id).update({ ativo: false }).then(() => toast(p.nome + " saiu da lista. Os registos ficam guardados.")))) : null;
+    return h("div", { class: "person" + (inn ? " in" : "") },
+      h("div", {}, h("div", { class: "nm", text: p.nome }), h("div", { class: "st", text: estado(p.id) }), extraTools),
+      h("button", { type: "button", class: "clock " + (inn ? "out" : "in"), disabled: S.busy.has(p.id), onclick: () => picar(p) }, inn ? "Dar saída" : "Dar entrada"));
+  }
+  function viewPicar() {
+    const frag = document.createDocumentFragment();
+    const fixos = S.equipa.filter((p) => !p.extra).sort((a, b) => (a.ordem || 0) - (b.ordem || 0));
+    const extras = S.equipa.filter((p) => p.extra && p.ativo !== false).sort((a, b) => a.nome.localeCompare(b.nome, "pt"));
+    frag.append(h("div", { class: "people" }, fixos.map(personCard)));
+    frag.append(h("h2", { class: "sec" }, "Extras", h("small", { text: extras.length ? extras.length + "" : "" })));
+    if (extras.length) frag.append(h("div", { class: "people" }, extras.map(personCard)));
+    frag.append(h("div", { class: "tools" }, h("button", { class: "btn primary", onclick: novoExtra }, "+ Adicionar extra")));
+    return frag;
+  }
+  function novoExtra() {
+    const inp = h("input", { id: "x-nome", autocomplete: "off", placeholder: "Nome" });
+    const err = h("p", { class: "note", style: "color:var(--warn)" }); err.hidden = true;
+    const form = h("form", { class: "form" }, h("h3", { text: "Novo extra" }), h("label", { for: "x-nome" }, "Nome do trabalhador", inp), err,
+      h("div", { class: "row-actions" }, h("button", { type: "button", class: "btn", onclick: () => ov.remove() }, "Cancelar"), h("button", { type: "submit", class: "btn primary" }, "Adicionar")));
+    form.addEventListener("submit", async (ev) => {
+      ev.preventDefault();
+      const nome = inp.value.trim().replace(/\s+/g, " ");
+      if (!nome) { err.textContent = "Escreva o nome."; err.hidden = false; return; }
+      const igual = S.equipa.find((p) => p.nome.toLowerCase() === nome.toLowerCase());
+      try {
+        if (igual && igual.extra) await S.db.collection("equipa").doc(igual.id).update({ ativo: true });
+        else if (igual) { err.textContent = nome + " já está na equipa."; err.hidden = false; return; }
+        else await S.db.collection("equipa").doc("extra-" + newId()).set({ nome, extra: true, ativo: true, criado: new Date().toISOString() });
+        toast(nome + " adicionado aos extras"); ov.remove();
+      } catch (e) { toast("Não foi possível guardar."); }
+    });
+    const ov = h("div", { class: "overlay", onclick: (e) => { if (e.target === ov) ov.remove(); } }, h("div", { class: "panel", role: "dialog", "aria-modal": "true", "aria-label": "Novo extra" }, form));
+    document.body.append(ov); inp.focus();
+  }
+
+  // pair each entrada with the next saída of the same person; a shift belongs to the day it started
+  function turnos(lista) {
+    const by = new Map(), out = [];
+    for (const p of [...lista].sort((a, b) => a.em.localeCompare(b.em))) { if (!by.has(p.pessoa)) by.set(p.pessoa, []); by.get(p.pessoa).push(p); }
+    for (const ps of by.values()) {
+      let open = null;
+      for (const p of ps) {
+        if (p.tipo === "entrada") { if (open) out.push({ ent: open }); open = p; }
+        else { out.push(open ? { ent: open, sai: p } : { sai: p }); open = null; }
+      }
+      if (open) out.push({ ent: open });
+    }
+    for (const t of out) { const r = t.ent || t.sai; t.pessoa = r.pessoa; t.nome = r.nome; t.extra = r.extra; t.dia = diaKey(r.em); t.mes = mesKey(r.em); t.min = t.ent && t.sai ? (new Date(t.sai.em) - new Date(t.ent.em)) / 60000 : null; }
+    return out.sort((a, b) => (b.dia.localeCompare(a.dia)) || ((a.ent || a.sai).em.localeCompare((b.ent || b.sai).em)));
+  }
+  function viewRegistos(soExtras) {
+    const frag = document.createDocumentFragment();
+    const base = S.pics.filter((p) => !!p.extra === soExtras);
+    const all = turnos(base);
+    const meses = [...new Set([mesKey(new Date().toISOString()), ...all.map((t) => t.mes)])].sort().reverse();
+    if (!meses.includes(S.mes)) S.mes = meses[0];
+    const sel = h("select", { "aria-label": "Mês" }, meses.map((k) => h("option", { value: k, selected: k === S.mes }, fmtMes(k))));
+    sel.addEventListener("change", () => { S.mes = sel.value; render(); });
+    const ts = all.filter((t) => t.mes === S.mes);
+    const csv = h("button", { class: "btn", disabled: !ts.length, onclick: () => downloadCsv((soExtras ? "horarios-extras-" : "horarios-") + S.mes + ".csv",
+      [["Data", "Nome", "Entrada", "Saída", "Horas"], ...[...ts].reverse().map((t) => [t.dia, t.nome, t.ent ? hora(t.ent.em) : "", t.sai ? hora(t.sai.em) : "", t.min != null ? (t.min / 60).toFixed(2).replace(".", ",") : ""])]) }, "Descarregar (Excel)");
+    frag.append(h("div", { class: "tools" }, sel, csv));
+    if (!ts.length) { frag.append(h("div", { class: "card empty" }, h("strong", { text: soExtras ? "Sem registos de extras neste mês" : "Sem registos neste mês" }), soExtras ? "Os extras dão entrada no separador Entradas." : "")); return frag; }
+    const tot = new Map(); for (const t of ts) if (t.min != null) tot.set(t.nome, (tot.get(t.nome) || 0) + t.min);
+    frag.append(h("div", { class: "sum" }, [...tot.entries()].sort((a, b) => a[0].localeCompare(b[0], "pt")).map(([n, m]) => h("span", {}, n + " ", h("b", { text: fmtH(m) })))));
+    const tb = h("tbody"); let dia = null;
+    for (const t of ts) {
+      if (t.dia !== dia) { dia = t.dia; tb.append(h("tr", { class: "day" }, h("td", { colspan: "4", text: fmtDia(dia) }))); }
+      tb.append(h("tr", { class: "edit", tabindex: "0", title: "Corrigir", onclick: () => corrigir(t), onkeydown: (e) => { if (e.key === "Enter") corrigir(t); } },
+        h("td", { text: t.nome }), h("td", { class: "n" + (t.ent ? "" : " open"), text: t.ent ? hora(t.ent.em) : "falta" }),
+        (() => { const naCasa = !t.sai && t.ent && t.ent === ultima(t.pessoa);
+          return h("td", { class: "n" + (t.sai || naCasa ? "" : " open"), style: naCasa ? "color:var(--ok)" : null, text: t.sai ? hora(t.sai.em) + (t.sai.dia !== t.dia ? " (+1)" : "") : (naCasa ? "na casa" : "falta") }); })(),
+        h("td", { class: "n", text: t.min != null ? fmtH(t.min) : "" })));
+    }
+    frag.append(h("div", { class: "card scroll" }, h("table", { class: "data" }, h("thead", {}, h("tr", {}, h("th", { text: "Nome" }), h("th", { class: "n", text: "Entrada" }), h("th", { class: "n", text: "Saída" }), h("th", { class: "n", text: "Horas" }))), tb)));
+    frag.append(h("p", { class: "note", text: "Toque numa linha para corrigir horas ou apagar um registo." }));
+    return frag;
+  }
+  const local = (iso) => { const d = new Date(iso); return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()) + "T" + pad(d.getHours()) + ":" + pad(d.getMinutes()); };
+  function corrigir(t) {
+    const ent = h("input", { id: "c-ent", type: "datetime-local", value: t.ent ? local(t.ent.em) : "" });
+    const sai = h("input", { id: "c-sai", type: "datetime-local", value: t.sai ? local(t.sai.em) : "" });
+    const err = h("p", { class: "note", style: "color:var(--warn)" }); err.hidden = true;
+    const save = h("button", { type: "submit", class: "btn primary" }, "Guardar");
+    const del = confirmBtn("Apagar turno", "Tocar de novo para apagar", async () => {
+      try { for (const p of [t.ent, t.sai]) if (p) await S.db.collection("picagens").doc(p.id).delete(); toast("Turno apagado"); ov.remove(); } catch (e) { toast("Não foi possível apagar."); }
+    });
+    const form = h("form", { class: "form" }, h("h3", { text: t.nome + " · " + fmtDia(t.dia) }),
+      h("label", { for: "c-ent" }, "Entrada", ent), h("label", { for: "c-sai" }, "Saída", sai), err,
+      h("div", { class: "row-actions" }, del, h("button", { type: "button", class: "btn", onclick: () => ov.remove() }, "Cancelar"), save));
+    form.addEventListener("submit", async (ev) => {
+      ev.preventDefault();
+      const e1 = ent.value ? new Date(ent.value).toISOString() : null, e2 = sai.value ? new Date(sai.value).toISOString() : null;
+      if (!e1 && !e2) { err.textContent = "Indique pelo menos a entrada ou a saída."; err.hidden = false; return; }
+      if (e1 && e2 && e2 <= e1) { err.textContent = "A saída tem de ser depois da entrada."; err.hidden = false; return; }
+      save.disabled = true;
+      const base = { pessoa: t.pessoa, nome: t.nome, extra: !!t.extra };
+      const put = async (p, tipo, em) => {
+        const col = S.db.collection("picagens");
+        if (p && em) await col.doc(p.id).update({ em, dia: diaKey(em), mes: mesKey(em), corrigido: true });
+        else if (p && !em) await col.doc(p.id).delete();
+        else if (!p && em) await col.doc(newId()).set({ ...base, tipo, em, dia: diaKey(em), mes: mesKey(em), corrigido: true });
+      };
+      try { await put(t.ent, "entrada", e1); await put(t.sai, "saida", e2); toast("Turno corrigido"); ov.remove(); }
+      catch (e) { save.disabled = false; toast("Não foi possível guardar."); }
+    });
+    const ov = h("div", { class: "overlay", onclick: (e) => { if (e.target === ov) ov.remove(); } }, h("div", { class: "panel", role: "dialog", "aria-modal": "true", "aria-label": "Corrigir turno" }, form));
+    document.body.append(ov);
+  }
+
+  render();
+  const db = openDb();
+  if (!db) { $("sub").textContent = "Sem ligação"; render(); return; }
+  S.db = db; $("sub").textContent = "Equipa";
+  let t; const soon = () => { clearTimeout(t); t = setTimeout(() => { if (!document.querySelector(".overlay")) render(); }, 50); };
+  let semeado = false;
+  db.collection("equipa").onSnapshot((s) => {
+    S.equipa = s.docs.map((d) => ({ id: d.id, ...d.data() })); S.loaded.eq = true; soon();
+    // the four regulars are created once with fixed ids, so two phones doing it at the same time write the same documents
+    if (!semeado) { semeado = true; FIXOS.forEach(([id, nome], i) => { if (!S.equipa.some((p) => p.id === id)) db.collection("equipa").doc(id).set({ nome, extra: false, ativo: true, ordem: i + 1 }).catch(() => {}); }); }
+  });
+  db.collection("picagens").onSnapshot((s) => { S.pics = s.docs.map((d) => ({ id: d.id, ...d.data() })); S.loaded.pic = true; soon(); });
+})();
+</script>
+</body>
+</html>
