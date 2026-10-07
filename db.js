@@ -72,8 +72,38 @@ const fileDownloads = {
   },
 };
 
-function openDb() {
-  try { return supabaseDb(window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: false } })); } catch (e) { return null; }
+// The whole team shares one Supabase user; each phone types the team code once and stays signed in.
+const TEAM_EMAIL = "equipa@chicomaria.pt";
+async function abrirDb() {
+  let sb;
+  try { sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: true, autoRefreshToken: true, storageKey: "chicomaria-auth" } }); }
+  catch (e) { return null; }
+  try { const { data } = await sb.auth.getSession(); if (data && data.session) return supabaseDb(sb); } catch (e) {}
+  await pedirCodigo(sb);
+  return supabaseDb(sb);
+}
+function pedirCodigo(sb) {
+  return new Promise((resolve) => {
+    const el = (t, css, txt) => { const x = document.createElement(t); if (css) x.style.cssText = css; if (txt) x.textContent = txt; return x; };
+    const ov = el("div", "position:fixed;inset:0;z-index:100;background:var(--bg,#eef1ee);display:flex;align-items:center;justify-content:center;padding:16px");
+    const form = el("form", "width:100%;max-width:340px;display:grid;gap:12px;background:var(--paper,#fff);border:1px solid var(--line,#ddd);border-radius:14px;padding:20px");
+    const t = el("div", "font-family:var(--font-display,sans-serif);font-weight:700;font-size:24px;text-transform:uppercase;letter-spacing:.03em", "Chico Maria");
+    const p = el("div", "color:var(--muted,#666);font-size:14px", "Escreva o código da equipa. Só é preciso uma vez neste telemóvel.");
+    const inp = el("input", "padding:12px;font-size:20px;border:1px solid var(--line,#ccc);border-radius:10px;background:var(--paper,#fff);color:var(--ink,#000)");
+    inp.type = "password"; inp.autocomplete = "current-password"; inp.setAttribute("aria-label", "Código da equipa"); inp.placeholder = "Código da equipa";
+    const err = el("div", "color:var(--warn,#a5532a);font-size:14px;min-height:18px");
+    const b = el("button", "padding:12px;border:0;border-radius:10px;background:var(--accent,#2a47a8);color:#fff;font-weight:700;font-size:16px", "Entrar");
+    b.type = "submit";
+    form.append(t, p, inp, err, b); ov.append(form); document.body.append(ov); inp.focus();
+    form.addEventListener("submit", async (ev) => {
+      ev.preventDefault();
+      if (!inp.value.trim()) { err.textContent = "Escreva o código."; return; }
+      b.disabled = true; b.textContent = "A verificar…"; err.textContent = "";
+      const { error } = await sb.auth.signInWithPassword({ email: TEAM_EMAIL, password: inp.value.trim() });
+      if (error) { b.disabled = false; b.textContent = "Entrar"; err.textContent = /fetch|network/i.test(error.message || "") ? "Sem internet. Tente de novo." : "Código errado."; inp.select(); return; }
+      ov.remove(); resolve();
+    });
+  });
 }
 // rows: array of arrays; first row is the header. Semicolons and a BOM so Excel in Portugal opens it straight away.
 function downloadCsv(filename, rows) {

@@ -47,7 +47,7 @@ table.data td.open { color: var(--warn); font-weight: 600; }
   <main id="main"></main>
 </div>
 <script>
-(() => {
+(async () => {
   const FIXOS = [["guilherme", "Guilherme"], ["tiago", "Tiago"], ["vanessa", "Vanessa"], ["francisco", "Francisco"]];
   const S = { db: null, loaded: { eq: false, pic: false }, equipa: [], pics: [], tab: "picar", mes: mesKey(new Date().toISOString()), busy: new Set() };
   try { const t = localStorage.getItem("hor-tab"); if (t) S.tab = t; } catch (e) {}
@@ -195,7 +195,7 @@ table.data td.open { color: var(--warn); font-weight: 600; }
   }
 
   render();
-  const db = openDb();
+  const db = await abrirDb();
   if (!db) { $("sub").textContent = "Sem ligação"; render(); return; }
   S.db = db; $("sub").textContent = "Equipa";
   let t; const soon = () => { clearTimeout(t); t = setTimeout(() => { if (!document.querySelector(".overlay")) render(); }, 50); };

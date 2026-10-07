@@ -659,7 +659,7 @@ button.cat .on-n { color: var(--accent); }
   render();
   (async () => {
     let db = null;
-    try { db = supabaseDb(window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: false } })); } catch (e) {}
+    db = await abrirDb();
     if (!db) { S.dbFailed = true; $("sub").textContent = "Sem ligação"; render(); return; }
     S.db = db;
     S.downloads = fileDownloads;

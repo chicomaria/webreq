@@ -45,10 +45,10 @@ a.tile .go { color: var(--muted); font-size: 22px; }
   </div>
 </div>
 <script>
-(() => {
+(async () => {
   const d = new Date().toLocaleDateString("pt-PT", { weekday: "long", day: "numeric", month: "long" });
   $("hoje").textContent = d;
-  const db = openDb();
+  const db = await abrirDb();
   if (!db) { $("sub").textContent = "Sem ligação"; return; }
   $("sub").textContent = "Equipa";
   db.collection("rascunho").onSnapshot((s) => { const n = s.docs.length; $("s-enc").textContent = n ? n + (n === 1 ? " artigo" : " artigos") + " na encomenda em curso" : "Requisições aos fornecedores"; });

@@ -47,7 +47,7 @@ table.mat td.n small { display: block; color: var(--muted); font-size: 10px; fon
   <main id="main"></main>
 </div>
 <script>
-(() => {
+(async () => {
   const FRIOS = [
     { n: 1, nome: "Banca frio cozinha" }, { n: 2, nome: "Frio bar" }, { n: 3, nome: "Frio vertical armazém" },
     { n: 4, nome: "Congelador vertical armazém" }, { n: 5, nome: "Arca branca" }, { n: 6, nome: "Arca gelados" },
@@ -152,7 +152,7 @@ table.mat td.n small { display: block; color: var(--muted); font-size: 10px; fon
   }
 
   render();
-  const db = openDb();
+  const db = await abrirDb();
   if (!db) { $("sub").textContent = "Sem ligação"; render(); return; }
   S.db = db; $("sub").textContent = "6 frios";
   let t; db.collection("temperaturas").onSnapshot((s) => { S.regs = s.docs.map((d) => ({ id: d.id, ...d.data() })); S.loaded = true; clearTimeout(t); t = setTimeout(() => { if (!document.querySelector(".overlay") && !(document.activeElement && document.activeElement.id === "t-inp" && document.activeElement.value)) render(); }, 50); });
