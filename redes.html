@@ -25,6 +25,26 @@
 .post .hs { color: var(--accent); font-size: 12px; }
 .rapida { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; margin-top: 10px; }
 .rapida textarea { padding: 9px 11px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); font-size: 16px; min-height: 44px; resize: vertical; }
+.post.aguarda { opacity: .7; }
+.vista { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.vista button { border: 0; background: var(--paper); padding: 6px 12px; font-weight: 600; font-size: 14px; color: var(--muted); }
+.vista button[aria-pressed="true"] { background: var(--accent); color: var(--paper); }
+.wrap.larga { max-width: 1280px; }
+/* table view: the box fits the screen under the page header, so its sticky column titles never scroll away */
+.tabela { margin-top: 8px; overflow: auto; max-height: calc(100vh - var(--hdr, 72px) - 90px); max-height: calc(100dvh - var(--hdr, 72px) - 90px); }
+.tabela table { min-width: 1100px; font-size: 13px; }
+.tabela th { position: sticky; top: 0; z-index: 2; background: var(--paper); box-shadow: inset 0 -1px 0 var(--line); }
+.tabela th:first-child, .tabela td:first-child { position: sticky; left: 0; z-index: 1; background: var(--paper); box-shadow: inset -1px 0 0 var(--line); }
+.tabela th:first-child { z-index: 3; }
+.tabela td { vertical-align: top; }
+.tabela tr.tap { cursor: pointer; }
+.tabela tr.tap:hover td { background: var(--accent-soft); }
+.tabela td .cl { display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+.tabela td.ideia { font-weight: 700; min-width: 150px; max-width: 220px; }
+.tabela td.cp { min-width: 280px; }
+.tabela td.hs { color: var(--accent); min-width: 170px; }
+.tabela td.im { min-width: 180px; color: var(--muted); }
+.tabela td.nw { white-space: nowrap; }
 </style>
 </head>
 <body>
@@ -38,44 +58,64 @@
 <script>
 (async () => {
   const ESTADOS = [["ideia", "Ideia"], ["rascunho", "Rascunho"], ["pronto", "Pronto"], ["publicado", "Publicado"]];
-  const S = { db: null, loaded: false, posts: [], tema: "", estado: "", q: "" };
-  try { S.tema = localStorage.getItem("rs-tema") || ""; S.estado = localStorage.getItem("rs-estado") || ""; } catch (e) {}
-  const lembrar = () => { try { localStorage.setItem("rs-tema", S.tema); localStorage.setItem("rs-estado", S.estado); } catch (e) {} };
+  const S = { db: null, loaded: false, posts: [], tema: "", estado: "", q: "", vista: "cartoes", expandindo: new Set() };
+  try { S.tema = localStorage.getItem("rs-tema") || ""; S.estado = localStorage.getItem("rs-estado") || ""; S.vista = localStorage.getItem("rs-vista") || "cartoes"; } catch (e) {}
+  const lembrar = () => { try { localStorage.setItem("rs-tema", S.tema); localStorage.setItem("rs-estado", S.estado); localStorage.setItem("rs-vista", S.vista); } catch (e) {} };
 
   function render() {
     const m = $("main"); m.replaceChildren();
+    document.querySelector(".wrap").classList.toggle("larga", S.vista === "tabela");
     if (!S.db) { m.append(h("div", { class: "empty" }, h("strong", { text: S.db === false ? "Sem ligação à base de dados" : "A carregar…" }))); return; }
     if (!S.loaded) { m.append(h("div", { class: "empty" }, h("strong", { text: "A carregar…" }))); return; }
     const temas = [...new Set(S.posts.map((p) => p.tema).filter(Boolean))].sort((a, b) => a.localeCompare(b, "pt"));
     $("temas").replaceChildren(...temas.map((t) => h("option", { value: t })));
-    // quick add: just the idea; the rest can be filled later here or by Claude
+    // new idea: saved at once, then Claude develops it (tema, @, copy, #, imagens) when the "expandir" function is set up
     const ta = h("textarea", { rows: 1, placeholder: "Nova ideia…", "aria-label": "Nova ideia" });
-    const add = h("button", { class: "btn primary", type: "button" }, "Juntar");
+    const add = h("button", { class: "btn primary", type: "button" }, "Expandir");
     add.addEventListener("click", async () => {
       const t = ta.value.trim(); if (!t) { ta.focus(); return; }
       add.disabled = true;
-      try { await S.db.collection("redes").doc(newId()).set({ ideia: t, tema: S.tema, estado: "ideia", ordem: Date.now(), criada: new Date().toISOString() }); ta.value = ""; toast("Ideia guardada"); }
-      catch (e) { toast("Não foi possível guardar."); } add.disabled = false;
+      const p = { id: newId(), ideia: t, tema: S.tema, estado: "ideia", ordem: Date.now(), criada: new Date().toISOString() };
+      try { const { id, ...d } = p; await S.db.collection("redes").doc(id).set(d); ta.value = ""; }
+      catch (e) { toast("Não foi possível guardar."); add.disabled = false; return; }
+      expandir(p);
     });
     m.append(h("div", { class: "rapida" }, ta, add));
     const busca = h("input", { type: "search", placeholder: "Procurar", value: S.q, "aria-label": "Procurar" });
     busca.addEventListener("input", () => { S.q = busca.value; const p = busca.selectionStart; render(); const b = document.querySelector("input[type=search]"); b.focus(); b.setSelectionRange(p, p); });
     const selE = h("select", { "aria-label": "Estado" }, h("option", { value: "" }, "Todos os estados"), ESTADOS.map(([v, l]) => h("option", { value: v, selected: S.estado === v }, l)));
     selE.addEventListener("change", () => { S.estado = selE.value; lembrar(); render(); });
-    m.append(h("div", { class: "tools" }, busca, selE, h("button", { class: "btn", onclick: copiarClaude }, "Copiar para o Claude"), h("button", { class: "btn", onclick: exportar }, "Excel")));
+    const vista = (v, l) => h("button", { type: "button", "aria-pressed": String(S.vista === v), onclick: () => { S.vista = v; lembrar(); render(); } }, l);
+    m.append(h("div", { class: "tools" }, busca, selE, h("div", { class: "vista", role: "group", "aria-label": "Vista" }, vista("cartoes", "Cartões"), vista("tabela", "Tabela")),
+      h("button", { class: "btn", onclick: copiarClaude }, "Copiar para o Claude"), h("button", { class: "btn", onclick: exportar }, "Excel")));
     const chip = (v, lab) => h("button", { type: "button", "aria-pressed": String(S.tema === v), onclick: () => { S.tema = v; lembrar(); render(); } }, lab);
     m.append(h("div", { class: "chips" }, chip("", "Todos os temas"), temas.map((t) => chip(t, t))));
     const q = norm(S.q);
     const lista = S.posts.filter((p) => (!S.tema || p.tema === S.tema) && (!S.estado || (p.estado || "ideia") === S.estado) &&
       (!q || norm([p.ideia, p.copy, p.mencoes, p.hashtags].join(" ")).includes(q))).sort((a, b) => (a.data || "9").localeCompare(b.data || "9") || (a.ordem ?? 0) - (b.ordem ?? 0));
     const cont = Object.fromEntries(ESTADOS.map(([v]) => [v, S.posts.filter((p) => (p.estado || "ideia") === v).length]));
-    m.append(h("p", { class: "note", text: ESTADOS.map(([v, l]) => cont[v] + " " + l.toLowerCase()).join(" · ") + ". Ideias ditas ao Claude no projeto aparecem aqui já preenchidas." }));
-    m.append(h("div", { class: "list" }, lista.map(cartao)));
+    m.append(h("p", { class: "note", text: ESTADOS.map(([v, l]) => cont[v] + " " + l.toLowerCase()).join(" · ") + ". “Expandir” guarda a ideia e pede ao Claude para a desenvolver; ideias ditas ao Claude no projeto também aparecem aqui preenchidas." }));
     if (!lista.length) m.append(h("div", { class: "card empty" }, h("strong", { text: "Nada com estes filtros" })));
+    else if (S.vista === "tabela") m.append(tabela(lista));
+    else m.append(h("div", { class: "list" }, lista.map(cartao)));
+  }
+  function tabela(lista) {
+    const est = (p) => { const e = p.estado || "ideia"; return h("span", { class: "tag " + (e === "publicado" ? "ok" : e === "pronto" ? "" : "muted"), text: (ESTADOS.find(([v]) => v === e) || [0, e])[1] }); };
+    const cl = (t) => t ? h("div", { class: "cl", text: t }) : null;
+    return h("div", { class: "card tabela" }, h("table", { class: "data" },
+      h("thead", {}, h("tr", {}, ["Ideia", "Tema", "Estado", "Semana / data", "@", "Copy", "#", "Imagens", "Feedback"].map((t) => h("th", { text: t })))),
+      h("tbody", {}, lista.map((p) => h("tr", { class: "tap", onclick: () => editar(p) },
+        h("td", { class: "ideia" }, cl(p.ideia), S.expandindo.has(p.id) ? h("small", { class: "tag muted", text: "o Claude está a escrever…" }) : null),
+        h("td", {}, p.tema || ""), h("td", {}, est(p)),
+        h("td", { class: "nw" }, [p.semana ? "Semana " + p.semana : "", p.data ? fmtDia(p.data) : ""].filter(Boolean).join(" · ")),
+        h("td", {}, p.mencoes || ""), h("td", { class: "cp" }, cl(p.copy)), h("td", { class: "hs" }, p.hashtags || ""),
+        h("td", { class: "im" }, cl(p.imagens)), h("td", { class: "im" }, cl(p.feedback)))))));
   }
   function cartao(p) {
     const est = p.estado || "ideia";
-    return h("div", { class: "card post", onclick: () => editar(p), role: "button", tabindex: "0", onkeydown: (e) => { if (e.key === "Enter") editar(p); } },
+    const aguarda = S.expandindo.has(p.id);
+    return h("div", { class: "card post" + (aguarda ? " aguarda" : ""), onclick: () => editar(p), role: "button", tabindex: "0", onkeydown: (e) => { if (e.key === "Enter") editar(p); } },
+      aguarda ? h("span", { class: "tag muted", text: "O Claude está a desenvolver esta ideia…" }) : null,
       h("div", { class: "t" }, h("span", { class: "ideia", text: p.ideia }),
         h("span", { class: "tag " + (est === "publicado" ? "ok" : est === "pronto" ? "" : "muted"), text: (ESTADOS.find(([v]) => v === est) || [0, est])[1] })),
       h("div", { class: "s" }, [p.tema, p.semana ? "Semana " + p.semana : "", p.data ? fmtDia(p.data) : "", p.mencoes ? "@ " + p.mencoes : ""].filter(Boolean).join(" · "),
@@ -85,8 +125,32 @@
       p.imagens ? h("div", { class: "s", text: "Imagem: " + p.imagens }) : null,
       p.feedback ? h("div", { class: "s", text: "Feedback: " + p.feedback }) : null);
   }
+  // asks Claude (Supabase function "expandir") to fill in the post; empty fields only, except copy and # which it rewrites
+  async function expandir(p) {
+    S.expandindo.add(p.id); render();
+    try {
+      const temas = [...new Set(S.posts.map((x) => x.tema).filter(Boolean))];
+      const exemplos = S.posts.filter((x) => x.copy && x.id !== p.id && (x.estado === "pronto" || x.estado === "publicado" || !x.porClaude)).slice(0, 4)
+        .map((x) => ({ ideia: x.ideia, tema: x.tema || "", copy: x.copy, hashtags: x.hashtags || "" }));
+      const r = await S.db.funcao("expandir", { ideia: p.ideia, tema: p.tema || "", mencoes: p.mencoes || "", temas, exemplos });
+      if (!r || !r.copy) throw new Error("resposta vazia");
+      const atual = S.posts.find((x) => x.id === p.id) || p;
+      await S.db.collection("redes").doc(p.id).update({ tema: atual.tema || r.tema || "", mencoes: atual.mencoes || r.mencoes || "", copy: r.copy, hashtags: r.hashtags || "",
+        imagens: atual.imagens || r.imagens || "", estado: (atual.estado || "ideia") === "ideia" ? "rascunho" : atual.estado, porClaude: true });
+      toast("O Claude desenvolveu a ideia. Reveja antes de publicar.");
+    } catch (e) {
+      toast("Ideia guardada. O Claude não respondeu daqui; use “Copiar para o Claude” e cole no chat do projeto.");
+    }
+    S.expandindo.delete(p.id); render();
+  }
+
   function editar(p) {
-    abrirEditor({ titulo: "Publicação", dados: p,
+    let ed;
+    const pedir = () => { ed.fechar(); expandir(p); };
+    const topo = h("div", { class: "tools", style: "margin:0 0 10px" }, p.copy
+      ? confirmBtn("Pedir nova proposta ao Claude", "Toque de novo: substitui a copy e os #", async () => pedir())
+      : h("button", { type: "button", class: "btn", onclick: pedir }, "Expandir com o Claude"));
+    ed = abrirEditor({ titulo: "Publicação", dados: p, topo,
       campos: [{ k: "ideia", label: "Ideia", tipo: "textarea", rows: 2 }, { k: "tema", label: "Tema", lista: "temas" },
         { k: "estado", label: "Estado", tipo: "select", opcoes: ESTADOS }, { k: "semana", label: "Semana" }, { k: "data", label: "Data", tipo: "date" },
         { k: "mencoes", label: "@ (quem marcar)" }, { k: "copy", label: "Copy", tipo: "textarea", rows: 5 }, { k: "hashtags", label: "#" },
@@ -108,6 +172,8 @@
       ...S.posts.map((p) => [p.semana, p.data, p.ideia, p.tema, p.mencoes, p.copy, p.hashtags, p.imagens, p.feedback, p.estado])]);
   }
 
+  const medir = () => document.documentElement.style.setProperty("--hdr", document.querySelector("header.top").offsetHeight + "px");
+  addEventListener("resize", medir); medir();
   render();
   const db = await abrirPainel();
   if (!db) { S.db = false; render(); return; }

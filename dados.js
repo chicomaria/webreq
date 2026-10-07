@@ -1,4 +1,4 @@
-// Data for the back office pages, applied once per database by aplicarDados() (see dados-app.js).
+// Data for the back office pages, applied once per database by aplicarDados() (painel.js).
 // To add or change rows later, append a new entry with a new id: {id, novos: {col: {docId: data}}, atualizar: {col: {docId: patch}}, apagar: {col: [docId]}}
 window.DADOS = [
  {
@@ -5631,6 +5631,685 @@ window.DADOS = [
      "ordem": 260
     }
    }
+  }
+ },
+ {
+  "id": "2026-10-07-ajustes",
+  "novos": {
+   "fornecedores": {
+    "morraceira": {
+     "nome": "Morraceira",
+     "categoria": "Mercearia",
+     "produtos": "Sal da Morraceira",
+     "local": "Morraceira, Figueira da Foz",
+     "telefone": "",
+     "contacto": "",
+     "email": "",
+     "site": "",
+     "obs": "Na app de encomendas aparece como “Figueira da Foz”. Para já fica só Morraceira, sem escolher produtor.",
+     "nomesApp": [
+      "Figueira da Foz"
+     ]
+    },
+    "garrafeiras-online": {
+     "nome": "Garrafeiras online",
+     "categoria": "Vinhos",
+     "produtos": "Vinhos, generosos e destilados de várias garrafeiras online",
+     "local": "",
+     "telefone": "",
+     "contacto": "",
+     "email": "",
+     "site": "",
+     "obs": "Várias garrafeiras juntas num só nome, para simplificar.",
+     "nomesApp": [
+      "Garrafeira"
+     ]
+    }
+   },
+   "ingredientes": {
+    "cachaca": {
+     "nome": "Cachaça",
+     "grupo": "Bar",
+     "unidade": "L",
+     "preco": null,
+     "fornecedor": ""
+    },
+    "tequila-blanco": {
+     "nome": "Tequila blanco",
+     "grupo": "Bar",
+     "unidade": "L",
+     "preco": null,
+     "fornecedor": ""
+    },
+    "bourbon": {
+     "nome": "Whisky bourbon",
+     "grupo": "Bar",
+     "unidade": "L",
+     "preco": null,
+     "fornecedor": ""
+    },
+    "campari": {
+     "nome": "Campari",
+     "grupo": "Bar",
+     "unidade": "L",
+     "preco": null,
+     "fornecedor": ""
+    },
+    "vermute-rosso": {
+     "nome": "Vermute tinto (rosso)",
+     "grupo": "Bar",
+     "unidade": "L",
+     "preco": null,
+     "fornecedor": "",
+     "obs": "O vermute Soberbo do bar é feito com Porto branco; para o Negroni clássico pede-se um tinto."
+    },
+    "angostura": {
+     "nome": "Angostura bitters",
+     "grupo": "Bar",
+     "unidade": "L",
+     "preco": null,
+     "fornecedor": ""
+    },
+    "sumo-de-lima": {
+     "nome": "Sumo de lima",
+     "grupo": "Bar",
+     "unidade": "L",
+     "preco": null,
+     "fornecedor": "Casa",
+     "obs": "Espremido na hora; uma lima dá cerca de 3 cL. Falta o preço da lima por unidade."
+    },
+    "sumo-de-limao": {
+     "nome": "Sumo de limão",
+     "grupo": "Bar",
+     "unidade": "L",
+     "preco": 5.0,
+     "fornecedor": "Casa",
+     "obs": "Calculado: um limão a 0,20 € dá cerca de 4 cL de sumo."
+    },
+    "espresso": {
+     "nome": "Espresso",
+     "grupo": "Bar",
+     "unidade": "L",
+     "preco": 4.2,
+     "fornecedor": "Casa",
+     "obs": "Calculado a partir do café em grão (18 €/kg): 7 g por espresso de 3 cL."
+    },
+    "clara-de-ovo": {
+     "nome": "Clara de ovo",
+     "grupo": "Outros",
+     "unidade": "un",
+     "preco": 0.2,
+     "fornecedor": "",
+     "obs": "Preço de um ovo."
+    },
+    "manjericao": {
+     "nome": "Manjericão fresco",
+     "grupo": "Especiarias",
+     "unidade": "Kg",
+     "preco": null,
+     "fornecedor": ""
+    }
+   },
+   "fichas": {
+    "moscow-mule": {
+     "tipo": "cocktail",
+     "categoria": "Coquetéis",
+     "nome": "Moscow Mule",
+     "doses": 1,
+     "pvp": null,
+     "ingredientes": [
+      {
+       "ing": "vodka",
+       "qtd": 0.05
+      },
+      {
+       "ing": "sumo-de-lima",
+       "qtd": 0.015,
+       "nota": "fresco"
+      },
+      {
+       "ing": "ginger-beer-caseira",
+       "qtd": 0.12
+      },
+      {
+       "ing": "gelo",
+       "qtd": null,
+       "medida": "q.b.",
+       "nota": "em cubo"
+      }
+     ],
+     "preparacao": "Encher o copo com gelo até ao topo.\nAdicionar a vodka e o sumo de lima.\nCompletar com a ginger beer.\nMexer suavemente (2-3 voltas) para não perder o gás.",
+     "copo": "Caneca de cobre ou copo highball",
+     "historia": "Criado nos EUA em 1941, fruto da parceria comercial entre um importador de vodka Smirnoff e um fabricante de ginger beer que procuravam escoar stock; ajudou a introduzir a vodka no mercado norte-americano.",
+     "guarnicao": "Rodela ou espiral de casca de lima; ramo de hortelã (opcional)",
+     "dicas": "Caneca pré-gelada mantém a bebida fria por mais tempo\nUsar ginger beer, não ginger ale\nAdicionar a ginger beer sempre por último",
+     "obs": "Na carta de outono aparece como Mula, com base à escolha (gin, vodka ou rum da Madeira) e ginger beer caseira."
+    },
+    "caipirinha": {
+     "tipo": "cocktail",
+     "categoria": "Coquetéis",
+     "nome": "Caipirinha",
+     "doses": 1,
+     "pvp": null,
+     "ingredientes": [
+      {
+       "ing": "cachaca",
+       "qtd": 0.05
+      },
+      {
+       "ing": "lima",
+       "qtd": 1,
+       "nota": "cortada em 4 a 8 gomos"
+      },
+      {
+       "ing": "acucar",
+       "qtd": 0.01,
+       "medida": "2 colheres de bar",
+       "nota": "branco"
+      },
+      {
+       "ing": "gelo",
+       "qtd": null,
+       "medida": "q.b.",
+       "nota": "picado ou em cubo"
+      }
+     ],
+     "preparacao": "Colocar os gomos de lima e o açúcar no copo.\nMacerar suavemente para libertar óleos e sumo, sem esmagar a parte branca da casca.\nAdicionar a cachaça.\nEncher com gelo picado ou em cubo e mexer bem.",
+     "copo": "Copo old fashioned",
+     "historia": "Cocktail nacional do Brasil, com origem atribuída ao início do séc. XX no interior de São Paulo; terá começado como remédio caseiro à base de cachaça antes de se tornar ícone da coquetelaria brasileira.",
+     "guarnicao": "Os próprios gomos de lima macerados no copo",
+     "dicas": "Limas de casca fina são mais aromáticas e menos amargas\nNão macerar em excesso a parte branca\nAjustar o açúcar ao gosto do cliente",
+     "obs": "Na carta de outono aparece como Caipi, com rum da Madeira e açúcar amarelo."
+    },
+    "margarita": {
+     "tipo": "cocktail",
+     "categoria": "Coquetéis",
+     "nome": "Margarita",
+     "doses": 1,
+     "pvp": null,
+     "ingredientes": [
+      {
+       "ing": "tequila-blanco",
+       "qtd": 0.05
+      },
+      {
+       "ing": "triple-sec",
+       "qtd": 0.025,
+       "nota": "ou Cointreau"
+      },
+      {
+       "ing": "sumo-de-lima",
+       "qtd": 0.02,
+       "nota": "fresco"
+      },
+      {
+       "ing": "sal",
+       "qtd": null,
+       "medida": "q.b.",
+       "nota": "grosso, para o aro (opcional)"
+      }
+     ],
+     "preparacao": "Se desejado, humedecer o rebordo do copo com lima e passar por sal grosso.\nColocar os ingredientes num shaker com gelo.\nAgitar vigorosamente 10-15 segundos.\nCoar (double strain) para o copo, com ou sem gelo.",
+     "copo": "Copo margarita ou coupe, com aro de sal opcional",
+     "historia": "As origens são disputadas entre várias lendas mexicanas e norte-americanas dos anos 1930-40; tornou-se, ainda assim, o cocktail à base de tequila mais popular do mundo.",
+     "guarnicao": "Rodela ou meia-lua de lima no rebordo",
+     "dicas": "Sumo de lima espremido na hora faz toda a diferença\nProporção clássica 2:1:1\nServir on the rocks com gelo grande para diluir devagar",
+     "obs": "Na carta de outono aparece como Margarida, com rum da Madeira, triple sec, amarguinha e cordial de flor de laranjeira."
+    },
+    "whisky-sour": {
+     "tipo": "cocktail",
+     "categoria": "Coquetéis",
+     "nome": "Whisky Sour",
+     "doses": 1,
+     "pvp": null,
+     "ingredientes": [
+      {
+       "ing": "bourbon",
+       "qtd": 0.05
+      },
+      {
+       "ing": "sumo-de-limao",
+       "qtd": 0.025,
+       "nota": "fresco"
+      },
+      {
+       "ing": "xarope-simples",
+       "qtd": 0.02
+      },
+      {
+       "ing": "clara-de-ovo",
+       "qtd": 1,
+       "nota": "opcional"
+      },
+      {
+       "ing": "angostura",
+       "qtd": null,
+       "medida": "q.b."
+      }
+     ],
+     "preparacao": "Colocar todos os ingredientes no shaker sem gelo.\nDry shake (agitar sem gelo) 10-15 segundos para emulsionar a clara.\nAdicionar gelo e agitar novamente 10-15 segundos.\nCoar (double strain) para o copo com um cubo de gelo grande.\nFinalizar com gotas de angostura sobre a espuma.",
+     "copo": "Copo old fashioned",
+     "historia": "Pertence à família clássica dos sours, já documentada em livros de coquetelaria do séc. XIX (Jerry Thomas, 1862); foi um dos primeiros cocktails a formalizar a estrutura ácido-doce-espirituoso.",
+     "guarnicao": "Gotas de angostura na espuma; cereja de cocktail e casca de laranja (opcional)",
+     "dicas": "O dry shake é essencial para a espuma\nAquafaba substitui a clara numa versão vegana\nAjustar o xarope à acidez do limão",
+     "obs": "Na carta de outono há o Amargo, um sour com medronho, whisky ou rum da Madeira e bitter caseiro."
+    },
+    "espresso-martini": {
+     "tipo": "cocktail",
+     "categoria": "Coquetéis",
+     "nome": "Espresso Martini",
+     "doses": 1,
+     "pvp": null,
+     "ingredientes": [
+      {
+       "ing": "vodka",
+       "qtd": 0.05
+      },
+      {
+       "ing": "licor-de-cafe",
+       "qtd": 0.025,
+       "nota": "Kahlúa ou Tia Maria"
+      },
+      {
+       "ing": "espresso",
+       "qtd": 0.03,
+       "nota": "frio"
+      },
+      {
+       "ing": "xarope-simples",
+       "qtd": null,
+       "medida": "q.b.",
+       "nota": "opcional"
+      }
+     ],
+     "preparacao": "Preparar um espresso e deixar arrefecer ligeiramente.\nColocar todos os ingredientes num shaker com bastante gelo.\nAgitar vigorosamente 15-20 segundos, para gerar espuma cremosa.\nCoar (double strain) para copo coupe ou martini gelado.",
+     "copo": "Copo coupe ou martini",
+     "historia": "Criado em Londres em 1983 pelo bartender Dick Bradsell, alegadamente a pedido de uma cliente que queria uma bebida capaz de a acordar e depois embriagar.",
+     "guarnicao": "3 grãos de café inteiros no centro da espuma",
+     "dicas": "Espresso acabado de fazer ajuda a formar a espuma\nGelar bem o copo antecipadamente\nOs 3 grãos simbolizam saúde, riqueza e felicidade",
+     "obs": ""
+    },
+    "basil-smash": {
+     "tipo": "cocktail",
+     "categoria": "Coquetéis",
+     "nome": "Basil Smash",
+     "doses": 1,
+     "pvp": null,
+     "ingredientes": [
+      {
+       "ing": "gin-adamvs",
+       "qtd": 0.05
+      },
+      {
+       "ing": "sumo-de-limao",
+       "qtd": 0.02,
+       "nota": "fresco"
+      },
+      {
+       "ing": "xarope-simples",
+       "qtd": 0.0175,
+       "medida": "1,5 a 2 cL"
+      },
+      {
+       "ing": "manjericao",
+       "qtd": 0.005,
+       "medida": "8 a 10 folhas",
+       "nota": "fresco"
+      }
+     ],
+     "preparacao": "Colocar as folhas de manjericão no fundo do shaker.\nMacerar suavemente para libertar os óleos, sem esmagar em excesso.\nAdicionar o gin, o sumo de limão e o xarope.\nEncher com gelo e agitar vigorosamente 10-15 segundos.\nCoar com passador fino para copo com gelo.",
+     "copo": "Copo old fashioned",
+     "historia": "Criação contemporânea (2008) do bartender alemão Jörg Meyer, no bar Le Lion em Hamburgo; popularizou a categoria dos smashes com ervas frescas.",
+     "guarnicao": "Ramo de manjericão fresco, com uma palmada entre as mãos antes de colocar",
+     "dicas": "Não macerar demasiado o manjericão, liberta amargor\nUsar sempre passador fino\nGins mais cítricos realçam as notas herbáceas",
+     "obs": ""
+    }
+   }
+  },
+  "atualizar": {
+   "fornecedores": {
+    "producao-propria": {
+     "nomesApp": [
+      "Casa",
+      "Tocha"
+     ],
+     "obs": "Na app de encomendas aparece como “Casa” ou “Tocha”."
+    },
+    "abel-garrafeira": {
+     "nomesApp": [
+      "Abel"
+     ]
+    },
+    "keep-fresh": {
+     "categoria": "Hortícolas",
+     "produtos": "Leguminosas e rebentos",
+     "obs": ""
+    },
+    "litofish": {
+     "produtos": "Peixe e marisco",
+     "obs": ""
+    },
+    "quinta-moutinho": {
+     "obs": "Pesquisa online sem resultados (07/10/2026); confirmar o que fornece."
+    },
+    "quinta-dos-termos": {
+     "obs": "Para já os vinhos compram-se no Makro. Contactos completados por pesquisa web (07/10/2026); confirmar."
+    },
+    "quinta-das-bageiras": {
+     "obs": "Para já os vinhos compram-se no Makro. Contactos completados por pesquisa web (07/10/2026); confirmar."
+    }
+   },
+   "fichas": {
+    "arroz-de-robalo-e-ameijoa": {
+     "atual": false
+    },
+    "filete-de-cavala-curada-gravlax": {
+     "atual": false
+    },
+    "bacalhau-com-pure-grelos-e-cogumelos": {
+     "atual": false
+    },
+    "bacalhau-a-bras": {
+     "atual": false
+    },
+    "papas-labercas-com-bacalhau-confitado": {
+     "atual": false
+    },
+    "arroz-de-limao-com-robalo": {
+     "atual": false
+    },
+    "tornedo-de-novilho": {
+     "atual": false
+    },
+    "arroz-de-forno-de-cabrito": {
+     "atual": false
+    },
+    "bife-a-chico-maria": {
+     "atual": true
+    },
+    "tartelete-de-coelho": {
+     "atual": false
+    },
+    "chanfana-de-novilho": {
+     "atual": false
+    },
+    "tartelete-de-cogumelos": {
+     "atual": false
+    },
+    "croquete-de-abobora": {
+     "atual": false
+    },
+    "cabidela-de-cogumelos": {
+     "atual": false
+    },
+    "espargos-cogumelos-e-ovo-de-codorniz": {
+     "atual": false
+    },
+    "couve-flor-gratinada": {
+     "atual": false
+    },
+    "brownie-de-tangerina": {
+     "atual": false
+    },
+    "trouxa-de-pastel-de-nata": {
+     "atual": false
+    },
+    "tarte-de-maca-e-amendoa": {
+     "atual": false
+    },
+    "gelado-de-arroz-doce": {
+     "atual": false
+    },
+    "cheesecake-crocante-de-amendoa-e-espuma-de-queijo-da-serra": {
+     "atual": false
+    },
+    "trilogia-de-sustentos": {
+     "atual": true
+    },
+    "arroz-de-mar": {
+     "atual": true
+    },
+    "lombinhos-de-porco-bisaro": {
+     "atual": true
+    },
+    "brocolo-grelhado": {
+     "atual": true
+    },
+    "peixe-do-dia": {
+     "atual": true
+    },
+    "sopa-de-outono": {
+     "atual": true
+    },
+    "salada-de-frutas": {
+     "atual": true
+    },
+    "berbigao-a-bulhao-pato": {
+     "atual": true
+    },
+    "enguia-fumada": {
+     "atual": true
+    },
+    "tartaro-de-novilho": {
+     "atual": true
+    },
+    "brioche-desfiado": {
+     "atual": true
+    },
+    "tarte-de-abobora": {
+     "atual": true
+    },
+    "mousse-de-nougat": {
+     "atual": true
+    },
+    "maca-e-morangueira": {
+     "atual": true
+    },
+    "negroni": {
+     "tipo": "cocktail",
+     "categoria": "Coquetéis",
+     "nome": "Negroni",
+     "doses": 1,
+     "pvp": null,
+     "ingredientes": [
+      {
+       "ing": "gin-adamvs",
+       "qtd": 0.03
+      },
+      {
+       "ing": "vermute-rosso",
+       "qtd": 0.03
+      },
+      {
+       "ing": "campari",
+       "qtd": 0.03
+      }
+     ],
+     "preparacao": "Colocar os ingredientes num copo misturador com gelo.\nMexer (stir) 20-30 segundos até arrefecer e diluir bem.\nCoar para o copo com um cubo de gelo grande.",
+     "copo": "Copo old fashioned",
+     "historia": "Nasceu em Florença por volta de 1919, quando o Conde Camillo Negroni pediu ao seu bartender para reforçar um Americano, substituindo a soda por gin.",
+     "guarnicao": "Casca de laranja, torcida sobre o copo e colocada dentro",
+     "dicas": "Proporção clássica sempre 1:1:1\nMexer, nunca agitar\nUsar gelo grande de qualidade",
+     "obs": "Na carta de outono leva Per Se em vez de Campari e vermute Soberbo."
+    },
+    "cafe-com-cheirinho": {
+     "obs": "Está na carta de outono mas não no documento de cocktails. Quantidades propostas por medida padrão; confirmar no bar."
+    }
+   },
+   "redes": {
+    "ideia-01": {
+     "hashtags": "#chicomaria #tocha #limoncello #licorcaseiro #feitoemcasa"
+    },
+    "ideia-02": {
+     "hashtags": "#chicomaria #tocha #semalcool #kombucha #chas"
+    },
+    "ideia-03": {
+     "hashtags": "#chicomaria #tocha #cocktailbar #destilados #garrafeira"
+    },
+    "ideia-04": {
+     "hashtags": "#chicomaria #tocha #cocktails #cocktaildasemana #brinde"
+    },
+    "ideia-05": {
+     "hashtags": "#chicomaria #tocha #vinhosdabairrada #harmonizacao #arrozderobalo"
+    },
+    "ideia-06": {
+     "hashtags": "#chicomaria #tocha #taberna #mercearia #gandara"
+    },
+    "ideia-07": {
+     "hashtags": "#chicomaria #tocha #produtolocal #kmzero #gandara"
+    },
+    "ideia-08": {
+     "hashtags": "#chicomaria #tocha #barandkitchen #cocktails #gandara"
+    },
+    "ideia-09": {
+     "hashtags": "#chicomaria #tocha #farmtotable #sazonal #produtolocal"
+    },
+    "ideia-10": {
+     "hashtags": "#chicomaria #tocha #comidaportuguesa #cozinhadefusao #comeresmarado"
+    },
+    "ideia-11": {
+     "hashtags": "#chicomaria #tocha #vegetariano #vegan #comeresmarado"
+    },
+    "ideia-12": {
+     "hashtags": "#chicomaria #tocha #gandara #cozinhadeautor #receitasantigas"
+    },
+    "ideia-13": {
+     "hashtags": "#chicomaria #tocha #produtoreslocais #comeroqueenosso #gandara"
+    },
+    "ideia-14": {
+     "hashtags": "#chicomaria #tocha #zerowaste #sazonal #biologico"
+    },
+    "ideia-15": {
+     "hashtags": "#chicomaria #tocha #fermentacao #kombucha #kefir"
+    },
+    "ideia-16": {
+     "hashtags": "#chicomaria #tocha #pratosdepartilha #mezze #comeresmarado"
+    },
+    "ideia-17": {
+     "hashtags": "#chicomaria #tocha #comeresmarado #gandara #comidaportuguesa"
+    },
+    "ideia-18": {
+     "hashtags": "#chicomaria #tocha #gastronomiaportuguesa #gandara #receitastradicionais"
+    },
+    "ideia-19": {
+     "hashtags": "#chicomaria #tocha #designdeinteriores #restaurantesportugal #gandara"
+    },
+    "ideia-20": {
+     "hashtags": "#chicomaria #tocha #nascerdosol #esplanada #gandara"
+    },
+    "ideia-21": {
+     "hashtags": "#chicomaria #tocha #restauro #moveisantigos #vintage"
+    },
+    "ideia-22": {
+     "hashtags": "#chicomaria #tocha #mosaicohidraulico #azulejos #restauro"
+    },
+    "ideia-23": {
+     "hashtags": "#chicomaria #tocha #historiadefamilia #taberna #gandara"
+    },
+    "ideia-24": {
+     "hashtags": "#chicomaria #tocha #ilustracao #bandadesenhada #patarra"
+    },
+    "ideia-25": {
+     "hashtags": "#chicomaria #tocha #equipa #cozinha #restauracao"
+    },
+    "ideia-26": {
+     "hashtags": "#chicomaria #tocha #bife #bifeachicomaria #comidaportuguesa"
+    },
+    "ideia-27": {
+     "hashtags": "#chicomaria #tocha #farmtotable #origens #sustentabilidade"
+    },
+    "ideia-28": {
+     "hashtags": "#chicomaria #tocha #cogumelos #cestodalice #produtoreslocais"
+    },
+    "ideia-29": {
+     "hashtags": "#chicomaria #tocha #variedadesantigas #quintadossardoes #produtoreslocais"
+    },
+    "ideia-30": {
+     "hashtags": "#chicomaria #tocha #cogumelos #cestodalice #eventogastronomico"
+    },
+    "ideia-31": {
+     "hashtags": "#chicomaria #tocha #talho #carneportuguesa #origens"
+    },
+    "ideia-32": {
+     "hashtags": "#chicomaria #tocha #peixefresco #pescaartesanal #costadeprata"
+    },
+    "ideia-33": {
+     "hashtags": "#chicomaria #tocha #enguia #lampreia #fumeiro"
+    },
+    "ideia-34": {
+     "hashtags": "#chicomaria #tocha #algas #algaplus #riadeaveiro"
+    },
+    "ideia-35": {
+     "hashtags": "#chicomaria #tocha #berbigao #marisco #figueiradafoz"
+    },
+    "ideia-36": {
+     "hashtags": "#chicomaria #tocha #tremoco #leguminosas #produtoreslocais"
+    },
+    "ideia-37": {
+     "hashtags": "#chicomaria #tocha #geladoartesanal #gelado #sobremesa"
+    },
+    "ideia-38": {
+     "hashtags": "#chicomaria #tocha #arrozcarolino #baixomondego #arrozais"
+    },
+    "ideia-39": {
+     "hashtags": "#chicomaria #tocha #massamae #paoartesanal #fidalgodabaixa"
+    },
+    "ideia-40": {
+     "hashtags": "#chicomaria #tocha #ervasaromaticas #horta #farmtotable"
+    },
+    "ideia-41": {
+     "hashtags": "#chicomaria #tocha #artexavega #praiadatocha #peixefresco"
+    },
+    "ideia-42": {
+     "hashtags": "#chicomaria #tocha #rational #cozinhaprofissional #bastidores"
+    },
+    "ideia-43": {
+     "hashtags": "#chicomaria #tocha #ecogrill #madeinportugal #grelhados"
+    },
+    "ideia-44": {
+     "hashtags": "#chicomaria #tocha #sousvide #anova #baixatemperatura"
+    },
+    "ideia-45": {
+     "hashtags": "#chicomaria #tocha #fermentacao #probioticos #zerowaste"
+    },
+    "ideia-46": {
+     "hashtags": "#chicomaria #tocha #bairrada #vinhosdabairrada #baga"
+    },
+    "ideia-47": {
+     "hashtags": "#chicomaria #tocha #vinhosdabairrada #pedraso #pequenoprodutor"
+    },
+    "ideia-48": {
+     "hashtags": "#chicomaria #tocha #rapazvitivinicultor #castasantigas #bairrada"
+    },
+    "ideia-49": {
+     "hashtags": "#chicomaria #tocha #marquesdemarialva #adegadecantanhede #bairrada"
+    },
+    "ideia-50": {
+     "hashtags": "#chicomaria #tocha #lareira #cozinhaafogo #slowfood"
+    },
+    "ideia-51": {
+     "hashtags": "#chicomaria #tocha #cartadeoutono #comeresmarado #gandara"
+    },
+    "ideia-52": {
+     "hashtags": "#chicomaria #tocha #origens #slowfood #comeresmarado"
+    },
+    "ideia-53": {
+     "hashtags": "#chicomaria #tocha #equipa #produtoreslocais #comunidade"
+    }
+   },
+   "vinhos": {
+    "sobremesa-abafado-quinta-das-bageiras": {
+     "fornecedor": "Makro"
+    }
+   }
+  },
+  "apagar": {
+   "fichas": [
+    "mula",
+    "caipi",
+    "margarida",
+    "amargo"
+   ]
   }
  }
 ];

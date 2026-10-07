@@ -16,10 +16,18 @@
 <script src="painel.js"></script>
 <title>Mercearia · Chico Maria</title>
 <style>
-table.data tr.tap { cursor: pointer; }
-table.data tr.tap:active td { background: var(--accent-soft); }
-table.data td small { display: block; color: var(--muted); font-size: 12px; }
-table.data td a { color: var(--accent); }
+.mc { padding: 0; display: flex; flex-direction: column; cursor: pointer; overflow: hidden; min-width: 0; }
+.mc:active { background: var(--accent-soft); }
+.mc img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; display: block; background: var(--bg); }
+.mc .in { padding: 8px 10px; display: flex; flex-direction: column; gap: 2px; flex: 1; }
+.mc .top { display: flex; justify-content: space-between; align-items: flex-start; gap: 6px; }
+.mc strong { font-size: 15px; line-height: 1.15; }
+.mc .tag { flex: none; font-size: 10px; }
+.mc .p { font-size: 13px; }
+.mc .s { color: var(--muted); font-size: 12px; }
+.mc .num { font-family: var(--font-mono); font-size: 12px; margin-top: auto; padding-top: 4px; }
+.mc a { color: var(--accent); font-size: 12px; font-weight: 600; text-decoration: none; }
+.mc.descartado { opacity: .6; }
 </style>
 </head>
 <body>
@@ -51,33 +59,34 @@ table.data td a { color: var(--accent); }
     m.append(h("div", { class: "chips" }, chip("", "Todos"), ESTADOS.map(([v, l]) => chip(v, l + " (" + S.itens.filter((i) => (i.estado || "ideia") === v).length + ")"))));
     m.append(h("p", { class: "note", text: "Plano de produtos para a mercearia. “Proposta” são produtos de fornecedores locais que já estão na lista. Margem calculada sobre o PVP sem IVA (23%)." }));
     const lista = S.itens.filter((i) => !S.estado || (i.estado || "ideia") === S.estado);
-    const tb = h("tbody");
     for (const c of cats) {
       const xs = lista.filter((i) => (i.categoria || "Outros") === c).sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0));
       if (!xs.length) continue;
-      tb.append(h("tr", { class: "day" }, h("td", { colspan: 6, text: c })));
-      for (const i of xs) {
-        const mg = margem(i);
-        tb.append(h("tr", { class: "tap", onclick: () => editar(i) },
-          h("td", {}, h("b", { text: i.marca || "—" }), i.produto ? h("small", { text: i.produto }) : null,
-            i.link ? h("small", {}, h("a", { href: linkHref(i.link), target: "_blank", rel: "noopener", onclick: (e) => e.stopPropagation() }, "ver site ↗")) : null),
-          h("td", {}, i.fornecedor || "", i.notas ? h("small", { text: i.notas }) : null),
-          h("td", { class: "n", text: i.custo == null ? "—" : eur(i.custo) }),
-          h("td", { class: "n", text: i.pvp == null ? "—" : eur(i.pvp) }),
-          h("td", { class: "n", text: mg == null ? "—" : Math.round(mg * 100) + "%" }),
-          h("td", {}, h("span", { class: "tag " + ((i.estado === "venda") ? "ok" : i.estado === "descartado" ? "warn" : "muted"), text: (ESTADOS.find(([v]) => v === (i.estado || "ideia")) || [0, i.estado])[1] }))));
-      }
+      m.append(h("h2", { class: "sec" }, c, h("small", { text: String(xs.length) })));
+      m.append(h("div", { class: "mosaico" }, xs.map(cartao)));
     }
-    m.append(h("div", { class: "card scroll", style: "margin-top:8px" }, lista.length ? h("table", { class: "data" },
-      h("thead", {}, h("tr", {}, h("th", { text: "Marca / produto" }), h("th", { text: "Fornecedor / notas" }), h("th", { class: "n", text: "Custo" }), h("th", { class: "n", text: "PVP" }), h("th", { class: "n", text: "Margem" }), h("th", { text: "Estado" }))), tb)
-      : h("div", { class: "empty", text: "Nada neste estado." })));
+    if (!lista.length) m.append(h("div", { class: "card empty", style: "margin-top:8px", text: "Nada neste estado." }));
+  }
+  function cartao(i) {
+    const mg = margem(i), est = i.estado || "ideia";
+    const nums = [i.custo != null ? "Custo " + eur(i.custo) : "", i.pvp != null ? "PVP " + eur(i.pvp) : "", mg != null ? "Margem " + Math.round(mg * 100) + "%" : ""].filter(Boolean);
+    return h("div", { class: "card mc " + est, role: "button", tabindex: "0", onclick: () => editar(i), onkeydown: (e) => { if (e.key === "Enter") editar(i); } },
+      i.imagem ? h("img", { src: linkHref(i.imagem), alt: "", loading: "lazy", onerror: (e) => e.target.remove() }) : null,
+      h("div", { class: "in" },
+        h("div", { class: "top" }, h("strong", { text: i.marca || i.produto || "—" }),
+          h("span", { class: "tag " + (est === "venda" ? "ok" : est === "descartado" ? "warn" : est === "proposta" ? "" : "muted"), text: (ESTADOS.find(([v]) => v === est) || [0, est])[1] })),
+        i.marca && i.produto ? h("div", { class: "p", text: i.produto }) : null,
+        i.fornecedor && i.fornecedor !== i.marca ? h("div", { class: "s", text: i.fornecedor }) : null,
+        i.notas ? h("div", { class: "s", text: i.notas }) : null,
+        i.link ? h("a", { href: linkHref(i.link), target: "_blank", rel: "noopener", onclick: (e) => e.stopPropagation() }, "ver site ↗") : null,
+        nums.length ? h("div", { class: "num", text: nums.join(" · ") }) : null));
   }
   function editar(i) {
     abrirEditor({ titulo: i ? "Produto" : "Novo produto", dados: i || { estado: "ideia" },
       campos: [{ k: "marca", label: "Marca / produtor" }, { k: "produto", label: "Produto" }, { k: "categoria", label: "Categoria", lista: "cats-m" },
         { k: "fornecedor", label: "Fornecedor", lista: "forn-m" }, { k: "link", label: "Link" }, { k: "custo", label: "Custo sem IVA (€)", tipo: "number" },
         { k: "pvp", label: "PVP com IVA (€)", tipo: "number" }, { k: "estado", label: "Estado", tipo: "select", opcoes: ESTADOS },
-        { k: "imagem", label: "Imagem (link)", dica: "Para o futuro moodboard." }, { k: "notas", label: "Notas", tipo: "textarea" }],
+        { k: "imagem", label: "Imagem (link)", dica: "Link de uma foto do produto; aparece no cartão." }, { k: "notas", label: "Notas", tipo: "textarea" }],
       apagar: i ? () => S.db.collection("mercearia").doc(i.id).delete() : null,
       guardar: (d) => {
         if (i) { const { id, ...old } = i; return S.db.collection("mercearia").doc(id).set({ ...old, ...d }); }

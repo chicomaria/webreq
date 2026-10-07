@@ -44,8 +44,8 @@ const slugId = (s) => norm(s).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").
 const linkHref = (u) => !u ? null : /^https?:\/\//i.test(u) ? u : "https://" + u;
 
 // Edit sheet. campos: [{k, label, tipo: text|textarea|number|select|check|url|email|tel, opcoes, dica, lista}]
-// guardar(data) and apagar() are async; the sheet closes when they succeed.
-function abrirEditor({ titulo, campos, dados, guardar, apagar, extra }) {
+// guardar(data) and apagar() are async; the sheet closes when they succeed. topo: element under the title, extra: at the end of the form.
+function abrirEditor({ titulo, campos, dados, guardar, apagar, extra, topo }) {
   const d = dados || {}, inputs = {};
   const form = h("form", { class: "form" });
   for (const c of campos) {
@@ -82,7 +82,7 @@ function abrirEditor({ titulo, campos, dados, guardar, apagar, extra }) {
   });
   ov.addEventListener("click", (e) => { if (e.target === ov) fechar(); });
   document.addEventListener("keydown", esc);
-  ov.append(h("div", { class: "panel" }, h("h3", { class: "ptit", text: titulo }), form));
+  ov.append(h("div", { class: "panel" }, h("h3", { class: "ptit", text: titulo }), topo || null, form));
   document.body.append(ov);
   const first = form.querySelector("input,textarea,select"); if (first && window.innerWidth > 700) first.focus();
   return { fechar, inputs };

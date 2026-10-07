@@ -45,6 +45,7 @@ h3.niv { font-family: var(--font-display); font-weight: 600; font-size: 14px; co
 .carta h3 { font-style: italic; font-weight: 400; color: var(--muted); font-size: 14px; margin: 8px 0 2px; }
 .carta .l { display: flex; justify-content: space-between; gap: 10px; padding: 3px 0; }
 .carta .l small { display: block; color: var(--muted); font-size: 11px; }
+.carta .l small.prova { font-style: italic; color: var(--ink); opacity: .75; font-size: 12px; margin-top: 1px; }
 @media print { header.top, .tools, .precos, .np { display: none !important; } .card { border: 0; } body { background: #fff; } }
 </style>
 </head>
@@ -161,7 +162,8 @@ h3.niv { font-family: var(--font-display); font-weight: 600; font-size: 14px; co
         try { for (const w of difs) await S.db.collection("vinhos").doc(w.id).update({ pvp: null }); toast("Preços atualizados"); } catch (e) { toast("Não foi possível guardar."); }
       }) : null));
     const c = h("div", { class: "card carta" });
-    const item = (w) => h("div", { class: "l" }, h("div", {}, w.nome + (w.formato ? " · " + w.formato : ""), h("small", { text: [w.regiao, w.castas].filter(Boolean).join(" | ") })),
+    const item = (w) => h("div", { class: "l" }, h("div", {}, w.nome + (w.formato ? " · " + w.formato : ""), h("small", { text: [w.regiao, w.castas].filter(Boolean).join(" | ") }),
+      w.notas ? h("small", { class: "prova", text: w.notas }) : null),
       h("div", { class: "n", text: w.tipo === "sobremesa" && w.pvpCopo != null ? preco(copo(w)) : preco(pvp(w)) }));
     for (const t of Object.keys(TIPOS)) {
       const ws = naCarta(t).sort(ord); if (!ws.length) continue;

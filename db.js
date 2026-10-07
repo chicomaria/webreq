@@ -67,8 +67,14 @@ function supabaseDb(sb) {
     }
     new Set(rows.map((r) => r.col)).forEach(emit);
   }
+  // calls a Supabase Edge Function with the team's session (e.g. "expandir", which asks Claude)
+  async function funcao(nome, body) {
+    const { data, error } = await sb.functions.invoke(nome, { body });
+    if (error) fail(error);
+    return data;
+  }
   return {
-    carregar, gravarVarios,
+    carregar, gravarVarios, funcao,
     doc: (path) => { const [c, i] = path.split("/"); return doc(c, i); },
     collection: (col) => Object.assign(query(col), {
       doc: (id) => doc(col, id),

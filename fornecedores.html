@@ -16,11 +16,13 @@
 <script src="painel.js"></script>
 <title>Fornecedores · Chico Maria</title>
 <style>
-.forn .acts { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
-.forn .acts a { padding: 3px 9px; font-size: 13px; }
-.forn .top { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
-.forn .top strong { font-size: 16px; }
-.forn .edit { border: 0; background: none; color: var(--accent); font-weight: 600; font-size: 13px; padding: 2px 0; }
+.fc { padding: 8px 10px; display: flex; flex-direction: column; gap: 2px; cursor: pointer; min-width: 0; }
+.fc:active { background: var(--accent-soft); }
+.fc strong { font-size: 15px; line-height: 1.15; }
+.fc .p { font-size: 13px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.fc .s { color: var(--muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fc a.ct { margin-top: auto; padding-top: 3px; font-size: 13px; font-weight: 600; color: var(--accent); text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fc .tag { align-self: flex-start; font-size: 10px; }
 </style>
 </head>
 <body>
@@ -33,8 +35,9 @@
 </div>
 <script>
 (async () => {
-  const S = { db: null, loaded: { f: false, p: false }, forn: [], produtos: [], q: "", cat: "" };
-  try { S.cat = localStorage.getItem("fr-cat") || ""; } catch (e) {}
+  const S = { db: null, loaded: { f: false, p: false }, forn: [], produtos: [], q: "", abertas: new Set() };
+  try { S.abertas = new Set(JSON.parse(localStorage.getItem("fr-abertas") || "[]")); } catch (e) {}
+  const lembrar = () => { try { localStorage.setItem("fr-abertas", JSON.stringify([...S.abertas])); } catch (e) {} };
 
   // every supplier name used in the order app should match a supplier here (name or one of its "nomes na app")
   function ligacoes() {
@@ -49,6 +52,15 @@
     return { porForn, soltos };
   }
 
+  // one contact on the card: phone, else email, else site
+  function contacto(f) {
+    const tel = (f.telefone || "").split(/[·;,/]| ou /)[0].trim();
+    if (tel) return h("a", { class: "ct", href: "tel:" + tel.replace(/[^\d+]/g, ""), onclick: (e) => e.stopPropagation() }, "☎ " + tel);
+    if (f.email) return h("a", { class: "ct", href: "mailto:" + f.email, onclick: (e) => e.stopPropagation() }, "✉ " + f.email);
+    if (f.site) return h("a", { class: "ct", href: linkHref(f.site), target: "_blank", rel: "noopener", onclick: (e) => e.stopPropagation() }, "↗ " + f.site.replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, ""));
+    return h("span", { class: "s", text: "sem contacto" });
+  }
+
   function render() {
     const m = $("main"); m.replaceChildren();
     if (!S.db) { m.append(h("div", { class: "empty" }, h("strong", { text: S.db === false ? "Sem ligação à base de dados" : "A carregar…" }))); return; }
@@ -58,11 +70,10 @@
     const { porForn, soltos } = ligacoes();
     const busca = h("input", { type: "search", placeholder: "Procurar nome, produto ou terra", value: S.q, "aria-label": "Procurar fornecedor" });
     busca.addEventListener("input", () => { S.q = busca.value; const p = busca.selectionStart; render(); const b = document.querySelector("input[type=search]"); b.focus(); b.setSelectionRange(p, p); });
+    const todas = cats.every((c) => S.abertas.has(c));
     m.append(h("div", { class: "tools" }, busca, h("button", { class: "btn primary", onclick: () => editar(null) }, "+ Fornecedor"),
+      h("button", { class: "btn", onclick: () => { S.abertas = new Set(todas ? [] : cats); lembrar(); render(); } }, todas ? "Fechar todas" : "Abrir todas"),
       h("button", { class: "btn", onclick: exportar }, "Excel")));
-    const sel = h("select", { "aria-label": "Categoria" }, h("option", { value: "" }, "Todas as categorias"), cats.map((c) => h("option", { value: c, selected: S.cat === c }, c)));
-    sel.addEventListener("change", () => { S.cat = sel.value; try { localStorage.setItem("fr-cat", S.cat); } catch (e) {} render(); });
-    m.append(h("div", { class: "tools", style: "margin-top:0" }, sel));
     if (soltos.size && S.loaded.p) {
       m.append(h("div", { class: "alerta", style: "margin-top:10px" },
         h("strong", { text: "Nomes na app de encomendas sem ficha aqui: " }),
@@ -70,34 +81,38 @@
         ". Junte o nome em “Nomes na app de encomendas” do fornecedor certo, ou crie-o."));
     }
     const q = norm(S.q);
-    const lista = S.forn.filter((f) => (!S.cat || (f.categoria || "Outros") === S.cat) &&
-      (!q || norm([f.nome, f.produtos, f.local, f.contacto, (f.nomesApp || []).join(" ")].join(" ")).includes(q)));
+    const lista = S.forn.filter((f) => !q || norm([f.nome, f.categoria, f.produtos, f.local, f.contacto, (f.nomesApp || []).join(" ")].join(" ")).includes(q));
     const grupos = [...new Set(lista.map((f) => f.categoria || "Outros"))].sort((a, b) => a.localeCompare(b, "pt"));
     for (const g of grupos) {
       const fs = lista.filter((f) => (f.categoria || "Outros") === g).sort((a, b) => a.nome.localeCompare(b.nome, "pt"));
-      m.append(h("h2", { class: "sec" }, g, h("small", { text: String(fs.length) })));
-      m.append(h("div", { class: "list" }, fs.map((f) => {
-        const n = porForn.get(f.id);
-        const tel = (f.telefone || "").split(/[·;,/]| ou /)[0].replace(/[^\d+]/g, "");
-        return h("div", { class: "card item forn" },
-          h("div", { class: "top" }, h("strong", { text: f.nome }), h("button", { class: "edit", onclick: () => editar(f) }, "Editar")),
-          f.produtos ? h("div", { text: f.produtos }) : null,
-          h("div", { class: "s" }, [f.local, f.contacto].filter(Boolean).join(" · "),
-            n ? [" ", h("span", { class: "tag ok", text: n + (n === 1 ? " artigo" : " artigos") + " nas encomendas" })] : null),
-          f.obs ? h("div", { class: "s", text: f.obs }) : null,
-          (tel || f.email || f.site) ? h("div", { class: "acts" },
-            tel ? h("a", { class: "btn", href: "tel:" + tel }, "☎ " + f.telefone) : null,
-            f.email ? h("a", { class: "btn", href: "mailto:" + f.email }, "✉ " + f.email) : null,
-            f.site ? h("a", { class: "btn", href: linkHref(f.site), target: "_blank", rel: "noopener" }, "↗ " + f.site.replace(/^https?:\/\//, "")) : null) : null);
-      })));
+      const d = h("details", { class: "grupo", open: !!q || S.abertas.has(g) },
+        h("summary", {}, g, h("small", { text: String(fs.length) })),
+        h("div", { class: "mosaico" }, fs.map((f) => {
+          const n = porForn.get(f.id);
+          return h("div", { class: "card fc", role: "button", tabindex: "0", title: [f.produtos, f.obs].filter(Boolean).join("\n"),
+            onclick: () => editar(f), onkeydown: (e) => { if (e.key === "Enter") editar(f); } },
+            h("strong", { text: f.nome }),
+            f.produtos ? h("div", { class: "p", text: f.produtos }) : null,
+            f.local ? h("div", { class: "s", text: f.local }) : null,
+            n ? h("span", { class: "tag ok", text: n + (n === 1 ? " artigo" : " artigos") + " nas encomendas" }) : null,
+            contacto(f));
+        })));
+      if (!q) d.addEventListener("toggle", () => { if (d.open) S.abertas.add(g); else S.abertas.delete(g); lembrar(); });
+      m.append(d);
     }
     if (!lista.length) m.append(h("div", { class: "card empty" }, h("strong", { text: "Nenhum fornecedor encontrado" })));
-    m.append(h("p", { class: "note", text: S.forn.length + " fornecedores. O número de artigos vem da app de encomendas." }));
+    m.append(h("p", { class: "note", text: S.forn.length + " fornecedores. Toque num cartão para ver tudo e editar. O número de artigos vem da app de encomendas." }));
   }
 
   function editar(f) {
-    const d = f ? { ...f, nomesApp: (f.nomesApp || []).join(", ") } : { categoria: S.cat };
-    abrirEditor({ titulo: f ? "Editar fornecedor" : "Novo fornecedor", dados: d,
+    const d = f ? { ...f, nomesApp: (f.nomesApp || []).join(", ") } : {};
+    // all the supplier's contacts as buttons under the title
+    const tels = f ? (f.telefone || "").split(/[·;,/]| ou /).map((t) => t.trim()).filter((t) => /\d{3}/.test(t)) : [];
+    const topo = f && (tels.length || f.email || f.site) ? h("div", { class: "tools", style: "margin:0 0 10px" },
+      tels.map((t) => h("a", { class: "btn", href: "tel:" + t.replace(/[^\d+]/g, "") }, "☎ " + t)),
+      f.email ? h("a", { class: "btn", href: "mailto:" + f.email }, "✉ Email") : null,
+      f.site ? h("a", { class: "btn", href: linkHref(f.site), target: "_blank", rel: "noopener" }, "↗ Site") : null) : null;
+    abrirEditor({ titulo: f ? f.nome : "Novo fornecedor", dados: d, topo,
       campos: [{ k: "nome", label: "Nome" }, { k: "categoria", label: "Categoria", lista: "cats-f" }, { k: "produtos", label: "O que fornece", tipo: "textarea", rows: 2 },
         { k: "local", label: "Terra / morada" }, { k: "contacto", label: "Pessoa de contacto" }, { k: "telefone", label: "Telefone", tipo: "tel" },
         { k: "email", label: "Email", tipo: "email" }, { k: "site", label: "Site" }, { k: "obs", label: "Notas", tipo: "textarea" },

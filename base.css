@@ -87,3 +87,11 @@ table.data tr.day td { background: var(--bg); font-weight: 700; font-size: 12px;
 .chips { display: flex; gap: 6px; flex-wrap: wrap; }
 .chips button { border: 1px solid var(--line); background: var(--paper); border-radius: 99px; padding: 4px 10px; font-size: 13px; font-weight: 600; color: var(--muted); }
 .chips button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--paper); }
+.mosaico { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 165px), 1fr)); gap: 8px; }
+details.grupo { margin-top: 6px; }
+details.grupo > summary { list-style: none; cursor: pointer; font-family: var(--font-display); font-weight: 700; font-size: 15px; letter-spacing: .06em; text-transform: uppercase; padding: 8px 2px 6px; display: flex; align-items: baseline; gap: 8px; }
+details.grupo > summary::-webkit-details-marker { display: none; }
+details.grupo > summary::before { content: "▸"; color: var(--accent); width: 12px; flex: none; transition: transform .15s; }
+details.grupo[open] > summary::before { transform: rotate(90deg); }
+details.grupo > summary small { font-family: var(--font-body); font-weight: 600; font-size: 13px; letter-spacing: 0; text-transform: none; color: var(--muted); margin-left: auto; }
+details.grupo.mae > summary { font-size: 19px; border-bottom: 2px solid var(--line); }
