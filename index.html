@@ -64,8 +64,15 @@ nav.tabs button[aria-selected="true"] .badge { background: var(--paper); color: 
 .chip { border: 1px solid var(--line); background: var(--paper); border-radius: 99px; padding: 4px 10px; font-weight: 600; font-size: 13px; }
 .chip[aria-pressed="true"] { background: var(--ink); color: var(--paper); border-color: var(--ink); }
 
-h2.cat { font-family: var(--font-display); font-weight: 700; font-size: 15px; letter-spacing: .06em; text-transform: uppercase; margin: 10px 0 3px; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
-h2.cat small { font-family: var(--font-body); font-weight: 600; font-size: 13px; letter-spacing: 0; text-transform: none; color: var(--muted); }
+.cat { font-family: var(--font-display); font-weight: 700; font-size: 15px; letter-spacing: .06em; text-transform: uppercase; margin: 10px 0 3px; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+button.cat { width: 100%; border: 0; background: transparent; padding: 8px 2px; margin: 2px 0 0; border-bottom: 1px solid var(--line); cursor: pointer; text-align: left; color: var(--ink); }
+button.cat .chev { display: inline-block; width: 14px; color: var(--muted); transition: transform .15s; }
+button.cat[aria-expanded="true"] .chev { transform: rotate(90deg); }
+button.cat .on-n { color: var(--accent); }
+.cost { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; padding: 8px 10px; background: var(--accent-soft); border-radius: 8px; font-weight: 700; }
+.cost .v { font-family: var(--font-mono); font-size: 17px; }
+.cost small { display: block; font-weight: 400; color: var(--muted); font-size: 12px; }
+.cat small { font-family: var(--font-body); font-weight: 600; font-size: 13px; letter-spacing: 0; text-transform: none; color: var(--muted); }
 .sheet { background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius); }
 .row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 4px 8px; min-height: 42px; border-top: 1px solid var(--line); }
 .row:first-child { border-top: 0; }
@@ -123,6 +130,7 @@ h2.cat small { font-family: var(--font-body); font-weight: 600; font-size: 13px;
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="migracoes.js"></script>
 </head>
 <body>
 <div class="wrap">
@@ -223,7 +231,7 @@ const fileDownloads = {
     db: null, user: null, uid: null, canWrite: true,
     produtos: new Map(), rasc: new Map(), encomendas: [], cats: [],
     loaded: { produtos: false, rasc: false, enc: false },
-    tab: "enc", filtro: "semanal", q: "", qa: "", open: new Set(), names: {},
+    tab: "enc", filtro: "semanal", q: "", qa: "", open: new Set(), names: {}, abertas: new Set(),
   };
   const $ = (id) => document.getElementById(id);
   function h(tag, attrs, ...kids) {
@@ -298,6 +306,7 @@ const fileDownloads = {
     try { localStorage.setItem("tab", t); } catch (e) {}
     render(); window.scrollTo(0, 0);
   }
+  try { const a = JSON.parse(localStorage.getItem("abertas") || "[]"); if (Array.isArray(a)) S.abertas = new Set(a); } catch (e) {}
   try { const t = localStorage.getItem("tab"); if (t) S.tab = t; const f = localStorage.getItem("filtro"); if (f) S.filtro = f; } catch (e) {}
   document.querySelectorAll("nav.tabs button").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.tab === S.tab)));
 
@@ -317,6 +326,22 @@ const fileDownloads = {
     $("fbText").textContent = n === 1 ? "1 artigo na encomenda" : n + " artigos na encomenda";
     $("floatbar").hidden = !(S.tab === "enc" && n > 0);
     const fab = $("fab"); fab.hidden = !(S.db && S.canWrite && (S.tab === "enc" || S.tab === "art")); fab.classList.toggle("low", $("floatbar").hidden);
+  }
+
+  // ---------- collapsible groups ----------
+  // categories start closed on the phone; a search or the "Na encomenda" filter opens everything
+  function groupEl(key, title, info, body, forceOpen) {
+    const open = forceOpen || S.abertas.has(key);
+    const wrap = h("section", {});
+    const btn = h("button", { type: "button", class: "cat", "aria-expanded": String(open) },
+      h("span", {}, h("span", { class: "chev", "aria-hidden": "true" }, "▸"), " ", title), info);
+    body.hidden = !open;
+    btn.addEventListener("click", () => {
+      const now = body.hidden; body.hidden = !now; btn.setAttribute("aria-expanded", String(now));
+      if (!forceOpen) { now ? S.abertas.add(key) : S.abertas.delete(key); try { localStorage.setItem("abertas", JSON.stringify([...S.abertas])); } catch (e) {} }
+    });
+    wrap.append(btn, body);
+    return wrap;
   }
 
   // ---------- Encomendar ----------
@@ -348,8 +373,8 @@ const fileDownloads = {
       for (const [c, items] of groups) {
         if (!items.length) continue;
         const nOn = items.filter((p) => qtyOf(p.id) > 0).length;
-        list.append(h("h2", { class: "cat" }, c, h("small", { text: (nOn ? nOn + " na encomenda · " : "") + items.length })));
-        list.append(h("div", { class: "sheet" }, items.map(rowEl)));
+        const key = (S.filtro === "fornecedor" && !q ? "f:" : "c:") + c;
+        list.append(groupEl(key, c, h("small", {}, nOn ? h("span", { class: "on-n", text: nOn + " na encomenda · " }) : "", String(items.length)), h("div", { class: "sheet" }, items.map(rowEl)), !!q || S.filtro === "pedidos"));
       }
     }
     drawList();
@@ -418,6 +443,12 @@ const fileDownloads = {
       h("a", { class: "btn", href: "https://wa.me/?text=" + encodeURIComponent(txt), target: "_blank", rel: "noopener" }, "WhatsApp"));
     return { el: h("div", { class: "card" }, head, h("ul", { class: "lines" }, lis), acts), tot, nT };
   }
+  function costBox(lines) {
+    let tot = 0; const semPreco = [];
+    for (const l of lines) { const c = custo(l, l.qtd); if (c != null) tot += c; else semPreco.push(l.nome); }
+    const det = semPreco.length ? semPreco.length + (semPreco.length === 1 ? " artigo sem preço comparável: " : " artigos sem preço comparável: ") + semPreco.slice(0, 6).join(", ") + (semPreco.length > 6 ? "…" : "") : "Todos os artigos têm preço.";
+    return h("div", { class: "cost" }, h("span", {}, "Custo estimado", h("small", { text: "Sem IVA. " + det })), h("span", { class: "v", text: fmtE(tot) }));
+  }
   function viewRes() {
     const frag = document.createDocumentFragment();
     const lines = draftLines();
@@ -432,11 +463,10 @@ const fileDownloads = {
     frag.append(h("div", { class: "tools" },
       h("span", { class: "sub", text: lines.length + " artigos · " + groups.length + " fornecedores" + (total ? " · ≈ " + fmtE(total) + " estimado" : "") }),
       h("button", { class: "btn", onclick: () => copy(titulo + "\n\n" + groups.map(([f, ls]) => textFor(f, ls)).join("\n\n")) }, "Copiar tudo"),
-      pdfButton(() => ({ titulo, data: new Date().toISOString(), entrega: ($("f-entrega") || {}).value || "", nota: (($("f-nota") || {}).value || "").trim(), groups }))));
+      pdfButton(() => ({ titulo, data: new Date().toISOString(), entrega: "", nota: (($("f-nota") || {}).value || "").trim(), groups }))));
     frag.append(...cards);
     frag.append(h("p", { class: "note", text: "Os valores são estimativas sem IVA, só para artigos com preço na mesma unidade da encomenda." }));
     // close order
-    const entrega = h("input", { id: "f-entrega", type: "date" });
     const nota = h("textarea", { id: "f-nota", rows: 2, placeholder: "Ex.: menu de sexta, entregar antes das 10h" });
     const btn = h("button", { class: "btn primary", disabled: !S.canWrite }, "Fechar encomenda");
     let armed = false, tm;
@@ -445,7 +475,7 @@ const fileDownloads = {
       clearTimeout(tm); btn.disabled = true; btn.textContent = "A guardar…";
       try {
         const ls = draftLines();
-        await S.db.collection("encomendas").add({ criada: new Date().toISOString(), por: S.uid || "", entrega: entrega.value || "", nota: nota.value.trim(), itens: ls.map(({ ordem, ...l }) => l), recebidos: {} });
+        await S.db.collection("encomendas").add({ criada: new Date().toISOString(), por: S.uid || "", entrega: "", nota: nota.value.trim(), itens: ls.map(({ ordem, ...l }) => l), recebidos: {} });
         for (const l of ls) { pend.delete(l.pid); await serial("r:" + l.pid, () => S.db.collection("rascunho").doc(l.pid).delete()); }
         // each closed order marks its articles as frequent and counts how often they were ordered
         const agora = new Date().toISOString();
@@ -457,7 +487,7 @@ const fileDownloads = {
       } catch (e) { btn.disabled = false; btn.textContent = "Fechar encomenda"; armed = false; writeErr(e); }
     });
     frag.append(h("div", { class: "card" }, h("div", { class: "card-h" }, h("h3", { text: "Fechar encomenda" })),
-      h("div", { class: "form" }, h("label", { for: "f-entrega" }, "Data de entrega", entrega), h("label", { for: "f-nota" }, "Nota", nota), btn)));
+      h("div", { class: "form" }, costBox(lines), h("label", { for: "f-nota" }, "Nota", nota), btn)));
     return frag;
   }
 
@@ -580,10 +610,9 @@ const fileDownloads = {
       list.append(h("p", { class: "note", style: "padding:0", text: ps.length + " artigos · " + ps.filter((p) => p.semanal).length + " frequentes" }));
       for (const c of catsOf(ps)) {
         const items = ps.filter((p) => p.categoria === c); if (!items.length) continue;
-        list.append(h("h2", { class: "cat" }, c, h("small", { text: items.length + "" })));
-        list.append(h("div", { class: "sheet" }, items.map((p) => h("button", { class: "row", style: "width:100%;border-left:0;border-right:0;border-bottom:0;background:transparent;text-align:left", onclick: () => editor(p) },
+        list.append(groupEl("a:" + c, c, h("small", { text: items.length + "" }), h("div", { class: "sheet" }, items.map((p) => h("button", { class: "row", style: "width:100%;border-left:0;border-right:0;border-bottom:0;background:transparent;text-align:left", onclick: () => editor(p) },
           h("div", {}, h("div", { class: "name", text: p.nome + (p.semanal ? "" : "") }), h("div", { class: "meta", text: [p.fornecedor || "sem fornecedor", p.unidade, p.semanal ? "frequente" + (p.vezes ? " (" + p.vezes + "x)" : "") : ""].filter(Boolean).join(" · ") })),
-          h("span", { class: "meta", style: "white-space:nowrap", text: p.preco != null && p.preco !== "" ? fmtE(Number(p.preco)) + "/" + (p.precoUnidade || p.unidade) : "sem preço" })))));
+          h("span", { class: "meta", style: "white-space:nowrap", text: p.preco != null && p.preco !== "" ? fmtE(Number(p.preco)) + "/" + (p.precoUnidade || p.unidade) : "sem preço" })))), !!q));
       }
     }
     draw();
@@ -649,6 +678,38 @@ const fileDownloads = {
     document.body.append(ov); (isNew ? f.nome : f.habitual).focus();
   }
 
+  // ---------- data updates shipped with the app ----------
+  // Each runs once per database (recorded in config/migracoes) and never overwrites what the team already edited.
+  const MIGRACOES = window.MIGRACOES || [];
+  let migrando = false;
+  async function migrar() {
+    if (migrando || !S.loaded.produtos || !S.loaded.cfg || !S.loaded.mig) return;
+    const feitas = new Set(S.migFeitas), falta = MIGRACOES.filter((m) => !feitas.has(m.id));
+    if (!falta.length) return;
+    migrando = true;
+    try {
+      for (const m of falta) {
+        const add = m.categorias || [];
+        if (add.some((c) => !S.cats.includes(c))) { S.cats = [...S.cats, ...add.filter((c) => !S.cats.includes(c))]; await S.db.doc("config/categorias").set({ lista: S.cats }); }
+        for (const [id, d] of Object.entries(m.novos || {})) if (!S.produtos.has(id)) await S.db.collection("produtos").doc(id).set(d);
+        for (const [id, d] of Object.entries(m.precos || {})) {
+          const p = S.produtos.get(id);
+          if (p && (p.preco == null || p.preco === "")) {
+            const { nota, ...upd } = d;
+            if (nota) upd.obs = ((p.obs || "") + " " + nota).trim();
+            await S.db.collection("produtos").doc(id).update(upd);
+          }
+        }
+        for (const [id, x] of Object.entries(m.ajustes || {})) {
+          const p = S.produtos.get(id);
+          if (p && Number(p.preco) === x.se && (p.precoUnidade || "") === x.seUn) await S.db.collection("produtos").doc(id).update(x.set);
+        }
+        feitas.add(m.id);
+        await S.db.doc("config/migracoes").set({ feitas: [...feitas] });
+      }
+    } catch (e) {} finally { migrando = false; }
+  }
+
   // ---------- data ----------
   let rT;
   function soon() { clearTimeout(rT); rT = setTimeout(() => {
@@ -667,8 +728,9 @@ const fileDownloads = {
     S.downloads = fileDownloads;
     $("sub").textContent = "Lista partilhada pela equipa";
     const onErr = () => {};
-    db.doc("config/categorias").onSnapshot((s) => { S.cats = (s.exists && Array.isArray(s.data().lista)) ? [...s.data().lista] : S.cats; soon(); }, onErr);
-    db.collection("produtos").onSnapshot((snap) => { S.produtos = new Map(snap.docs.map((d) => [d.id, { id: d.id, ...d.data() }])); S.loaded.produtos = true; soon(); }, onErr);
+    db.doc("config/categorias").onSnapshot((s) => { S.cats = (s.exists && Array.isArray(s.data().lista)) ? [...s.data().lista] : S.cats; S.loaded.cfg = true; soon(); migrar(); }, onErr);
+    db.doc("config/migracoes").onSnapshot((s) => { S.migFeitas = (s.exists && Array.isArray(s.data().feitas)) ? s.data().feitas : []; S.loaded.mig = true; migrar(); }, onErr);
+    db.collection("produtos").onSnapshot((snap) => { S.produtos = new Map(snap.docs.map((d) => [d.id, { id: d.id, ...d.data() }])); S.loaded.produtos = true; soon(); migrar(); }, onErr);
     db.collection("rascunho").onSnapshot((snap) => { S.rasc = new Map(snap.docs.map((d) => [d.id, d.data()])); S.loaded.rasc = true; soon(); }, onErr);
     db.collection("encomendas").orderBy("criada", "desc").limit(60).onSnapshot((snap) => { S.encomendas = snap.docs.map((d) => ({ id: d.id, ...d.data() })); S.loaded.enc = true; soon(); }, onErr);
     render();
