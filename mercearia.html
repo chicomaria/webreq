@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#eef1ee">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Source+Sans+3:wght@400;600;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="base.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="db.js"></script>
+<script src="ui.js"></script>
+<script src="dados.js"></script>
+<script src="painel.js"></script>
+<title>Mercearia · Chico Maria</title>
+<style>
+table.data tr.tap { cursor: pointer; }
+table.data tr.tap:active td { background: var(--accent-soft); }
+table.data td small { display: block; color: var(--muted); font-size: 12px; }
+table.data td a { color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand"><h1><a href="./" class="home" aria-label="Início">‹</a> Mercearia</h1><span class="sub" id="sub">A ligar…</span></div>
+  </header>
+  <main id="main"></main>
+  <datalist id="cats-m"></datalist>
+  <datalist id="forn-m"></datalist>
+</div>
+<script>
+(async () => {
+  const ESTADOS = [["proposta", "Proposta"], ["ideia", "Ideia"], ["contactado", "Contactado"], ["amostra", "Amostra"], ["venda", "À venda"], ["descartado", "Descartado"]];
+  const S = { db: null, loaded: false, itens: [], forn: [], estado: "" };
+  try { S.estado = localStorage.getItem("mc-estado") || ""; } catch (e) {}
+  const margem = (i) => i.custo != null && i.pvp ? (i.pvp / 1.23 - i.custo) / (i.pvp / 1.23) : null;
+
+  function render() {
+    const m = $("main"); m.replaceChildren();
+    if (!S.db) { m.append(h("div", { class: "empty" }, h("strong", { text: S.db === false ? "Sem ligação à base de dados" : "A carregar…" }))); return; }
+    if (!S.loaded) { m.append(h("div", { class: "empty" }, h("strong", { text: "A carregar…" }))); return; }
+    const cats = [...new Set(S.itens.map((i) => i.categoria || "Outros"))].sort((a, b) => a.localeCompare(b, "pt"));
+    $("cats-m").replaceChildren(...cats.map((c) => h("option", { value: c })));
+    $("forn-m").replaceChildren(...S.forn.map((n) => h("option", { value: n })));
+    m.append(h("div", { class: "tools" }, h("button", { class: "btn primary", onclick: () => editar(null) }, "+ Produto"),
+      h("button", { class: "btn", onclick: exportar }, "Excel")));
+    const chip = (v, lab) => h("button", { type: "button", "aria-pressed": String(S.estado === v), onclick: () => { S.estado = v; try { localStorage.setItem("mc-estado", v); } catch (e) {} render(); } }, lab);
+    m.append(h("div", { class: "chips" }, chip("", "Todos"), ESTADOS.map(([v, l]) => chip(v, l + " (" + S.itens.filter((i) => (i.estado || "ideia") === v).length + ")"))));
+    m.append(h("p", { class: "note", text: "Plano de produtos para a mercearia. “Proposta” são produtos de fornecedores locais que já estão na lista. Margem calculada sobre o PVP sem IVA (23%)." }));
+    const lista = S.itens.filter((i) => !S.estado || (i.estado || "ideia") === S.estado);
+    const tb = h("tbody");
+    for (const c of cats) {
+      const xs = lista.filter((i) => (i.categoria || "Outros") === c).sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0));
+      if (!xs.length) continue;
+      tb.append(h("tr", { class: "day" }, h("td", { colspan: 6, text: c })));
+      for (const i of xs) {
+        const mg = margem(i);
+        tb.append(h("tr", { class: "tap", onclick: () => editar(i) },
+          h("td", {}, h("b", { text: i.marca || "—" }), i.produto ? h("small", { text: i.produto }) : null,
+            i.link ? h("small", {}, h("a", { href: linkHref(i.link), target: "_blank", rel: "noopener", onclick: (e) => e.stopPropagation() }, "ver site ↗")) : null),
+          h("td", {}, i.fornecedor || "", i.notas ? h("small", { text: i.notas }) : null),
+          h("td", { class: "n", text: i.custo == null ? "—" : eur(i.custo) }),
+          h("td", { class: "n", text: i.pvp == null ? "—" : eur(i.pvp) }),
+          h("td", { class: "n", text: mg == null ? "—" : Math.round(mg * 100) + "%" }),
+          h("td", {}, h("span", { class: "tag " + ((i.estado === "venda") ? "ok" : i.estado === "descartado" ? "warn" : "muted"), text: (ESTADOS.find(([v]) => v === (i.estado || "ideia")) || [0, i.estado])[1] }))));
+      }
+    }
+    m.append(h("div", { class: "card scroll", style: "margin-top:8px" }, lista.length ? h("table", { class: "data" },
+      h("thead", {}, h("tr", {}, h("th", { text: "Marca / produto" }), h("th", { text: "Fornecedor / notas" }), h("th", { class: "n", text: "Custo" }), h("th", { class: "n", text: "PVP" }), h("th", { class: "n", text: "Margem" }), h("th", { text: "Estado" }))), tb)
+      : h("div", { class: "empty", text: "Nada neste estado." })));
+  }
+  function editar(i) {
+    abrirEditor({ titulo: i ? "Produto" : "Novo produto", dados: i || { estado: "ideia" },
+      campos: [{ k: "marca", label: "Marca / produtor" }, { k: "produto", label: "Produto" }, { k: "categoria", label: "Categoria", lista: "cats-m" },
+        { k: "fornecedor", label: "Fornecedor", lista: "forn-m" }, { k: "link", label: "Link" }, { k: "custo", label: "Custo sem IVA (€)", tipo: "number" },
+        { k: "pvp", label: "PVP com IVA (€)", tipo: "number" }, { k: "estado", label: "Estado", tipo: "select", opcoes: ESTADOS },
+        { k: "imagem", label: "Imagem (link)", dica: "Para o futuro moodboard." }, { k: "notas", label: "Notas", tipo: "textarea" }],
+      apagar: i ? () => S.db.collection("mercearia").doc(i.id).delete() : null,
+      guardar: (d) => {
+        if (i) { const { id, ...old } = i; return S.db.collection("mercearia").doc(id).set({ ...old, ...d }); }
+        return S.db.collection("mercearia").doc(newId()).set({ ...d, ordem: Date.now() });
+      } });
+  }
+  function exportar() {
+    const n = (v) => v == null ? "" : String(v).replace(".", ",");
+    downloadCsv("mercearia.csv", [["Categoria", "Marca", "Produto", "Fornecedor", "Link", "Custo", "PVP", "Estado", "Notas"],
+      ...S.itens.map((i) => [i.categoria, i.marca, i.produto, i.fornecedor, i.link, n(i.custo), n(i.pvp), i.estado, i.notas])]);
+  }
+
+  render();
+  const db = await abrirPainel();
+  if (!db) { S.db = false; render(); return; }
+  S.db = db; $("sub").textContent = "Plano de produtos";
+  const re = agendar(render);
+  db.collection("mercearia").onSnapshot((s) => { S.itens = s.docs.map((d) => ({ id: d.id, ...d.data() })); S.loaded = true; re(); });
+  db.collection("fornecedores").onSnapshot((s) => { S.forn = s.docs.map((d) => d.data().nome).sort((a, b) => a.localeCompare(b, "pt")); re(); });
+})();
+</script>
+</body>
+</html>

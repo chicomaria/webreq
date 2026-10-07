@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#eef1ee">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Source+Sans+3:wght@400;600;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="base.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="db.js"></script>
+<script src="ui.js"></script>
+<script src="dados.js"></script>
+<script src="painel.js"></script>
+<title>Fichas técnicas · Chico Maria</title>
+<style>
+.fhead { padding: 12px; display: grid; gap: 6px; }
+.fhead h2 { margin: 0; font-family: var(--font-display); font-size: 26px; text-transform: uppercase; letter-spacing: .02em; }
+.kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.kpi { background: var(--bg); border-radius: 8px; padding: 6px 8px; }
+.kpi b { display: block; font-family: var(--font-mono); font-size: 16px; }
+.kpi span { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+@media (max-width: 480px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+table.data tr.tap { cursor: pointer; }
+table.data tr.tap:active td { background: var(--accent-soft); }
+table.data tfoot td { font-weight: 700; border-top: 2px solid var(--line); }
+pre.prep { white-space: pre-wrap; font-family: var(--font-body); font-size: 15px; margin: 0; padding: 12px; line-height: 1.45; }
+td small { color: var(--muted); }
+.falta { color: var(--warn); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand"><h1><a href="./" class="home" aria-label="Início">‹</a> Fichas técnicas</h1><span class="sub" id="sub">A ligar…</span></div>
+    <nav class="tabs" role="tablist">
+      <button role="tab" data-tab="prato" aria-selected="true">Pratos</button>
+      <button role="tab" data-tab="cocktail" aria-selected="false">Cocktails</button>
+      <button role="tab" data-tab="base" aria-selected="false">Bases</button>
+      <button role="tab" data-tab="ing" aria-selected="false">Preços</button>
+    </nav>
+  </header>
+  <main id="main"></main>
+  <datalist id="ing-nomes"></datalist>
+  <datalist id="cats"><option value="Sustento"><option value="Paparicos"><option value="Comedeirices"><option value="Lambarices"><option value="Coquetéis"><option value="Bases"></datalist>
+</div>
+<script>
+(async () => {
+  const S = { db: null, loaded: { f: false, i: false }, fichas: [], ing: new Map(), tab: "prato", sel: null, q: "" };
+  const CATS = { prato: ["Sustento", "Paparicos", "Comedeirices", "Lambarices"], cocktail: ["Coquetéis"], base: ["Bases", "Sustento"] };
+  const UNS = [["Kg", "Kg"], ["L", "L"], ["un", "un"]];
+  try { const t = localStorage.getItem("ft-tab"); if (t) S.tab = t; } catch (e) {}
+  document.querySelectorAll("nav.tabs button").forEach((b) => b.addEventListener("click", () => { S.tab = b.dataset.tab; S.sel = null; S.q = ""; try { localStorage.setItem("ft-tab", S.tab); } catch (e) {} render(); }));
+
+  function custo(f) {
+    let total = 0, falta = 0;
+    for (const r of f.ingredientes || []) {
+      const i = S.ing.get(r.ing);
+      if (!i || i.preco == null || r.qtd == null) { falta++; continue; }
+      total += r.qtd * i.preco;
+    }
+    const dose = f.doses ? total / f.doses : total;
+    return { total, dose, falta, pct: f.pvp ? dose / f.pvp : null, sugerido: Math.ceil(dose * 3) };
+  }
+  const pctTxt = (p) => p == null ? "" : Math.round(p * 100) + "%";
+
+  function render() {
+    document.querySelectorAll("nav.tabs button").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.tab === S.tab)));
+    const m = $("main"); m.replaceChildren();
+    if (!S.db) { m.append(h("div", { class: "empty" }, h("strong", { text: S.db === false ? "Sem ligação à base de dados" : "A carregar…" }))); return; }
+    if (!S.loaded.f || !S.loaded.i) { m.append(h("div", { class: "empty" }, h("strong", { text: "A carregar…" }))); return; }
+    $("ing-nomes").replaceChildren(...[...S.ing.values()].map((i) => h("option", { value: i.nome })));
+    if (S.tab === "ing") return m.append(viewIng());
+    const f = S.sel && S.fichas.find((x) => x.id === S.sel);
+    m.append(f ? viewFicha(f) : viewLista());
+  }
+
+  function viewLista() {
+    const frag = document.createDocumentFragment();
+    const q = norm(S.q);
+    const lista = S.fichas.filter((f) => f.tipo === S.tab && (!q || norm(f.nome).includes(q)));
+    const busca = h("input", { type: "search", placeholder: "Procurar ficha", value: S.q, "aria-label": "Procurar ficha" });
+    busca.addEventListener("input", () => { S.q = busca.value; const p = busca.selectionStart; render(); const b = document.querySelector("input[type=search]"); b.focus(); b.setSelectionRange(p, p); });
+    frag.append(h("div", { class: "tools" }, busca, h("button", { class: "btn primary", onclick: novaFicha }, "+ Nova ficha")));
+    if (S.tab === "prato") frag.append(h("p", { class: "note", text: "Custo por dose a partir dos preços dos ingredientes. Preço sugerido = custo × 3 (food cost de 33%)." }));
+    if (S.tab === "cocktail") frag.append(h("p", { class: "note", text: "Quantidades propostas por medida padrão a partir da carta; afinar no bar." }));
+    const cats = [...new Set([...(CATS[S.tab] || []), ...lista.map((f) => f.categoria || "Outros")])];
+    for (const c of cats) {
+      const fs = lista.filter((f) => (f.categoria || "Outros") === c).sort((a, b) => a.nome.localeCompare(b.nome, "pt"));
+      if (!fs.length) continue;
+      frag.append(h("h2", { class: "sec" }, c, h("small", { text: fs.length + (fs.length === 1 ? " ficha" : " fichas") })));
+      frag.append(h("div", { class: "list" }, fs.map((f) => {
+        const k = custo(f), vazia = !(f.ingredientes || []).length;
+        return h("button", { type: "button", class: "card item click", onclick: () => { S.sel = f.id; render(); window.scrollTo(0, 0); } },
+          h("div", { class: "t" }, h("strong", { text: f.nome }), f.pvp ? h("span", { class: "n", text: eur(f.pvp, 1).replace(",0 €", " €") }) : null),
+          h("div", { class: "s" }, vazia ? h("span", { class: "tag muted", text: "por preencher" }) :
+            ["Custo/dose ", h("span", { class: "n", text: eur(k.dose) }),
+              k.pct != null ? [" · ", h("span", { class: "tag " + (k.pct > 0.36 ? "warn" : "ok"), text: pctTxt(k.pct) })] : null,
+              k.falta ? [" · ", h("span", { class: "falta", text: k.falta + " sem preço" })] : null]));
+      })));
+    }
+    if (!lista.length) frag.append(h("div", { class: "card empty" }, h("strong", { text: "Nenhuma ficha" }), "Use + Nova ficha."));
+    return frag;
+  }
+
+  function viewFicha(f) {
+    const frag = document.createDocumentFragment();
+    const k = custo(f);
+    frag.append(h("div", { class: "tools" }, h("button", { class: "btn", onclick: () => { S.sel = null; render(); } }, "‹ Todas as fichas"),
+      h("span", { style: "flex:1" }), h("button", { class: "btn", onclick: () => editarFicha(f) }, "Editar dados")));
+    frag.append(h("div", { class: "card fhead" },
+      h("div", { class: "s", style: "color:var(--muted);font-size:13px", text: (f.categoria || "") + " · " + (f.doses || 1) + (f.doses === 1 ? " dose" : " doses") }),
+      h("h2", { text: f.nome }),
+      h("div", { class: "kpis" },
+        h("div", { class: "kpi" }, h("b", { text: eur(k.total) }), h("span", { text: "Custo receita" })),
+        h("div", { class: "kpi" }, h("b", { text: eur(k.dose) }), h("span", { text: "Custo por dose" })),
+        h("div", { class: "kpi" }, h("b", { text: f.pvp ? eur(f.pvp) : "—" }), h("span", { text: "PVP" + (f.pvp ? " · " + pctTxt(k.pct) : "") })),
+        h("div", { class: "kpi" }, h("b", { text: k.dose ? eur(k.sugerido, 0) : "—" }), h("span", { text: "PVP sugerido (×3)" }))),
+      f.obs ? h("p", { class: "note", style: "margin:2px 0 0", text: f.obs }) : null));
+    frag.append(h("h2", { class: "sec" }, "Ingredientes", h("small", { text: "toque numa linha para mudar" })));
+    const tb = h("tbody");
+    (f.ingredientes || []).forEach((r, idx) => {
+      const i = S.ing.get(r.ing) || { nome: r.ing + " (apagado)", unidade: "" };
+      const tot = i.preco != null && r.qtd != null ? r.qtd * i.preco : null;
+      tb.append(h("tr", { class: "tap", onclick: () => editarLinha(f, idx) },
+        h("td", {}, i.nome), h("td", { class: "n" }, r.qtd == null ? h("span", { class: "falta", text: "?" }) : fmtNum(r.qtd)), h("td", { text: i.unidade || "" }),
+        h("td", { class: "n" }, i.preco == null ? h("span", { class: "falta", text: "sem preço" }) : eur(i.preco)), h("td", { class: "n", text: tot == null ? "—" : eur(tot) })));
+    });
+    const tbl = h("table", { class: "data" }, h("thead", {}, h("tr", {}, h("th", { text: "Ingrediente" }), h("th", { class: "n", text: "Qtd" }), h("th", { text: "Un" }), h("th", { class: "n", text: "Preço" }), h("th", { class: "n", text: "Total" }))),
+      tb, h("tfoot", {}, h("tr", {}, h("td", { colspan: 4, text: "Total" + (k.falta ? " (" + k.falta + " sem preço ou quantidade)" : "") }), h("td", { class: "n", text: eur(k.total) }))));
+    frag.append(h("div", { class: "card scroll" }, (f.ingredientes || []).length ? tbl : h("div", { class: "empty", text: "Ainda sem ingredientes." })));
+    frag.append(h("div", { class: "tools" }, h("button", { class: "btn", onclick: () => editarLinha(f, -1) }, "+ Ingrediente")));
+    frag.append(h("h2", { class: "sec" }, "Preparação", h("button", { class: "btn", onclick: () => editarPrep(f) }, "Editar")));
+    frag.append(h("div", { class: "card" }, f.preparacao ? h("pre", { class: "prep", text: f.preparacao }) : h("div", { class: "empty", text: "Sem preparação escrita." })));
+    return frag;
+  }
+
+  const gravarFicha = (f, patch) => { const { id, ...d } = f; return S.db.collection("fichas").doc(id).set({ ...d, ...patch }); };
+  function camposFicha() {
+    return [{ k: "nome", label: "Nome" },
+      { k: "tipo", label: "Tipo", tipo: "select", opcoes: [["prato", "Prato"], ["cocktail", "Cocktail"], ["base", "Base / preparação"]] },
+      { k: "categoria", label: "Secção", lista: "cats", dica: "Sustento, Paparicos, Comedeirices, Lambarices, Coquetéis, Bases…" },
+      { k: "doses", label: "N.º de doses que a receita rende", tipo: "number" },
+      { k: "pvp", label: "PVP (€)", tipo: "number" },
+      { k: "obs", label: "Observações", tipo: "textarea" }];
+  }
+  function editarFicha(f) {
+    abrirEditor({ titulo: "Editar ficha", campos: camposFicha(), dados: f, guardar: (d) => gravarFicha(f, { ...d, doses: d.doses || 1 }),
+      apagar: async () => { await S.db.collection("fichas").doc(f.id).delete(); S.sel = null; render(); } });
+  }
+  function novaFicha() {
+    abrirEditor({ titulo: "Nova ficha", campos: camposFicha(), dados: { tipo: S.tab, doses: 1, categoria: (CATS[S.tab] || [""])[0] }, guardar: async (d) => {
+      let id = slugId(d.nome); while (S.fichas.some((x) => x.id === id)) id += "-2";
+      await S.db.collection("fichas").doc(id).set({ ...d, doses: d.doses || 1, ingredientes: [], preparacao: "" });
+      S.tab = d.tipo; S.sel = id;
+    } });
+  }
+  function editarPrep(f) {
+    abrirEditor({ titulo: "Preparação", campos: [{ k: "preparacao", label: "Passos (um por linha)", tipo: "textarea", rows: 16, obrigatorio: false }], dados: f, guardar: (d) => gravarFicha(f, d) });
+  }
+  // one ingredient line; a name that is not in the price list creates a new ingredient
+  function editarLinha(f, idx) {
+    const r = idx >= 0 ? f.ingredientes[idx] : { ing: "", qtd: null };
+    const i = S.ing.get(r.ing);
+    abrirEditor({ titulo: idx >= 0 ? "Ingrediente" : "Juntar ingrediente", dados: { nome: i ? i.nome : "", qtd: r.qtd, unidade: i ? i.unidade : "Kg", preco: i ? i.preco : null },
+      campos: [{ k: "nome", label: "Ingrediente", lista: "ing-nomes", dica: "Escolha da lista. Um nome novo junta-o à lista de preços." },
+        { k: "qtd", label: "Quantidade na receita", tipo: "number" },
+        { k: "unidade", label: "Unidade (só para ingrediente novo)", tipo: "select", opcoes: UNS },
+        { k: "preco", label: "Preço por unidade € (só para ingrediente novo)", tipo: "number" }],
+      apagar: idx >= 0 ? () => gravarFicha(f, { ingredientes: f.ingredientes.filter((_, j) => j !== idx) }) : null,
+      guardar: async (d) => {
+        let id = [...S.ing].find(([, x]) => norm(x.nome) === norm(d.nome));
+        id = id ? id[0] : null;
+        if (!id) { id = slugId(d.nome); await S.db.collection("ingredientes").doc(id).set({ nome: d.nome, grupo: "Outros", unidade: d.unidade, preco: d.preco, fornecedor: "" }); }
+        const lin = [...(f.ingredientes || [])], nova = { ing: id, qtd: d.qtd };
+        if (idx >= 0) lin[idx] = nova; else lin.push(nova);
+        await gravarFicha(f, { ingredientes: lin });
+      } });
+  }
+
+  function viewIng() {
+    const frag = document.createDocumentFragment();
+    const uso = new Map();
+    for (const f of S.fichas) for (const r of f.ingredientes || []) uso.set(r.ing, (uso.get(r.ing) || 0) + 1);
+    const q = norm(S.q);
+    const busca = h("input", { type: "search", placeholder: "Procurar ingrediente", value: S.q, "aria-label": "Procurar ingrediente" });
+    busca.addEventListener("input", () => { S.q = busca.value; const p = busca.selectionStart; render(); const b = document.querySelector("input[type=search]"); b.focus(); b.setSelectionRange(p, p); });
+    frag.append(h("div", { class: "tools" }, busca, h("button", { class: "btn primary", onclick: () => editarIng(null) }, "+ Ingrediente"),
+      h("button", { class: "btn", onclick: () => downloadCsv("precos-ingredientes.csv", [["Ingrediente", "Grupo", "Unidade", "Preço (€)", "Fornecedor", "Fichas"], ...[...S.ing].map(([id, i]) => [i.nome, i.grupo, i.unidade, i.preco == null ? "" : String(i.preco).replace(".", ","), i.fornecedor, uso.get(id) || 0])]) }, "Excel")));
+    frag.append(h("p", { class: "note", text: "Mudar um preço aqui atualiza o custo de todas as fichas que usam o ingrediente." }));
+    const ids = [...S.ing.keys()].filter((id) => !q || norm(S.ing.get(id).nome).includes(q));
+    const grupos = [...new Set(ids.map((id) => S.ing.get(id).grupo || "Outros"))].sort((a, b) => a.localeCompare(b, "pt"));
+    for (const g of grupos) {
+      const tb = h("tbody");
+      ids.filter((id) => (S.ing.get(id).grupo || "Outros") === g).sort((a, b) => S.ing.get(a).nome.localeCompare(S.ing.get(b).nome, "pt")).forEach((id) => {
+        const i = S.ing.get(id);
+        tb.append(h("tr", { class: "tap", onclick: () => editarIng(id) }, h("td", {}, i.nome, i.fornecedor ? h("small", { text: " · " + i.fornecedor }) : null),
+          h("td", { class: "n" }, i.preco == null ? h("span", { class: "falta", text: "sem preço" }) : eur(i.preco)), h("td", { text: "/" + (i.unidade || "?") }), h("td", { class: "n", text: uso.get(id) || "" })));
+      });
+      frag.append(h("h2", { class: "sec", text: g }), h("div", { class: "card scroll" }, h("table", { class: "data" },
+        h("thead", {}, h("tr", {}, h("th", { text: "Ingrediente" }), h("th", { class: "n", text: "Preço" }), h("th", { text: "Un" }), h("th", { class: "n", text: "Fichas" }))), tb)));
+    }
+    return frag;
+  }
+  function editarIng(id) {
+    const i = id ? S.ing.get(id) : { unidade: "Kg", grupo: "" };
+    const usado = id && S.fichas.some((f) => (f.ingredientes || []).some((r) => r.ing === id));
+    abrirEditor({ titulo: id ? "Ingrediente" : "Novo ingrediente", dados: i,
+      campos: [{ k: "nome", label: "Nome" }, { k: "preco", label: "Preço sem IVA (€)", tipo: "number" }, { k: "unidade", label: "Por", tipo: "select", opcoes: UNS },
+        { k: "grupo", label: "Grupo", dica: "Proteínas, Legumes, Bar…" }, { k: "fornecedor", label: "Fornecedor" }, { k: "obs", label: "Notas", tipo: "textarea" }],
+      apagar: id && !usado ? () => S.db.collection("ingredientes").doc(id).delete() : null,
+      guardar: (d) => S.db.collection("ingredientes").doc(id || slugId(d.nome)).set({ ...i, ...d }) });
+  }
+
+  render();
+  const db = await abrirPainel();
+  if (!db) { S.db = false; render(); return; }
+  S.db = db; $("sub").textContent = "Custos e receitas";
+  const re = agendar(render);
+  let hash = decodeURIComponent(location.hash.slice(1));
+  db.collection("fichas").onSnapshot((s) => {
+    S.fichas = s.docs.map((d) => ({ id: d.id, ...d.data() })); S.loaded.f = true;
+    // fichas.html#<id> opens that sheet (links from the dish manual)
+    const alvo = hash && S.fichas.find((f) => f.id === hash);
+    if (alvo) { S.sel = alvo.id; S.tab = alvo.tipo; hash = ""; }
+    re();
+  });
+  db.collection("ingredientes").onSnapshot((s) => { S.ing = new Map(s.docs.map((d) => [d.id, d.data()])); S.loaded.i = true; re(); });
+})();
+</script>
+</body>
+</html>

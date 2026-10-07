@@ -14,7 +14,8 @@
 <script src="ui.js"></script>
 <title>Chico Maria · Backoffice</title>
 <style>
-.tiles { display: grid; gap: 10px; margin-top: 14px; }
+.tiles { display: grid; gap: 10px; margin-top: 6px; }
+h2.grp { font-family: var(--font-display); font-weight: 700; font-size: 15px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 18px 2px 0; }
 @media (min-width: 640px) { .tiles { grid-template-columns: repeat(3, 1fr); } }
 a.tile { display: grid; grid-template-columns: 48px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 16px 14px; background: var(--paper); border: 1px solid var(--line); border-radius: 14px; color: var(--ink); text-decoration: none; }
 a.tile:active { background: var(--accent-soft); }
@@ -29,6 +30,7 @@ a.tile .go { color: var(--muted); font-size: 22px; }
 <div class="wrap">
   <header class="top"><div class="brand"><h1>Chico Maria · Backoffice</h1><span class="sub" id="sub">A ligar…</span></div></header>
   <div class="date" id="hoje"></div>
+  <h2 class="grp">Dia a dia</h2>
   <div class="tiles">
     <a class="tile" href="encomendas.html">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4h6l1 2h3v15H5V6h3z"/><path d="M9 11h6M9 15h6"/></svg>
@@ -41,6 +43,36 @@ a.tile .go { color: var(--muted); font-size: 22px; }
     <a class="tile" href="horarios.html">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
       <div><strong>Horários</strong><span class="s" id="s-hor">Entradas e saídas da equipa</span></div><span class="go" aria-hidden="true">›</span>
+    </a>
+  </div>
+  <h2 class="grp">Cozinha e sala</h2>
+  <div class="tiles">
+    <a class="tile" href="fichas.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h9l3 3v15H6z"/><path d="M9 9h6M9 13h6M9 17h4"/></svg>
+      <div><strong>Fichas técnicas</strong><span class="s" id="s-ft">Custos e receitas de pratos e cocktails</span></div><span class="go" aria-hidden="true">›</span>
+    </a>
+    <a class="tile" href="manual.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M4 19V5"/><path d="M9 7h6"/></svg>
+      <div><strong>Manual de pratos</strong><span class="s" id="s-mp">Como explicar cada prato</span></div><span class="go" aria-hidden="true">›</span>
+    </a>
+    <a class="tile" href="vinhos.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3h8l-1 7a3 3 0 0 1-6 0z"/><path d="M12 13v8M8 21h8"/></svg>
+      <div><strong>Mapa de vinhos</strong><span class="s" id="s-vn">Carta e preços dos vinhos</span></div><span class="go" aria-hidden="true">›</span>
+    </a>
+  </div>
+  <h2 class="grp">Gestão</h2>
+  <div class="tiles">
+    <a class="tile" href="fornecedores.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7h11v10H3z"/><path d="M14 10h4l3 3v4h-7"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>
+      <div><strong>Fornecedores</strong><span class="s" id="s-fr">Produtores e contactos</span></div><span class="go" aria-hidden="true">›</span>
+    </a>
+    <a class="tile" href="redes.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><path d="M17 7h.01"/></svg>
+      <div><strong>Redes sociais</strong><span class="s" id="s-rs">Ideias e copy</span></div><span class="go" aria-hidden="true">›</span>
+    </a>
+    <a class="tile" href="mercearia.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9h16l-1 11H5z"/><path d="M8 9V6a4 4 0 0 1 8 0v3"/></svg>
+      <div><strong>Mercearia</strong><span class="s" id="s-mc">Plano de produtos</span></div><span class="go" aria-hidden="true">›</span>
     </a>
   </div>
 </div>
@@ -57,6 +89,13 @@ a.tile .go { color: var(--muted); font-size: 22px; }
     const frios = new Set(s.docs.map((x) => x.data()).filter((t) => diaKey(t.em) === hoje).map((t) => t.frio));
     $("s-tmp").textContent = frios.size + " de 6 frios registados hoje";
   });
+  const conta = (col, id, fn) => db.collection(col).onSnapshot((s) => { const t = fn(s.docs.map((x) => x.data())); if (t) $(id).textContent = t; });
+  conta("fichas", "s-ft", (d) => d.length ? d.filter((f) => (f.ingredientes || []).length).length + " de " + d.length + " fichas preenchidas" : "");
+  conta("pratos", "s-mp", (d) => d.length ? d.filter((p) => p.carta).length + " pratos na carta" : "");
+  conta("vinhos", "s-vn", (d) => d.length ? d.filter((v) => v.naCarta).length + " vinhos na carta, " + d.filter((v) => !v.naCarta).length + " de reserva" : "");
+  conta("fornecedores", "s-fr", (d) => d.length ? d.length + " fornecedores" : "");
+  conta("redes", "s-rs", (d) => d.length ? d.filter((p) => p.estado !== "publicado").length + " ideias por publicar" : "");
+  conta("mercearia", "s-mc", (d) => d.length ? d.filter((i) => i.estado === "venda").length + " à venda, " + d.filter((i) => i.estado !== "venda" && i.estado !== "descartado").length + " em estudo" : "");
   db.collection("picagens").onSnapshot((s) => {
     const last = new Map();
     for (const d of s.docs.map((x) => x.data()).sort((a, b) => a.em.localeCompare(b.em))) last.set(d.pessoa, d);

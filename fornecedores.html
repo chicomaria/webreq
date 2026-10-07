@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#eef1ee">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Source+Sans+3:wght@400;600;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="base.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="db.js"></script>
+<script src="ui.js"></script>
+<script src="dados.js"></script>
+<script src="painel.js"></script>
+<title>Fornecedores · Chico Maria</title>
+<style>
+.forn .acts { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+.forn .acts a { padding: 3px 9px; font-size: 13px; }
+.forn .top { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+.forn .top strong { font-size: 16px; }
+.forn .edit { border: 0; background: none; color: var(--accent); font-weight: 600; font-size: 13px; padding: 2px 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand"><h1><a href="./" class="home" aria-label="Início">‹</a> Fornecedores</h1><span class="sub" id="sub">A ligar…</span></div>
+  </header>
+  <main id="main"></main>
+  <datalist id="cats-f"></datalist>
+</div>
+<script>
+(async () => {
+  const S = { db: null, loaded: { f: false, p: false }, forn: [], produtos: [], q: "", cat: "" };
+  try { S.cat = localStorage.getItem("fr-cat") || ""; } catch (e) {}
+
+  // every supplier name used in the order app should match a supplier here (name or one of its "nomes na app")
+  function ligacoes() {
+    const mapa = new Map();
+    for (const f of S.forn) for (const n of [f.nome, ...(f.nomesApp || [])]) mapa.set(norm(n), f.id);
+    const porForn = new Map(), soltos = new Map();
+    for (const p of S.produtos) {
+      const n = (p.fornecedor || "").trim(); if (!n) continue;
+      const id = mapa.get(norm(n));
+      if (id) porForn.set(id, (porForn.get(id) || 0) + 1); else soltos.set(n, (soltos.get(n) || 0) + 1);
+    }
+    return { porForn, soltos };
+  }
+
+  function render() {
+    const m = $("main"); m.replaceChildren();
+    if (!S.db) { m.append(h("div", { class: "empty" }, h("strong", { text: S.db === false ? "Sem ligação à base de dados" : "A carregar…" }))); return; }
+    if (!S.loaded.f) { m.append(h("div", { class: "empty" }, h("strong", { text: "A carregar…" }))); return; }
+    const cats = [...new Set(S.forn.map((f) => f.categoria || "Outros"))].sort((a, b) => a.localeCompare(b, "pt"));
+    $("cats-f").replaceChildren(...cats.map((c) => h("option", { value: c })));
+    const { porForn, soltos } = ligacoes();
+    const busca = h("input", { type: "search", placeholder: "Procurar nome, produto ou terra", value: S.q, "aria-label": "Procurar fornecedor" });
+    busca.addEventListener("input", () => { S.q = busca.value; const p = busca.selectionStart; render(); const b = document.querySelector("input[type=search]"); b.focus(); b.setSelectionRange(p, p); });
+    m.append(h("div", { class: "tools" }, busca, h("button", { class: "btn primary", onclick: () => editar(null) }, "+ Fornecedor"),
+      h("button", { class: "btn", onclick: exportar }, "Excel")));
+    const sel = h("select", { "aria-label": "Categoria" }, h("option", { value: "" }, "Todas as categorias"), cats.map((c) => h("option", { value: c, selected: S.cat === c }, c)));
+    sel.addEventListener("change", () => { S.cat = sel.value; try { localStorage.setItem("fr-cat", S.cat); } catch (e) {} render(); });
+    m.append(h("div", { class: "tools", style: "margin-top:0" }, sel));
+    if (soltos.size && S.loaded.p) {
+      m.append(h("div", { class: "alerta", style: "margin-top:10px" },
+        h("strong", { text: "Nomes na app de encomendas sem ficha aqui: " }),
+        [...soltos].map(([n, c], i) => [i ? ", " : "", h("b", { text: n }), " (" + c + ")"]),
+        ". Junte o nome em “Nomes na app de encomendas” do fornecedor certo, ou crie-o."));
+    }
+    const q = norm(S.q);
+    const lista = S.forn.filter((f) => (!S.cat || (f.categoria || "Outros") === S.cat) &&
+      (!q || norm([f.nome, f.produtos, f.local, f.contacto, (f.nomesApp || []).join(" ")].join(" ")).includes(q)));
+    const grupos = [...new Set(lista.map((f) => f.categoria || "Outros"))].sort((a, b) => a.localeCompare(b, "pt"));
+    for (const g of grupos) {
+      const fs = lista.filter((f) => (f.categoria || "Outros") === g).sort((a, b) => a.nome.localeCompare(b.nome, "pt"));
+      m.append(h("h2", { class: "sec" }, g, h("small", { text: String(fs.length) })));
+      m.append(h("div", { class: "list" }, fs.map((f) => {
+        const n = porForn.get(f.id);
+        const tel = (f.telefone || "").split(/[·;,/]| ou /)[0].replace(/[^\d+]/g, "");
+        return h("div", { class: "card item forn" },
+          h("div", { class: "top" }, h("strong", { text: f.nome }), h("button", { class: "edit", onclick: () => editar(f) }, "Editar")),
+          f.produtos ? h("div", { text: f.produtos }) : null,
+          h("div", { class: "s" }, [f.local, f.contacto].filter(Boolean).join(" · "),
+            n ? [" ", h("span", { class: "tag ok", text: n + (n === 1 ? " artigo" : " artigos") + " nas encomendas" })] : null),
+          f.obs ? h("div", { class: "s", text: f.obs }) : null,
+          (tel || f.email || f.site) ? h("div", { class: "acts" },
+            tel ? h("a", { class: "btn", href: "tel:" + tel }, "☎ " + f.telefone) : null,
+            f.email ? h("a", { class: "btn", href: "mailto:" + f.email }, "✉ " + f.email) : null,
+            f.site ? h("a", { class: "btn", href: linkHref(f.site), target: "_blank", rel: "noopener" }, "↗ " + f.site.replace(/^https?:\/\//, "")) : null) : null);
+      })));
+    }
+    if (!lista.length) m.append(h("div", { class: "card empty" }, h("strong", { text: "Nenhum fornecedor encontrado" })));
+    m.append(h("p", { class: "note", text: S.forn.length + " fornecedores. O número de artigos vem da app de encomendas." }));
+  }
+
+  function editar(f) {
+    const d = f ? { ...f, nomesApp: (f.nomesApp || []).join(", ") } : { categoria: S.cat };
+    abrirEditor({ titulo: f ? "Editar fornecedor" : "Novo fornecedor", dados: d,
+      campos: [{ k: "nome", label: "Nome" }, { k: "categoria", label: "Categoria", lista: "cats-f" }, { k: "produtos", label: "O que fornece", tipo: "textarea", rows: 2 },
+        { k: "local", label: "Terra / morada" }, { k: "contacto", label: "Pessoa de contacto" }, { k: "telefone", label: "Telefone", tipo: "tel" },
+        { k: "email", label: "Email", tipo: "email" }, { k: "site", label: "Site" }, { k: "obs", label: "Notas", tipo: "textarea" },
+        { k: "nomesApp", label: "Nomes na app de encomendas", dica: "Como aparece no campo fornecedor dos artigos, separado por vírgulas." }],
+      apagar: f ? () => S.db.collection("fornecedores").doc(f.id).delete() : null,
+      guardar: (x) => {
+        const data = { ...x, nomesApp: x.nomesApp.split(",").map((s) => s.trim()).filter(Boolean) };
+        let id = f ? f.id : slugId(x.nome); if (!f) while (S.forn.some((y) => y.id === id)) id += "-2";
+        return S.db.collection("fornecedores").doc(id).set(data);
+      } });
+  }
+  function exportar() {
+    downloadCsv("fornecedores.csv", [["Nome", "Categoria", "Produtos", "Local", "Contacto", "Telefone", "Email", "Site", "Notas", "Nomes na app"],
+      ...S.forn.slice().sort((a, b) => a.nome.localeCompare(b.nome, "pt")).map((f) => [f.nome, f.categoria, f.produtos, f.local, f.contacto, f.telefone, f.email, f.site, f.obs, (f.nomesApp || []).join(", ")])]);
+  }
+
+  render();
+  const db = await abrirPainel();
+  if (!db) { S.db = false; render(); return; }
+  S.db = db; $("sub").textContent = "Produtores e distribuidores";
+  const re = agendar(render);
+  db.collection("fornecedores").onSnapshot((s) => { S.forn = s.docs.map((d) => ({ id: d.id, ...d.data() })); S.loaded.f = true; re(); });
+  db.collection("produtos").onSnapshot((s) => { S.produtos = s.docs.map((d) => d.data()); S.loaded.p = true; re(); });
+})();
+</script>
+</body>
+</html>

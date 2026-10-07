@@ -9,7 +9,7 @@ function h(tag, attrs, ...kids) {
     else if (k === "text") el.textContent = v;
     else el.setAttribute(k, v === true ? "" : v);
   }
-  for (const c of kids.flat()) if (c != null && c !== false) el.append(c.nodeType ? c : document.createTextNode(String(c)));
+  for (const c of kids.flat(Infinity)) if (c != null && c !== false) el.append(c.nodeType ? c : document.createTextNode(String(c)));
   return el;
 }
 function toast(msg) { const t = h("div", { class: "toast", role: "status", text: msg }); document.body.append(t); setTimeout(() => t.remove(), 2600); }

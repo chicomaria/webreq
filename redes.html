@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#eef1ee">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Source+Sans+3:wght@400;600;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="base.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="db.js"></script>
+<script src="ui.js"></script>
+<script src="dados.js"></script>
+<script src="painel.js"></script>
+<title>Redes sociais · Chico Maria</title>
+<style>
+.post { padding: 10px 12px; display: grid; gap: 5px; cursor: pointer; }
+.post:active { background: var(--accent-soft); }
+.post .t { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+.post .ideia { font-weight: 700; }
+.post .copy { font-size: 15px; white-space: pre-wrap; border-left: 3px solid var(--accent-soft); padding-left: 8px; }
+.post .s { color: var(--muted); font-size: 12px; }
+.post .hs { color: var(--accent); font-size: 12px; }
+.rapida { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; margin-top: 10px; }
+.rapida textarea { padding: 9px 11px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); font-size: 16px; min-height: 44px; resize: vertical; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand"><h1><a href="./" class="home" aria-label="Início">‹</a> Redes sociais</h1><span class="sub" id="sub">A ligar…</span></div>
+  </header>
+  <main id="main"></main>
+  <datalist id="temas"></datalist>
+</div>
+<script>
+(async () => {
+  const ESTADOS = [["ideia", "Ideia"], ["rascunho", "Rascunho"], ["pronto", "Pronto"], ["publicado", "Publicado"]];
+  const S = { db: null, loaded: false, posts: [], tema: "", estado: "", q: "" };
+  try { S.tema = localStorage.getItem("rs-tema") || ""; S.estado = localStorage.getItem("rs-estado") || ""; } catch (e) {}
+  const lembrar = () => { try { localStorage.setItem("rs-tema", S.tema); localStorage.setItem("rs-estado", S.estado); } catch (e) {} };
+
+  function render() {
+    const m = $("main"); m.replaceChildren();
+    if (!S.db) { m.append(h("div", { class: "empty" }, h("strong", { text: S.db === false ? "Sem ligação à base de dados" : "A carregar…" }))); return; }
+    if (!S.loaded) { m.append(h("div", { class: "empty" }, h("strong", { text: "A carregar…" }))); return; }
+    const temas = [...new Set(S.posts.map((p) => p.tema).filter(Boolean))].sort((a, b) => a.localeCompare(b, "pt"));
+    $("temas").replaceChildren(...temas.map((t) => h("option", { value: t })));
+    // quick add: just the idea; the rest can be filled later here or by Claude
+    const ta = h("textarea", { rows: 1, placeholder: "Nova ideia…", "aria-label": "Nova ideia" });
+    const add = h("button", { class: "btn primary", type: "button" }, "Juntar");
+    add.addEventListener("click", async () => {
+      const t = ta.value.trim(); if (!t) { ta.focus(); return; }
+      add.disabled = true;
+      try { await S.db.collection("redes").doc(newId()).set({ ideia: t, tema: S.tema, estado: "ideia", ordem: Date.now(), criada: new Date().toISOString() }); ta.value = ""; toast("Ideia guardada"); }
+      catch (e) { toast("Não foi possível guardar."); } add.disabled = false;
+    });
+    m.append(h("div", { class: "rapida" }, ta, add));
+    const busca = h("input", { type: "search", placeholder: "Procurar", value: S.q, "aria-label": "Procurar" });
+    busca.addEventListener("input", () => { S.q = busca.value; const p = busca.selectionStart; render(); const b = document.querySelector("input[type=search]"); b.focus(); b.setSelectionRange(p, p); });
+    const selE = h("select", { "aria-label": "Estado" }, h("option", { value: "" }, "Todos os estados"), ESTADOS.map(([v, l]) => h("option", { value: v, selected: S.estado === v }, l)));
+    selE.addEventListener("change", () => { S.estado = selE.value; lembrar(); render(); });
+    m.append(h("div", { class: "tools" }, busca, selE, h("button", { class: "btn", onclick: copiarClaude }, "Copiar para o Claude"), h("button", { class: "btn", onclick: exportar }, "Excel")));
+    const chip = (v, lab) => h("button", { type: "button", "aria-pressed": String(S.tema === v), onclick: () => { S.tema = v; lembrar(); render(); } }, lab);
+    m.append(h("div", { class: "chips" }, chip("", "Todos os temas"), temas.map((t) => chip(t, t))));
+    const q = norm(S.q);
+    const lista = S.posts.filter((p) => (!S.tema || p.tema === S.tema) && (!S.estado || (p.estado || "ideia") === S.estado) &&
+      (!q || norm([p.ideia, p.copy, p.mencoes, p.hashtags].join(" ")).includes(q))).sort((a, b) => (a.data || "9").localeCompare(b.data || "9") || (a.ordem ?? 0) - (b.ordem ?? 0));
+    const cont = Object.fromEntries(ESTADOS.map(([v]) => [v, S.posts.filter((p) => (p.estado || "ideia") === v).length]));
+    m.append(h("p", { class: "note", text: ESTADOS.map(([v, l]) => cont[v] + " " + l.toLowerCase()).join(" · ") + ". Ideias ditas ao Claude no projeto aparecem aqui já preenchidas." }));
+    m.append(h("div", { class: "list" }, lista.map(cartao)));
+    if (!lista.length) m.append(h("div", { class: "card empty" }, h("strong", { text: "Nada com estes filtros" })));
+  }
+  function cartao(p) {
+    const est = p.estado || "ideia";
+    return h("div", { class: "card post", onclick: () => editar(p), role: "button", tabindex: "0", onkeydown: (e) => { if (e.key === "Enter") editar(p); } },
+      h("div", { class: "t" }, h("span", { class: "ideia", text: p.ideia }),
+        h("span", { class: "tag " + (est === "publicado" ? "ok" : est === "pronto" ? "" : "muted"), text: (ESTADOS.find(([v]) => v === est) || [0, est])[1] })),
+      h("div", { class: "s" }, [p.tema, p.semana ? "Semana " + p.semana : "", p.data ? fmtDia(p.data) : "", p.mencoes ? "@ " + p.mencoes : ""].filter(Boolean).join(" · "),
+        p.porClaude ? [" ", h("span", { class: "tag muted", text: "proposta do Claude" })] : null),
+      p.copy ? h("div", { class: "copy", text: p.copy }) : null,
+      p.hashtags ? h("div", { class: "hs", text: p.hashtags }) : null,
+      p.imagens ? h("div", { class: "s", text: "Imagem: " + p.imagens }) : null,
+      p.feedback ? h("div", { class: "s", text: "Feedback: " + p.feedback }) : null);
+  }
+  function editar(p) {
+    abrirEditor({ titulo: "Publicação", dados: p,
+      campos: [{ k: "ideia", label: "Ideia", tipo: "textarea", rows: 2 }, { k: "tema", label: "Tema", lista: "temas" },
+        { k: "estado", label: "Estado", tipo: "select", opcoes: ESTADOS }, { k: "semana", label: "Semana" }, { k: "data", label: "Data", tipo: "date" },
+        { k: "mencoes", label: "@ (quem marcar)" }, { k: "copy", label: "Copy", tipo: "textarea", rows: 5 }, { k: "hashtags", label: "#" },
+        { k: "imagens", label: "Imagens / formato", tipo: "textarea", rows: 2 }, { k: "feedback", label: "Feedback", tipo: "textarea", rows: 2 }],
+      apagar: () => S.db.collection("redes").doc(p.id).delete(),
+      guardar: (d) => { const { id, ...old } = p; return S.db.collection("redes").doc(id).set({ ...old, ...d, porClaude: old.porClaude && d.copy === old.copy }); } });
+  }
+  // text to paste into the project chat so Claude can fill in the empty fields
+  async function copiarClaude() {
+    const falta = S.posts.filter((p) => !p.copy || !p.hashtags || !p.tema);
+    if (!falta.length) { toast("Todas as ideias já têm copy, tema e #."); return; }
+    const txt = "Preenche os campos em falta (tema, @, copy, #, imagens) destas ideias das redes sociais do Chico Maria e manda para o back office:\n\n" +
+      falta.map((p) => "[" + p.id + "] " + p.ideia + (p.tema ? " | tema: " + p.tema : "") + (p.mencoes ? " | @: " + p.mencoes : "")).join("\n");
+    try { await navigator.clipboard.writeText(txt); toast(falta.length + " ideias copiadas. Cole no chat do projeto."); }
+    catch (e) { abrirEditor({ titulo: "Copie este texto", campos: [{ k: "t", label: "Texto para o Claude", tipo: "textarea", rows: 12, obrigatorio: false }], dados: { t: txt }, guardar: async () => {} }); }
+  }
+  function exportar() {
+    downloadCsv("redes-sociais.csv", [["Semana", "Data", "Ideia", "Tema", "@", "Copy", "#", "Imagens", "Feedback", "Estado"],
+      ...S.posts.map((p) => [p.semana, p.data, p.ideia, p.tema, p.mencoes, p.copy, p.hashtags, p.imagens, p.feedback, p.estado])]);
+  }
+
+  render();
+  const db = await abrirPainel();
+  if (!db) { S.db = false; render(); return; }
+  S.db = db; $("sub").textContent = "Ideias e copy";
+  const re = agendar(render);
+  db.collection("redes").onSnapshot((s) => { S.posts = s.docs.map((d) => ({ id: d.id, ...d.data() })); S.loaded = true; re(); });
+})();
+</script>
+</body>
+</html>

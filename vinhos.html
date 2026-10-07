@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#eef1ee">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Source+Sans+3:wght@400;600;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="base.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="db.js"></script>
+<script src="ui.js"></script>
+<script src="dados.js"></script>
+<script src="painel.js"></script>
+<title>Mapa de vinhos · Chico Maria</title>
+<style>
+.precos { padding: 10px 12px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-top: 10px; }
+.precos label { display: grid; gap: 2px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+.precos input { width: 100%; padding: 7px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); font-family: var(--font-mono); font-size: 16px; }
+.precos .f { grid-column: 1 / -1; font-size: 13px; color: var(--muted); }
+nav.tabs button { font-size: 13px; letter-spacing: 0; }
+.precos input { padding: 6px; font-size: 15px; }
+.cont { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin: 12px 2px 0; font-size: 14px; }
+.cont b { font-family: var(--font-mono); font-size: 18px; }
+.cont b.cheio { color: var(--warn); }
+.vinho { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; align-items: center; gap: 6px; padding: 8px 10px 8px 4px; }
+.vinho .tg { width: 44px; height: 44px; display: grid; place-items: center; border: 0; background: none; padding: 0; }
+.vinho .tg span { width: 24px; height: 24px; border-radius: 6px; border: 2px solid var(--line); display: grid; place-items: center; font-weight: 700; color: var(--paper); font-size: 15px; }
+.vinho .tg[aria-pressed="true"] span { background: var(--accent); border-color: var(--accent); }
+.vinho .meio { cursor: pointer; min-width: 0; }
+.vinho .meio strong { font-size: 15px; }
+.vinho .meio .s { color: var(--muted); font-size: 12px; }
+.vinho .meio .nt { font-size: 12px; color: var(--ink); opacity: .8; margin-top: 2px; }
+.vinho .pr { text-align: right; cursor: pointer; }
+.vinho .pr b { font-family: var(--font-mono); font-size: 16px; display: block; }
+.vinho .pr small { font-family: var(--font-mono); font-size: 11px; color: var(--muted); display: block; }
+.vinho .pr small.dif { color: var(--warn); }
+.fora { opacity: .78; }
+details.sec2 > summary { cursor: pointer; font-family: var(--font-display); font-weight: 700; font-size: 15px; letter-spacing: .06em; text-transform: uppercase; margin: 16px 0 6px; color: var(--muted); }
+h3.niv { font-family: var(--font-display); font-weight: 600; font-size: 14px; color: var(--muted); letter-spacing: .05em; text-transform: uppercase; margin: 10px 2px 4px; }
+.carta { padding: 16px; }
+.carta h2 { font-family: var(--font-display); font-size: 22px; text-transform: uppercase; margin: 14px 0 4px; border-bottom: 1px solid var(--line); }
+.carta h3 { font-style: italic; font-weight: 400; color: var(--muted); font-size: 14px; margin: 8px 0 2px; }
+.carta .l { display: flex; justify-content: space-between; gap: 10px; padding: 3px 0; }
+.carta .l small { display: block; color: var(--muted); font-size: 11px; }
+@media print { header.top, .tools, .precos, .np { display: none !important; } .card { border: 0; } body { background: #fff; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand"><h1><a href="./" class="home" aria-label="Início">‹</a> Mapa de vinhos</h1><span class="sub" id="sub">A ligar…</span></div>
+    <nav class="tabs" role="tablist">
+      <button role="tab" data-tab="espumante">Espum.</button>
+      <button role="tab" data-tab="branco">Brancos</button>
+      <button role="tab" data-tab="rose">Rosé</button>
+      <button role="tab" data-tab="tinto">Tintos</button>
+      <button role="tab" data-tab="sobremesa">Sobrem.</button>
+      <button role="tab" data-tab="carta">Carta</button>
+    </nav>
+  </header>
+  <main id="main"></main>
+  <datalist id="forn-v"></datalist>
+</div>
+<script>
+(async () => {
+  const TIPOS = { espumante: "Espumantes", branco: "Brancos", rose: "Rosé", tinto: "Tintos", sobremesa: "Sobremesa" };
+  const NIVEIS = [["leve", "Leves e entusiásticos"], ["medio", "Versáteis e curiosos"], ["serio", "Sérios e complexos"]];
+  const COM_NIVEL = new Set(["branco", "tinto"]);
+  const DEF = { overhead: 7, markup: 1.4, copoMarkup: 1.8, coposGarrafa: 5, limites: { espumante: 10, branco: 12, tinto: 12, rose: 3, sobremesa: 10 } };
+  const S = { db: null, loaded: false, vinhos: [], cfg: DEF, forn: [], tab: "espumante" };
+  try { S.tab = localStorage.getItem("vn-tab") || "espumante"; } catch (e) {}
+  document.querySelectorAll("nav.tabs button").forEach((b) => b.addEventListener("click", () => { S.tab = b.dataset.tab; try { localStorage.setItem("vn-tab", S.tab); } catch (e) {} render(); }));
+
+  const calc = (w) => w.custo == null ? null : Math.round(w.custo * S.cfg.markup + S.cfg.overhead);
+  const calcCopo = (w) => w.custo == null ? null : Math.round((w.custo * S.cfg.copoMarkup + S.cfg.overhead) / S.cfg.coposGarrafa * 10) / 10;
+  const pvp = (w) => w.pvp ?? calc(w);
+  const copo = (w) => w.pvpCopo ?? calcCopo(w);
+  const preco = (v, c) => v == null ? "—" : Number(v).toLocaleString("pt-PT", { maximumFractionDigits: c ?? 1 });
+  const naCarta = (t) => S.vinhos.filter((w) => w.tipo === t && w.naCarta);
+  const ord = (a, b) => (a.ordem ?? 999) - (b.ordem ?? 999) || a.nome.localeCompare(b.nome, "pt");
+
+  function render() {
+    document.querySelectorAll("nav.tabs button").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.tab === S.tab)));
+    const m = $("main"); m.replaceChildren();
+    if (!S.db) { m.append(h("div", { class: "empty" }, h("strong", { text: S.db === false ? "Sem ligação à base de dados" : "A carregar…" }))); return; }
+    if (!S.loaded) { m.append(h("div", { class: "empty" }, h("strong", { text: "A carregar…" }))); return; }
+    $("forn-v").replaceChildren(...S.forn.map((n) => h("option", { value: n })));
+    m.append(painelPrecos());
+    m.append(S.tab === "carta" ? viewCarta() : viewTipo(S.tab));
+  }
+
+  // overhead (adds) and markup (multiplies) over the cost price; saved for everyone
+  function painelPrecos() {
+    const inp = (k, lab) => {
+      const el = h("input", { type: "text", inputmode: "decimal", value: String(S.cfg[k]).replace(".", ","), "aria-label": lab });
+      el.addEventListener("change", async () => {
+        const v = num(el.value);
+        if (v == null || v < 0) { el.value = String(S.cfg[k]).replace(".", ","); toast("Escreva só o número."); return; }
+        try { await S.db.doc("config/vinhos").update({ [k]: v }); toast("Guardado. Preços recalculados."); } catch (e) { toast("Não foi possível guardar."); }
+      });
+      return h("label", {}, lab, el);
+    };
+    return h("div", { class: "card precos" }, inp("overhead", "Overhead +€"), inp("markup", "Markup ×"), inp("copoMarkup", "Copo ×"), inp("coposGarrafa", "Copos/gf."),
+      h("div", { class: "f" }, "Garrafa = custo × " + preco(S.cfg.markup, 2) + " + " + preco(S.cfg.overhead, 2) + " € · Copo = (custo × " + preco(S.cfg.copoMarkup, 2) + " + " + preco(S.cfg.overhead, 2) + " €) ÷ " + S.cfg.coposGarrafa));
+  }
+
+  function linha(w, fora) {
+    const lim = S.cfg.limites[w.tipo] || 99;
+    const tg = h("button", { type: "button", class: "tg", "aria-pressed": String(!!w.naCarta), "aria-label": (w.naCarta ? "Tirar da carta: " : "Pôr na carta: ") + w.nome }, h("span", { text: w.naCarta ? "✓" : "" }));
+    tg.addEventListener("click", async () => {
+      if (!w.naCarta && naCarta(w.tipo).length >= lim) { toast("Já há " + lim + " " + TIPOS[w.tipo].toLowerCase() + " na carta. Tire um primeiro."); return; }
+      try { await S.db.collection("vinhos").doc(w.id).update({ naCarta: !w.naCarta }); } catch (e) { toast("Não foi possível guardar."); }
+    });
+    const sobremesa = w.tipo === "sobremesa";
+    const principal = sobremesa && w.pvpCopo != null ? copo(w) : pvp(w);
+    const calcP = sobremesa && w.pvpCopo != null ? calcCopo(w) : calc(w);
+    const dif = principal != null && calcP != null && Math.abs(principal - calcP) >= 1;
+    const meio = h("div", { class: "meio", onclick: () => editar(w) },
+      h("strong", { text: w.nome }), w.formato ? h("span", { class: "tag muted", style: "margin-left:6px", text: w.formato }) : null,
+      h("div", { class: "s", text: [w.regiao, w.castas].filter(Boolean).join(" | ") }),
+      w.notas ? h("div", { class: "nt", text: w.notas }) : null);
+    const pr = h("div", { class: "pr", onclick: () => editar(w) },
+      h("b", { text: principal == null ? "—" : preco(principal) + " €" + (sobremesa && w.pvpCopo != null ? " copo" : "") }),
+      h("small", { class: dif ? "dif" : "", text: "calc. " + (calcP == null ? "—" : preco(calcP) + " €") }),
+      !sobremesa ? h("small", { text: "copo " + (copo(w) == null ? "—" : preco(copo(w)) + " €") }) : null,
+      h("small", { text: "custo " + (w.custo == null ? "—" : preco(w.custo, 2) + " €") }));
+    return h("div", { class: "card vinho" + (fora ? " fora" : "") }, tg, meio, pr);
+  }
+
+  function viewTipo(t) {
+    const frag = document.createDocumentFragment();
+    const lim = S.cfg.limites[t] || 99, todos = S.vinhos.filter((w) => w.tipo === t), dentro = todos.filter((w) => w.naCarta).sort(ord), fora = todos.filter((w) => !w.naCarta).sort(ord);
+    const cont = h("div", { class: "cont" }, h("span", {}, "Na carta: ", h("b", { class: dentro.length >= lim ? "cheio" : "", text: dentro.length + " / " + lim })),
+      h("button", { class: "btn primary", onclick: () => editar(null) }, "+ Vinho"));
+    frag.append(cont);
+    if (COM_NIVEL.has(t)) {
+      frag.append(h("p", { class: "note", text: NIVEIS.map(([k, l]) => l.split(" ")[0] + " " + dentro.filter((w) => w.nivel === k).length).join(" · ") + " (ideal 4 em cada)" }));
+      for (const [k, l] of [...NIVEIS, ["", "Sem categoria"]]) {
+        const ws = dentro.filter((w) => (w.nivel || "") === k);
+        if (!ws.length) continue;
+        frag.append(h("h3", { class: "niv", text: l }), h("div", { class: "list" }, ws.map((w) => linha(w))));
+      }
+    } else frag.append(h("div", { class: "list", style: "margin-top:8px" }, dentro.map((w) => linha(w))));
+    if (!dentro.length) frag.append(h("div", { class: "card empty", style: "margin-top:8px", text: "Nenhum vinho na carta. Toque no quadrado de um vinho abaixo para o pôr." }));
+    const det = h("details", { class: "sec2", open: true }, h("summary", { text: "Fora da carta (" + fora.length + ")" }),
+      fora.length ? h("div", { class: "list" }, fora.map((w) => linha(w, true))) : h("p", { class: "note", text: "Nenhum." }));
+    frag.append(det);
+    frag.append(h("p", { class: "note", text: "Toque no quadrado para pôr ou tirar da carta. Toque no vinho para editar preço, notas e custo. A vermelho: preço da carta diferente do calculado." }));
+    return frag;
+  }
+
+  function viewCarta() {
+    const frag = document.createDocumentFragment();
+    const difs = S.vinhos.filter((w) => w.naCarta && w.pvp != null && calc(w) != null && Math.abs(w.pvp - calc(w)) >= 1);
+    frag.append(h("div", { class: "tools" }, h("button", { class: "btn", onclick: () => window.print() }, "Imprimir"),
+      h("button", { class: "btn", onclick: exportar }, "Excel (todos)"),
+      difs.length ? confirmBtn("Usar preço calculado em " + difs.length, "Toque de novo para confirmar", async () => {
+        try { for (const w of difs) await S.db.collection("vinhos").doc(w.id).update({ pvp: null }); toast("Preços atualizados"); } catch (e) { toast("Não foi possível guardar."); }
+      }) : null));
+    const c = h("div", { class: "card carta" });
+    const item = (w) => h("div", { class: "l" }, h("div", {}, w.nome + (w.formato ? " · " + w.formato : ""), h("small", { text: [w.regiao, w.castas].filter(Boolean).join(" | ") })),
+      h("div", { class: "n", text: w.tipo === "sobremesa" && w.pvpCopo != null ? preco(copo(w)) : preco(pvp(w)) }));
+    for (const t of Object.keys(TIPOS)) {
+      const ws = naCarta(t).sort(ord); if (!ws.length) continue;
+      c.append(h("h2", { text: TIPOS[t] }));
+      if (COM_NIVEL.has(t)) for (const [k, l] of NIVEIS) { const x = ws.filter((w) => w.nivel === k); if (x.length) c.append(h("h3", { text: l }), ...x.map(item)); }
+      else c.append(...ws.map(item));
+    }
+    frag.append(c, h("p", { class: "note np", text: "Pré-visualização da carta com os preços em vigor (preço da carta, ou o calculado quando está vazio). Sobremesa ao copo." }));
+    return frag;
+  }
+
+  function editar(w) {
+    const t = w ? w.tipo : (S.tab === "carta" ? "espumante" : S.tab);
+    const d = w || { tipo: t, nivel: COM_NIVEL.has(t) ? "medio" : "", naCarta: false };
+    const extra = w ? h("p", { class: "note", text: "Calculado agora: garrafa " + (calc(w) == null ? "—" : preco(calc(w)) + " €") + " · copo " + (calcCopo(w) == null ? "—" : preco(calcCopo(w)) + " €") + ". Deixe o PVP vazio para usar o calculado." }) : null;
+    abrirEditor({ titulo: w ? w.nome : "Novo vinho", dados: d, extra,
+      campos: [{ k: "nome", label: "Vinho" },
+        { k: "tipo", label: "Tipo", tipo: "select", opcoes: Object.entries(TIPOS) },
+        { k: "nivel", label: "Categoria (brancos e tintos)", tipo: "select", opcoes: [["", "—"], ...NIVEIS] },
+        { k: "custo", label: "Custo da garrafa sem IVA (€)", tipo: "number" },
+        { k: "pvp", label: "PVP garrafa na carta (€)", tipo: "number", dica: "Vazio = usa o calculado" },
+        { k: "pvpCopo", label: "PVP copo (€)", tipo: "number", dica: "Vazio = usa o calculado" },
+        { k: "regiao", label: "Região" }, { k: "castas", label: "Castas" },
+        { k: "notas", label: "Notas de prova / para vender", tipo: "textarea", rows: 3 },
+        { k: "formato", label: "Formato", dica: "Ex.: Magnum 1,5 L, 0,5 L" },
+        { k: "fornecedor", label: "Fornecedor", lista: "forn-v" }, { k: "obs", label: "Observações internas", tipo: "textarea", rows: 2 },
+        { k: "ordem", label: "Ordem na carta", tipo: "number" }, { k: "naCarta", label: "Na carta", tipo: "check" }],
+      apagar: w ? () => S.db.collection("vinhos").doc(w.id).delete() : null,
+      guardar: async (x) => {
+        const lim = S.cfg.limites[x.tipo] || 99;
+        if (x.naCarta && !(w && w.naCarta && w.tipo === x.tipo) && naCarta(x.tipo).length >= lim) { x.naCarta = false; toast("A carta de " + TIPOS[x.tipo].toLowerCase() + " já está cheia; ficou fora da carta."); }
+        if (!COM_NIVEL.has(x.tipo)) x.nivel = "";
+        if (w) { const { id, ...old } = w; return S.db.collection("vinhos").doc(id).set({ ...old, ...x }); }
+        let id = slugId(x.tipo + " " + x.nome); while (S.vinhos.some((y) => y.id === id)) id += "-2";
+        return S.db.collection("vinhos").doc(id).set(x);
+      } });
+  }
+  function exportar() {
+    const rows = S.vinhos.slice().sort((a, b) => Object.keys(TIPOS).indexOf(a.tipo) - Object.keys(TIPOS).indexOf(b.tipo) || ord(a, b));
+    const n = (v) => v == null ? "" : String(v).replace(".", ",");
+    downloadCsv("mapa-de-vinhos.csv", [["Tipo", "Categoria", "Na carta", "Vinho", "Região", "Castas", "Custo", "PVP calculado", "PVP carta", "Copo calculado", "Copo carta", "Fornecedor", "Notas", "Observações"],
+      ...rows.map((w) => [TIPOS[w.tipo] || w.tipo, (NIVEIS.find(([k]) => k === w.nivel) || ["", ""])[1], w.naCarta ? "sim" : "", w.nome, w.regiao, w.castas, n(w.custo), n(calc(w)), n(w.pvp), n(calcCopo(w)), n(w.pvpCopo), w.fornecedor, w.notas, w.obs])]);
+  }
+
+  render();
+  const db = await abrirPainel();
+  if (!db) { S.db = false; render(); return; }
+  S.db = db; $("sub").textContent = "Carta e preços";
+  const re = agendar(render);
+  db.collection("vinhos").onSnapshot((s) => { S.vinhos = s.docs.map((d) => ({ id: d.id, ...d.data() })); S.loaded = true; re(); });
+  db.doc("config/vinhos").onSnapshot((s) => { S.cfg = { ...DEF, ...(s.exists ? s.data() : {}) }; S.cfg.limites = { ...DEF.limites, ...(S.cfg.limites || {}) }; re(); });
+  db.collection("fornecedores").onSnapshot((s) => { S.forn = s.docs.map((d) => d.data().nome).sort((a, b) => a.localeCompare(b, "pt")); });
+})();
+</script>
+</body>
+</html>

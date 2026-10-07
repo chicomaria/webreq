@@ -56,7 +56,19 @@ function supabaseDb(sb) {
       },
     };
   }
+  // one fresh read of a collection (also fills the cache), and many upserts in one request
+  async function carregar(col) { await load(col); return new Map(cache.get(col)); }
+  async function gravarVarios(rows) {
+    for (let i = 0; i < rows.length; i += 200) {
+      const part = rows.slice(i, i + 200), em = new Date().toISOString();
+      const { error } = await sb.from(T).upsert(part.map((r) => ({ col: r.col, id: r.id, data: r.data, atualizado: em })));
+      if (error) fail(error);
+      for (const r of part) local(r.col).set(r.id, r.data);
+    }
+    new Set(rows.map((r) => r.col)).forEach(emit);
+  }
   return {
+    carregar, gravarVarios,
     doc: (path) => { const [c, i] = path.split("/"); return doc(c, i); },
     collection: (col) => Object.assign(query(col), {
       doc: (id) => doc(col, id),
