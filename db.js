@@ -29,16 +29,18 @@ function supabaseDb(sb) {
     subs.get(col).push(fn);
     if (!cache.has(col)) { cache.set(col, new Map()); load(col).catch(() => { const el = document.getElementById("sub"); if (el) el.textContent = "Sem ligação à base de dados"; }); } else fn();
   }
-  const local = (col) => cache.get(col) || cache.set(col, new Map()).get(col);
+  // writes only touch collections already cached; one that is not loaded yet is read fresh by the first watch()
+  // (creating an empty entry here made a later watch() show that collection as empty)
+  const local = (col, fn) => { const m = cache.get(col); if (m) { fn(m); emit(col); } };
   const merge = (a, b) => {
     if (!a || typeof a !== "object" || Array.isArray(a) || !b || typeof b !== "object" || Array.isArray(b)) return b;
     const o = { ...a }; for (const k of Object.keys(b)) o[k] = merge(a[k], b[k]); return o;
   };
   function doc(col, id) {
     return {
-      async set(data) { const { error } = await sb.from(T).upsert({ col, id, data, atualizado: new Date().toISOString() }); if (error) fail(error); local(col).set(id, data); emit(col); },
-      async update(patch) { const { error } = await sb.rpc("doc_update", { p_col: col, p_id: id, p_patch: patch }); if (error) fail(error); const m = local(col); if (m.has(id)) { m.set(id, merge(m.get(id), patch)); emit(col); } },
-      async delete() { const { error } = await sb.from(T).delete().eq("col", col).eq("id", id); if (error) fail(error); local(col).delete(id); emit(col); },
+      async set(data) { const { error } = await sb.from(T).upsert({ col, id, data, atualizado: new Date().toISOString() }); if (error) fail(error); local(col, (m) => m.set(id, data)); },
+      async update(patch) { const { error } = await sb.rpc("doc_update", { p_col: col, p_id: id, p_patch: patch }); if (error) fail(error); local(col, (m) => { if (m.has(id)) m.set(id, merge(m.get(id), patch)); }); },
+      async delete() { const { error } = await sb.from(T).delete().eq("col", col).eq("id", id); if (error) fail(error); local(col, (m) => m.delete(id)); },
       onSnapshot(fn) { watch(col, () => { const d = cache.get(col).get(id); fn({ exists: d !== undefined, data: () => d }); }); },
     };
   }
@@ -63,7 +65,7 @@ function supabaseDb(sb) {
       const part = rows.slice(i, i + 200), em = new Date().toISOString();
       const { error } = await sb.from(T).upsert(part.map((r) => ({ col: r.col, id: r.id, data: r.data, atualizado: em })));
       if (error) fail(error);
-      for (const r of part) local(r.col).set(r.id, r.data);
+      for (const r of part) { const m = cache.get(r.col); if (m) m.set(r.id, r.data); }
     }
     new Set(rows.map((r) => r.col)).forEach(emit);
   }

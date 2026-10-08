@@ -6311,5 +6311,24 @@ window.DADOS = [
     "amargo"
    ]
   }
+ },
+ {
+  "id": "2026-10-07-layout",
+  "atualizar": {
+   "fichas": {
+    "hummus-de-tremoco": {
+     "tipo": "prato",
+     "categoria": "Sustento",
+     "atual": true
+    }
+   }
+  },
+  "apagar": {
+   "fichas": [
+    "demi-glace",
+    "pure-de-batata-doce",
+    "pure-de-batata"
+   ]
+  }
  }
 ];

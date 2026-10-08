@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#eef1ee">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Source+Sans+3:wght@400;600;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="base.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="db.js"></script>
+<script src="ui.js"></script>
+<script src="dados.js"></script>
+<script src="painel.js"></script>
+<script src="fichas.js"></script>
+<title>Pratos · Chico Maria</title>
+<style>
+details.prato { padding: 0; }
+details.prato summary { list-style: none; cursor: pointer; padding: 10px 12px; display: grid; gap: 3px; }
+details.prato summary::-webkit-details-marker { display: none; }
+details.prato .t { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
+details.prato .t strong { font-size: 17px; }
+details.prato .d { color: var(--muted); font-size: 13px; }
+details.prato .corpo { padding: 0 12px 12px; display: grid; gap: 8px; font-size: 15px; }
+details.prato dl { margin: 0; display: grid; gap: 6px; }
+details.prato dt { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+details.prato dd { margin: 0; }
+details.prato .acts { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+@media print {
+  header.top nav, .tools, .chips, .acts, .note.np { display: none !important; }
+  header.top { position: static; }
+  .card { break-inside: avoid; border-color: #bbb; }
+  body { background: #fff; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand"><h1><a href="./" class="home" aria-label="Início">‹</a> Pratos</h1><span class="sub" id="sub">A ligar…</span></div>
+    <nav class="tabs" role="tablist">
+      <button role="tab" data-tab="fichas" aria-selected="true">Fichas técnicas</button>
+      <button role="tab" data-tab="manual" aria-selected="false">Manual</button>
+    </nav>
+  </header>
+  <main id="main"></main>
+  <datalist id="ing-nomes"></datalist>
+  <datalist id="cats"><option value="Sustento"><option value="Paparicos"><option value="Comedeirices"><option value="Lambarices"></datalist>
+</div>
+<script>
+(async () => {
+  // Dishes: the kitchen's recipe sheets (fichas, with costs) and the dining room's manual (pratos), linked by pratos.ficha.
+  const SEC = ["Sustento", "Paparicos", "Comedeirices", "Lambarices", "Fora da carta"];
+  const S = { db: null, loaded: { f: false, i: false, p: false }, fichas: [], ing: new Map(), pratos: [], tab: "fichas", sel: null, q: "",
+    fechados: new Set(), ver: "carta", abertos: new Set(), imprimir: false };
+  try {
+    S.tab = localStorage.getItem("pr-tab") === "manual" ? "manual" : "fichas";
+    S.fechados = new Set(JSON.parse(localStorage.getItem("ft-fechados") || "[]"));
+    S.ver = localStorage.getItem("mp-ver") || "carta";
+  } catch (e) {}
+  const F = fichasComuns(S, render);
+  const pratoDe = (f) => S.pratos.find((p) => p.ficha === f.id);
+  function irPara(tab, depois) {
+    S.tab = tab; S.sel = null; S.q = "";
+    try { localStorage.setItem("pr-tab", tab); } catch (e) {}
+    if (depois) depois();
+    render(); window.scrollTo(0, 0);
+  }
+  document.querySelectorAll("nav.tabs button").forEach((b) => b.addEventListener("click", () => irPara(b.dataset.tab)));
+
+  function render() {
+    document.querySelectorAll("nav.tabs button").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.tab === S.tab)));
+    const m = $("main"); m.replaceChildren();
+    if (!S.db) { m.append(h("div", { class: "empty" }, h("strong", { text: S.db === false ? "Sem ligação à base de dados" : "A carregar…" }))); return; }
+    const pronto = S.tab === "manual" ? S.loaded.p : S.loaded.f && S.loaded.i;
+    if (!pronto) { m.append(h("div", { class: "empty" }, h("strong", { text: "A carregar…" }))); return; }
+    if (S.tab === "manual") return m.append(viewManual());
+    $("ing-nomes").replaceChildren(...[...S.ing.values()].map((i) => h("option", { value: i.nome })));
+    const f = S.sel && S.fichas.find((x) => x.id === S.sel);
+    if (!f) return m.append(viewLista());
+    const p = pratoDe(f);
+    m.append(F.viewFicha(f, { voltar: "‹ Todas as fichas",
+      acoes: p ? h("button", { class: "btn", onclick: () => irPara("manual", () => { S.abertos.add(p.id); if (!p.carta) S.ver = "todos"; S.alvo = p.id; }) }, "Manual") : null }));
+  }
+  // after switching to the manual from a sheet, bring that dish into view
+  new MutationObserver(() => { if (!S.alvo) return; const el = document.getElementById("mp-" + S.alvo); if (el) { S.alvo = null; el.scrollIntoView({ block: "center" }); } }).observe($("main"), { childList: true });
+
+  // --- recipe sheets, current menu first ---
+  function viewLista() {
+    const frag = document.createDocumentFragment();
+    const q = norm(S.q);
+    const lista = S.fichas.filter((f) => f.tipo !== "cocktail" && (!q || norm(f.nome).includes(q)));
+    const busca = h("input", { type: "search", placeholder: "Procurar prato", value: S.q, "aria-label": "Procurar prato" });
+    busca.addEventListener("input", () => { S.q = busca.value; const p = busca.selectionStart; render(); const b = document.querySelector("input[type=search]"); b.focus(); b.setSelectionRange(p, p); });
+    frag.append(h("div", { class: "tools" }, busca, h("button", { class: "btn primary", onclick: () => F.novaFicha("prato", { categoria: "Paparicos", atual: true }) }, "+ Nova ficha")));
+    frag.append(h("p", { class: "note", text: "Custo por dose a partir dos preços dos ingredientes (em Fornecedores e preços). Preço sugerido = custo × 3 (food cost de 33%)." }));
+    if (!lista.length) { frag.append(h("div", { class: "card empty" }, h("strong", { text: "Nenhuma ficha" }), "Use + Nova ficha.")); return frag; }
+    const porSeccao = (fs) => [...new Set([...SEC, ...fs.map((f) => f.categoria || "Outros")])].map((c) => {
+      const xs = fs.filter((f) => (f.categoria || "Outros") === c).sort((a, b) => a.nome.localeCompare(b.nome, "pt"));
+      return xs.length ? [h("h2", { class: "sec" }, c, h("small", { text: xs.length + (xs.length === 1 ? " ficha" : " fichas") })), h("div", { class: "list" }, xs.map(cartaoFicha))] : null;
+    });
+    for (const [k, tit, atual] of [["atuais", "Pratos atuais", true], ["antigos", "Pratos antigos", false]]) {
+      const fs = lista.filter((f) => !!f.atual === atual);
+      if (!fs.length) continue;
+      const d = h("details", { class: "grupo mae", open: !!q || !S.fechados.has(k) },
+        h("summary", {}, tit, h("small", { text: fs.length + (fs.length === 1 ? " ficha" : " fichas") })), porSeccao(fs));
+      if (!q) d.addEventListener("toggle", () => { if (d.open) S.fechados.delete(k); else S.fechados.add(k); try { localStorage.setItem("ft-fechados", JSON.stringify([...S.fechados])); } catch (e) {} });
+      frag.append(d);
+    }
+    return frag;
+  }
+  function cartaoFicha(f) {
+    const k = F.custo(f), vazia = !(f.ingredientes || []).length;
+    return h("button", { type: "button", class: "card item click", onclick: () => F.abrir(f) },
+      h("div", { class: "t" }, h("strong", { text: f.nome }), f.pvp ? h("span", { class: "n", text: eur(f.pvp, 1).replace(",0 €", " €") }) : null),
+      h("div", { class: "s" }, vazia ? h("span", { class: "tag muted", text: "por preencher" }) :
+        ["Custo/dose ", h("span", { class: "n", text: eur(k.dose) }),
+          k.pct != null ? [" · ", h("span", { class: "tag " + (k.pct > 0.36 ? "warn" : "ok"), text: pctTxt(k.pct) })] : null,
+          k.falta ? [" · ", h("span", { class: "falta", text: k.falta + " sem preço" })] : null]));
+  }
+
+  // --- dining room manual: how to explain each dish ---
+  function viewManual() {
+    const frag = document.createDocumentFragment();
+    const chip = (v, lab) => h("button", { type: "button", "aria-pressed": String(S.ver === v), onclick: () => { S.ver = v; try { localStorage.setItem("mp-ver", v); } catch (e) {} render(); } }, lab);
+    frag.append(h("div", { class: "tools" }, h("div", { class: "chips" }, chip("carta", "Carta atual"), chip("todos", "Todos")), h("span", { style: "flex:1" }),
+      h("button", { class: "btn primary", onclick: () => editarPrato(null) }, "+ Prato"),
+      h("button", { class: "btn", onclick: imprimir }, "Imprimir")));
+    frag.append(h("p", { class: "note np", text: "Para a sala explicar cada prato: descrição, argumentos de venda, origem dos produtos e alergénios. Toque num prato para ver tudo." }));
+    const lista = S.pratos.filter((p) => S.ver === "todos" || p.carta);
+    const secs = [...new Set([...SEC, ...lista.map((p) => p.seccao || "Outros")])];
+    for (const s of secs) {
+      const ps = lista.filter((p) => (p.seccao || "Outros") === s).sort((a, b) => (a.ordem ?? 999) - (b.ordem ?? 999) || a.nome.localeCompare(b.nome, "pt"));
+      if (!ps.length) continue;
+      frag.append(h("h2", { class: "sec" }, s, h("small", { text: String(ps.length) })));
+      frag.append(h("div", { class: "list" }, ps.map(cartaoPrato)));
+    }
+    if (!lista.length) frag.append(h("div", { class: "card empty" }, h("strong", { text: "Sem pratos" })));
+    return frag;
+  }
+  function cartaoPrato(p) {
+    const det = h("details", { class: "card prato", id: "mp-" + p.id, open: S.abertos.has(p.id) || S.imprimir });
+    det.addEventListener("toggle", () => { if (det.open) S.abertos.add(p.id); else S.abertos.delete(p.id); });
+    const campo = (lab, v) => v ? [h("dt", { text: lab }), h("dd", { text: v })] : null;
+    const ficha = p.ficha && S.fichas.find((f) => f.id === p.ficha);
+    det.append(h("summary", {},
+      h("div", { class: "t" }, h("strong", { text: p.nome }), p.preco ? h("span", { class: "n", text: /^\d/.test(p.preco) ? p.preco + " €" : p.preco }) : null),
+      p.curta ? h("div", { class: "d", text: p.curta }) : null,
+      h("div", { class: "chips" }, p.dieta ? h("span", { class: "tag ok", text: p.dieta }) : null, p.porcao ? h("span", { class: "tag muted", text: p.porcao }) : null,
+        !p.carta ? h("span", { class: "tag muted", text: "fora da carta" }) : null)),
+      h("div", { class: "corpo" },
+        h("dl", {}, campo("Como explicar", p.extensa), campo("Argumentos de venda", p.selling), campo("Origens", p.origens), campo("Alergénios", p.alergenos)),
+        h("div", { class: "acts" },
+          ficha ? h("button", { class: "btn", onclick: () => irPara("fichas", () => { S.sel = ficha.id; }) }, "Ficha técnica") : null,
+          h("button", { class: "btn", onclick: () => editarPrato(p) }, "Editar"))));
+    return det;
+  }
+  function editarPrato(p) {
+    abrirEditor({ titulo: p ? "Editar prato" : "Novo prato", dados: p || { seccao: "Paparicos", carta: true },
+      campos: [{ k: "nome", label: "Prato" }, { k: "seccao", label: "Secção", tipo: "select", opcoes: SEC.map((s) => [s, s]) },
+        { k: "preco", label: "Preço na carta", dica: "Ex.: 12 ou 22 (1 pax) · 38 (2 pax)" }, { k: "curta", label: "Descrição rápida (a da carta)", tipo: "textarea", rows: 2 },
+        { k: "extensa", label: "Como explicar à mesa", tipo: "textarea", rows: 4 }, { k: "selling", label: "Argumentos de venda", tipo: "textarea" },
+        { k: "origens", label: "Origens dos produtos", tipo: "textarea", rows: 2 }, { k: "porcao", label: "Porção" }, { k: "alergenos", label: "Alergénios" },
+        { k: "dieta", label: "Dieta", tipo: "select", opcoes: [["", "—"], ["Vegetariano", "Vegetariano"], ["Vegano", "Vegano"], ["Opção vegetariana", "Opção vegetariana"], ["Opção vegana", "Opção vegana"]] },
+        { k: "carta", label: "Está na carta atual", tipo: "check" }, { k: "ordem", label: "Ordem na secção", tipo: "number" }],
+      apagar: p ? () => S.db.collection("pratos").doc(p.id).delete() : null,
+      guardar: (d) => {
+        if (p) { const { id, ...old } = p; return S.db.collection("pratos").doc(id).set({ ...old, ...d }); }
+        let id = slugId(d.nome); while (S.pratos.some((x) => x.id === id)) id += "-2";
+        return S.db.collection("pratos").doc(id).set({ ...d, ficha: S.fichas.some((f) => f.id === id && f.tipo !== "cocktail") ? id : null });
+      } });
+  }
+  function imprimir() { S.imprimir = true; render(); setTimeout(() => { window.print(); S.imprimir = false; render(); }, 100); }
+
+  // pratos.html#manual opens the manual; pratos.html#<id> opens that sheet (cocktails go to their own page)
+  let hash = decodeURIComponent(location.hash.slice(1));
+  const limparHash = () => { if (location.hash) history.replaceState(null, "", location.pathname + location.search); };
+  if (hash === "manual") { S.tab = "manual"; hash = ""; limparHash(); }
+  render();
+  const db = await abrirPainel();
+  if (!db) { S.db = false; render(); return; }
+  S.db = db; $("sub").textContent = "Fichas técnicas e manual";
+  const re = agendar(render);
+  db.collection("fichas").onSnapshot((s) => {
+    S.fichas = s.docs.map((d) => ({ id: d.id, ...d.data() })); S.loaded.f = true;
+    const alvo = hash && S.fichas.find((f) => f.id === hash);
+    if (alvo) {
+      if (alvo.tipo === "cocktail") { location.replace("cocktails.html#" + encodeURIComponent(alvo.id)); return; }
+      S.tab = "fichas"; S.sel = alvo.id; hash = ""; limparHash();
+    }
+    re();
+  });
+  db.collection("ingredientes").onSnapshot((s) => { S.ing = new Map(s.docs.map((d) => [d.id, d.data()])); S.loaded.i = true; re(); });
+  db.collection("pratos").onSnapshot((s) => { S.pratos = s.docs.map((d) => ({ id: d.id, ...d.data() })); S.loaded.p = true; re(); });
+})();
+</script>
+</body>
+</html>

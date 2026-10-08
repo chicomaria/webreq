@@ -14,7 +14,8 @@
 <script src="ui.js"></script>
 <script src="dados.js"></script>
 <script src="painel.js"></script>
-<title>Fornecedores · Chico Maria</title>
+<script src="fichas.js"></script>
+<title>Fornecedores e preços · Chico Maria</title>
 <style>
 .fc { padding: 8px 10px; display: flex; flex-direction: column; gap: 2px; cursor: pointer; min-width: 0; }
 .fc:active { background: var(--accent-soft); }
@@ -28,16 +29,27 @@
 <body>
 <div class="wrap">
   <header class="top">
-    <div class="brand"><h1><a href="./" class="home" aria-label="Início">‹</a> Fornecedores</h1><span class="sub" id="sub">A ligar…</span></div>
+    <div class="brand"><h1><a href="./" class="home" aria-label="Início">‹</a> Fornecedores e preços</h1><span class="sub" id="sub">A ligar…</span></div>
+    <nav class="tabs" role="tablist">
+      <button role="tab" data-tab="forn" aria-selected="true">Fornecedores</button>
+      <button role="tab" data-tab="precos" aria-selected="false">Preços</button>
+    </nav>
   </header>
   <main id="main"></main>
   <datalist id="cats-f"></datalist>
+  <datalist id="forn-nomes"></datalist>
+  <datalist id="grupos-ing"></datalist>
 </div>
 <script>
 (async () => {
-  const S = { db: null, loaded: { f: false, p: false }, forn: [], produtos: [], q: "", abertas: new Set() };
-  try { S.abertas = new Set(JSON.parse(localStorage.getItem("fr-abertas") || "[]")); } catch (e) {}
-  const lembrar = () => { try { localStorage.setItem("fr-abertas", JSON.stringify([...S.abertas])); } catch (e) {} };
+  // Suppliers (fornecedores) and the ingredient price list (ingredientes) used by the dish and cocktail sheets.
+  const S = { db: null, loaded: { f: false, p: false, fi: false, i: false }, forn: [], produtos: [], q: "", abertas: new Set(),
+    tab: "forn", fichas: [], ing: new Map(), qi: "", sel: null };
+  try { S.abertas = new Set(JSON.parse(localStorage.getItem("fr-abertas") || "[]")); S.tab = localStorage.getItem("fr-tab") === "precos" ? "precos" : "forn"; } catch (e) {}
+  if (location.hash === "#precos") { S.tab = "precos"; history.replaceState(null, "", location.pathname + location.search); }
+  const lembrar = () => { try { localStorage.setItem("fr-abertas", JSON.stringify([...S.abertas])); localStorage.setItem("fr-tab", S.tab); } catch (e) {} };
+  const F = fichasComuns(S, render);
+  document.querySelectorAll("nav.tabs button").forEach((b) => b.addEventListener("click", () => { S.tab = b.dataset.tab; lembrar(); render(); window.scrollTo(0, 0); }));
 
   // every supplier name used in the order app should match a supplier here (name or one of its "nomes na app")
   function ligacoes() {
@@ -51,6 +63,12 @@
     }
     return { porForn, soltos };
   }
+  function precosPorForn() {
+    const mapa = new Map(), n = new Map();
+    for (const f of S.forn) for (const x of [f.nome, ...(f.nomesApp || [])]) mapa.set(norm(x), f.id);
+    for (const i of S.ing.values()) { const id = mapa.get(norm(i.fornecedor)); if (id) n.set(id, (n.get(id) || 0) + 1); }
+    return n;
+  }
 
   // one contact on the card: phone, else email, else site
   function contacto(f) {
@@ -62,12 +80,19 @@
   }
 
   function render() {
+    document.querySelectorAll("nav.tabs button").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.tab === S.tab)));
     const m = $("main"); m.replaceChildren();
     if (!S.db) { m.append(h("div", { class: "empty" }, h("strong", { text: S.db === false ? "Sem ligação à base de dados" : "A carregar…" }))); return; }
+    if (S.tab === "precos") {
+      if (!S.loaded.fi || !S.loaded.i) { m.append(h("div", { class: "empty" }, h("strong", { text: "A carregar…" }))); return; }
+      $("forn-nomes").replaceChildren(...S.forn.map((f) => f.nome).sort((a, b) => a.localeCompare(b, "pt")).map((n) => h("option", { value: n })));
+      $("grupos-ing").replaceChildren(...[...new Set([...S.ing.values()].map((i) => i.grupo).filter(Boolean))].sort((a, b) => a.localeCompare(b, "pt")).map((g) => h("option", { value: g })));
+      return m.append(F.viewIng());
+    }
     if (!S.loaded.f) { m.append(h("div", { class: "empty" }, h("strong", { text: "A carregar…" }))); return; }
     const cats = [...new Set(S.forn.map((f) => f.categoria || "Outros"))].sort((a, b) => a.localeCompare(b, "pt"));
     $("cats-f").replaceChildren(...cats.map((c) => h("option", { value: c })));
-    const { porForn, soltos } = ligacoes();
+    const { porForn, soltos } = ligacoes(), precos = precosPorForn();
     const busca = h("input", { type: "search", placeholder: "Procurar nome, produto ou terra", value: S.q, "aria-label": "Procurar fornecedor" });
     busca.addEventListener("input", () => { S.q = busca.value; const p = busca.selectionStart; render(); const b = document.querySelector("input[type=search]"); b.focus(); b.setSelectionRange(p, p); });
     const todas = cats.every((c) => S.abertas.has(c));
@@ -88,20 +113,21 @@
       const d = h("details", { class: "grupo", open: !!q || S.abertas.has(g) },
         h("summary", {}, g, h("small", { text: String(fs.length) })),
         h("div", { class: "mosaico" }, fs.map((f) => {
-          const n = porForn.get(f.id);
+          const n = porForn.get(f.id), np = precos.get(f.id);
           return h("div", { class: "card fc", role: "button", tabindex: "0", title: [f.produtos, f.obs].filter(Boolean).join("\n"),
             onclick: () => editar(f), onkeydown: (e) => { if (e.key === "Enter") editar(f); } },
             h("strong", { text: f.nome }),
             f.produtos ? h("div", { class: "p", text: f.produtos }) : null,
             f.local ? h("div", { class: "s", text: f.local }) : null,
             n ? h("span", { class: "tag ok", text: n + (n === 1 ? " artigo" : " artigos") + " nas encomendas" }) : null,
+            np ? h("span", { class: "tag", text: np + (np === 1 ? " preço" : " preços") + " de fichas" }) : null,
             contacto(f));
         })));
       if (!q) d.addEventListener("toggle", () => { if (d.open) S.abertas.add(g); else S.abertas.delete(g); lembrar(); });
       m.append(d);
     }
     if (!lista.length) m.append(h("div", { class: "card empty" }, h("strong", { text: "Nenhum fornecedor encontrado" })));
-    m.append(h("p", { class: "note", text: S.forn.length + " fornecedores. Toque num cartão para ver tudo e editar. O número de artigos vem da app de encomendas." }));
+    m.append(h("p", { class: "note", text: S.forn.length + " fornecedores. Toque num cartão para ver tudo e editar. Os artigos vêm da app de encomendas; os preços, do separador Preços." }));
   }
 
   function editar(f) {
@@ -132,10 +158,12 @@
   render();
   const db = await abrirPainel();
   if (!db) { S.db = false; render(); return; }
-  S.db = db; $("sub").textContent = "Produtores e distribuidores";
+  S.db = db; $("sub").textContent = "Contactos e preços dos ingredientes";
   const re = agendar(render);
   db.collection("fornecedores").onSnapshot((s) => { S.forn = s.docs.map((d) => ({ id: d.id, ...d.data() })); S.loaded.f = true; re(); });
   db.collection("produtos").onSnapshot((s) => { S.produtos = s.docs.map((d) => d.data()); S.loaded.p = true; re(); });
+  db.collection("fichas").onSnapshot((s) => { S.fichas = s.docs.map((d) => ({ id: d.id, ...d.data() })); S.loaded.fi = true; re(); });
+  db.collection("ingredientes").onSnapshot((s) => { S.ing = new Map(s.docs.map((d) => [d.id, d.data()])); S.loaded.i = true; re(); });
 })();
 </script>
 </body>

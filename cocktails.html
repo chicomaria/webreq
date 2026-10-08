@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#eef1ee">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Source+Sans+3:wght@400;600;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="base.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="db.js"></script>
+<script src="ui.js"></script>
+<script src="dados.js"></script>
+<script src="painel.js"></script>
+<script src="fichas.js"></script>
+<title>Cocktails · Chico Maria</title>
+<style>
+.ck { padding: 12px; display: grid; gap: 8px; }
+.ck .t { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.ck h3 { margin: 0; font-family: var(--font-display); font-size: 22px; text-transform: uppercase; letter-spacing: .02em; }
+.ck .t .n { font-family: var(--font-mono); font-size: 13px; color: var(--muted); white-space: nowrap; }
+.ck .cols { display: grid; gap: 8px 16px; }
+@media (min-width: 600px) { .ck .cols { grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); } }
+.ck h4 { margin: 0 0 3px; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.ck ul.ings { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 3px 10px; font-size: 15px; }
+.ck ul.ings li { display: contents; }
+.ck ul.ings b { font-weight: 700; font-variant-numeric: tabular-nums; text-align: right; }
+.ck ul.ings small { color: var(--muted); }
+.ck ol.met { margin: 0; padding-left: 20px; display: grid; gap: 3px; font-size: 15px; line-height: 1.35; }
+.ck .acts { display: flex; gap: 8px; flex-wrap: wrap; }
+.ck dl { margin: 0; display: grid; gap: 6px; border-top: 1px solid var(--line); padding-top: 8px; }
+.ck dt { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); font-weight: 700; }
+.ck dd { margin: 0; font-size: 14px; line-height: 1.35; }
+.ck dd ul { margin: 0; padding-left: 18px; }
+.ck .s { color: var(--muted); font-size: 13px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand"><h1><a href="./" class="home" aria-label="Início">‹</a> Cocktails</h1><span class="sub" id="sub">A ligar…</span></div>
+  </header>
+  <main id="main"></main>
+  <datalist id="ing-nomes"></datalist>
+</div>
+<script>
+(async () => {
+  // Cocktail sheets (fichas with tipo "cocktail"): recipe at a glance, the rest behind Expandir, costs in the detail view.
+  const S = { db: null, loaded: { f: false, i: false }, fichas: [], ing: new Map(), sel: null, q: "", abertos: new Set() };
+  const F = fichasComuns(S, render);
+
+  function render() {
+    const m = $("main"); m.replaceChildren();
+    if (!S.db) { m.append(h("div", { class: "empty" }, h("strong", { text: S.db === false ? "Sem ligação à base de dados" : "A carregar…" }))); return; }
+    if (!S.loaded.f || !S.loaded.i) { m.append(h("div", { class: "empty" }, h("strong", { text: "A carregar…" }))); return; }
+    $("ing-nomes").replaceChildren(...[...S.ing.values()].map((i) => h("option", { value: i.nome })));
+    const f = S.sel && S.fichas.find((x) => x.id === S.sel && x.tipo === "cocktail");
+    m.append(f ? F.viewFicha(f, { voltar: "‹ Todos os cocktails" }) : viewLista());
+  }
+
+  function viewLista() {
+    const frag = document.createDocumentFragment();
+    const q = norm(S.q);
+    const todos = S.fichas.filter((f) => f.tipo === "cocktail");
+    const lista = todos.filter((f) => !q || norm([f.nome, ...(f.ingredientes || []).map((r) => (S.ing.get(r.ing) || {}).nome)].join(" ")).includes(q))
+      .sort((a, b) => a.nome.localeCompare(b.nome, "pt"));
+    const busca = h("input", { type: "search", placeholder: "Procurar cocktail ou ingrediente", value: S.q, "aria-label": "Procurar cocktail" });
+    busca.addEventListener("input", () => { S.q = busca.value; const p = busca.selectionStart; render(); const b = document.querySelector("input[type=search]"); b.focus(); b.setSelectionRange(p, p); });
+    frag.append(h("div", { class: "tools" }, busca, h("button", { class: "btn primary", onclick: () => F.novaFicha("cocktail") }, "+ Cocktail")));
+    frag.append(h("p", { class: "note", text: todos.length + (todos.length === 1 ? " cocktail" : " cocktails") + ". Ingredientes e método à vista; Expandir mostra copo, guarnição, história, dicas e custo." }));
+    if (!lista.length) frag.append(h("div", { class: "card empty" }, h("strong", { text: todos.length ? "Nenhum cocktail encontrado" : "Ainda sem cocktails" }), todos.length ? null : "Use + Cocktail."));
+    else frag.append(h("div", { class: "list" }, lista.map(cartao)));
+    return frag;
+  }
+  function cartao(f) {
+    const k = F.custo(f), aberto = S.abertos.has(f.id);
+    const ings = (f.ingredientes || []).map((r) => { const i = S.ing.get(r.ing) || { nome: r.ing }; return h("li", {}, h("b", { text: medidaTxt(r, i) }), h("span", {}, i.nome, r.nota ? h("small", { text: " " + r.nota }) : null)); });
+    const ps = passos(f.preparacao), dicas = passos(f.dicas);
+    const linha = (t, v) => v ? [h("dt", { text: t }), h("dd", { text: v })] : null;
+    return h("div", { class: "card ck", id: "ck-" + f.id },
+      h("div", { class: "t" }, h("h3", { text: f.nome }), f.pvp ? h("span", { class: "n", text: eur(f.pvp) }) : null),
+      h("div", { class: "cols" },
+        h("div", {}, h("h4", { text: "Ingredientes" }), ings.length ? h("ul", { class: "ings" }, ings) : h("div", { class: "s", text: "Sem ingredientes." })),
+        h("div", {}, h("h4", { text: "Método" }), ps.length ? h("ol", { class: "met" }, ps.map((p) => h("li", { text: p }))) : h("div", { class: "s", text: "Sem método escrito." }))),
+      aberto ? h("dl", {},
+        linha("Copo", f.copo), linha("Guarnição", f.guarnicao), linha("História", f.historia),
+        dicas.length ? [h("dt", { text: "Dicas" }), h("dd", {}, h("ul", {}, dicas.map((d) => h("li", { text: d }))))] : null,
+        linha("Observações", f.obs),
+        [h("dt", { text: "Custo" }), h("dd", { text: eur(k.dose) + (f.pvp ? " · " + pctTxt(k.pct) + " do PVP" : "") + (k.falta ? " · " + k.falta + (k.falta === 1 ? " ingrediente sem preço" : " ingredientes sem preço") : "") })]) : null,
+      h("div", { class: "acts" },
+        h("button", { class: "btn", "aria-expanded": String(aberto), onclick: () => { if (aberto) S.abertos.delete(f.id); else S.abertos.add(f.id); render(); } }, aberto ? "Recolher" : "Expandir"),
+        aberto ? [h("button", { class: "btn", onclick: () => F.abrir(f) }, "Custos e ingredientes"), h("button", { class: "btn", onclick: () => F.editarFicha(f) }, "Editar")] : null));
+  }
+
+  // cocktails.html#<id> opens that cocktail's costs (links from the price list and old fichas.html links)
+  let hash = decodeURIComponent(location.hash.slice(1));
+  render();
+  const db = await abrirPainel();
+  if (!db) { S.db = false; render(); return; }
+  S.db = db; $("sub").textContent = "Fichas técnicas do bar";
+  const re = agendar(render);
+  db.collection("fichas").onSnapshot((s) => {
+    S.fichas = s.docs.map((d) => ({ id: d.id, ...d.data() })); S.loaded.f = true;
+    const alvo = hash && S.fichas.find((f) => f.id === hash);
+    if (alvo) {
+      if (alvo.tipo !== "cocktail") { location.replace("pratos.html#" + encodeURIComponent(alvo.id)); return; }
+      S.sel = alvo.id; hash = ""; history.replaceState(null, "", location.pathname + location.search);
+    }
+    re();
+  });
+  db.collection("ingredientes").onSnapshot((s) => { S.ing = new Map(s.docs.map((d) => [d.id, d.data()])); S.loaded.i = true; re(); });
+})();
+</script>
+</body>
+</html>
