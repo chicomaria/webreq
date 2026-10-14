@@ -1,6 +1,9 @@
 // English texts for the menu page (carta.html?lang=en). Dishes and drinks are matched by their id;
 // anything without a translation here (e.g. a dish added later) is shown in Portuguese.
 window.CARTA_EN = {
+  locale: "en-GB",
+  // words bolded as allergens in dish descriptions
+  alerg: /(?<!\p{L})(bread|brioche|butter|lupin|almonds?|walnuts|fresh cheese|cheeses?|cockles|mayonnaise|egg yolk|egg white|eggs?|cream|milk)(?!\p{L})/giu,
   ui: {
     titulo: "Menu · Chico Maria", consulta: ["on", "request"], vazio: "No dishes on the menu.",
     carregar: "Loading the menu…", semLigacao: "No connection to the database.",
