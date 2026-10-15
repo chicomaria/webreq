@@ -434,5 +434,15 @@ window.DADOS = (window.DADOS || []).concat([
    }
   }
  }
+},
+{
+ "id": "2026-10-15-carta-euros",
+ "atualizar": {
+  "config": {
+   "carta": {
+    "rodape": "Os principais alergénios estão assinalados a **negrito.**\nConsulte a equipa sobre alergénios e restrições adicionais\nPreços em euros, IVA incluído à taxa em vigor"
+   }
+  }
+ }
 }
 ]);
