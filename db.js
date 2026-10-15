@@ -8,26 +8,37 @@ function supabaseDb(sb) {
   const T = "docs", cache = new Map(), subs = new Map();
   const emit = (col) => (subs.get(col) || []).forEach((fn) => fn());
   const fail = (error, status) => { const e = new Error(error.message || "erro"); e.code = error.code; e.status = status; throw e; };
-  // a failed read says why in the page subtitle; the page's own text comes back with the next good read
-  let subAntes = null, renovou = false;
-  function semLigacao(e) {
+  // a failed read says why in the page subtitle; the page's own text comes back once every collection reads again
+  // (unless the page wrote something else in the meantime)
+  const falhadas = new Set();
+  let subAntes = null, erroTxt = null, renovadoEm = 0;
+  function semLigacao(e, col) {
+    falhadas.add(col);
     const el = document.getElementById("sub");
-    if (el) { if (subAntes == null) subAntes = el.textContent; el.textContent = "Sem ligação à base de dados: " + motivoErro(e); }
-    // the server no longer accepts this phone's session: get a new one once, else ask for the team code again
-    if (!renovou && /jwt|jws/i.test(e.message || "")) {
-      renovou = true;
-      sb.auth.refreshSession().then(({ error }) => { if (error) sb.auth.signOut({ scope: "local" }); else reloadAll(); });
+    if (el) { if (el.textContent !== erroTxt) subAntes = el.textContent; erroTxt = "Sem ligação à base de dados: " + motivoErro(e); el.textContent = erroTxt; }
+    // the server no longer accepts this phone's session: try for a new one (supabase-js signs out by itself if that is refused)
+    if (/jwt|jws/i.test(e.message || "") && Date.now() - renovadoEm > 60000) {
+      renovadoEm = Date.now();
+      sb.auth.refreshSession().then(({ error }) => { if (!error) reloadAll(); });
     }
   }
   async function load(col) {
+    // without a session the rules return empty lists, which would look like lost data
+    const { data: s } = await sb.auth.getSession();
+    if (!s || !s.session) { const e = new Error("sem sessão"); e.code = "sem_sessao"; throw e; }
     const { data, error, status } = await sb.from(T).select("id,data").eq("col", col);
     if (error) fail(error, status);
-    if (subAntes != null) { const el = document.getElementById("sub"); if (el) el.textContent = subAntes; subAntes = null; }
+    falhadas.delete(col);
+    if (erroTxt != null && !falhadas.size) { const el = document.getElementById("sub"); if (el && el.textContent === erroTxt) el.textContent = subAntes; subAntes = erroTxt = null; }
     cache.set(col, new Map(data.map((r) => [r.id, r.data]))); emit(col);
   }
-  const reloadAll = () => { for (const c of cache.keys()) load(c).catch(semLigacao); };
-  // a session that ends while the page is open must not keep reading without it (the rules would return empty lists)
-  sb.auth.onAuthStateChange((ev) => { if (ev === "SIGNED_OUT") location.reload(); });
+  const reloadAll = () => { for (const c of cache.keys()) load(c).catch((e) => semLigacao(e, c)); };
+  // a session that ends while the page is open goes back to the team-code screen, saying why when it is known
+  sb.auth.onAuthStateChange((ev) => {
+    if (ev !== "SIGNED_OUT") return;
+    try { sessionStorage.setItem("cm-saiu", erroTxt || "A sessão deste telemóvel terminou."); } catch (e) {}
+    location.reload();
+  });
   sb.channel("docs-live")
     .on("postgres_changes", { event: "*", schema: "public", table: T }, (p) => {
       const r = p.eventType === "DELETE" ? p.old : p.new;
@@ -42,7 +53,7 @@ function supabaseDb(sb) {
   function watch(col, fn) {
     if (!subs.has(col)) subs.set(col, []);
     subs.get(col).push(fn);
-    if (!cache.has(col)) { cache.set(col, new Map()); load(col).catch(semLigacao); } else fn();
+    if (!cache.has(col)) { cache.set(col, new Map()); load(col).catch((e) => semLigacao(e, col)); } else fn();
   }
   // writes only touch collections already cached; one that is not loaded yet is read fresh by the first watch()
   // (creating an empty entry here made a later watch() show that collection as empty)
@@ -53,9 +64,9 @@ function supabaseDb(sb) {
   };
   function doc(col, id) {
     return {
-      async set(data) { const { error } = await sb.from(T).upsert({ col, id, data, atualizado: new Date().toISOString() }); if (error) fail(error); local(col, (m) => m.set(id, data)); },
-      async update(patch) { const { error } = await sb.rpc("doc_update", { p_col: col, p_id: id, p_patch: patch }); if (error) fail(error); local(col, (m) => { if (m.has(id)) m.set(id, merge(m.get(id), patch)); }); },
-      async delete() { const { error } = await sb.from(T).delete().eq("col", col).eq("id", id); if (error) fail(error); local(col, (m) => m.delete(id)); },
+      async set(data) { const { error, status } = await sb.from(T).upsert({ col, id, data, atualizado: new Date().toISOString() }); if (error) fail(error, status); local(col, (m) => m.set(id, data)); },
+      async update(patch) { const { error, status } = await sb.rpc("doc_update", { p_col: col, p_id: id, p_patch: patch }); if (error) fail(error, status); local(col, (m) => { if (m.has(id)) m.set(id, merge(m.get(id), patch)); }); },
+      async delete() { const { error, status } = await sb.from(T).delete().eq("col", col).eq("id", id); if (error) fail(error, status); local(col, (m) => m.delete(id)); },
       onSnapshot(fn) { watch(col, () => { const d = cache.get(col).get(id); fn({ exists: d !== undefined, data: () => d }); }); },
     };
   }
@@ -78,8 +89,8 @@ function supabaseDb(sb) {
   async function gravarVarios(rows) {
     for (let i = 0; i < rows.length; i += 200) {
       const part = rows.slice(i, i + 200), em = new Date().toISOString();
-      const { error } = await sb.from(T).upsert(part.map((r) => ({ col: r.col, id: r.id, data: r.data, atualizado: em })));
-      if (error) fail(error);
+      const { error, status } = await sb.from(T).upsert(part.map((r) => ({ col: r.col, id: r.id, data: r.data, atualizado: em })));
+      if (error) fail(error, status);
       for (const r of part) { const m = cache.get(r.col); if (m) m.set(r.id, r.data); }
     }
     new Set(rows.map((r) => r.col)).forEach(emit);
@@ -87,7 +98,7 @@ function supabaseDb(sb) {
   // calls a Supabase Edge Function with the team's session (e.g. "expandir", which asks Claude)
   async function funcao(nome, body) {
     const { data, error } = await sb.functions.invoke(nome, { body });
-    if (error) fail(error);
+    if (error) fail(error, error.context && error.context.status);
     return data;
   }
   return {
@@ -113,11 +124,19 @@ async function abrirDb() {
   let sb;
   try { sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: true, autoRefreshToken: true, storageKey: "chicomaria-auth" } }); }
   catch (e) { return null; }
-  try { const { data } = await sb.auth.getSession(); if (data && data.session) return supabaseDb(sb); } catch (e) {}
-  await pedirCodigo(sb);
+  let motivo = "";
+  try {
+    const { data, error } = await sb.auth.getSession();
+    if (data && data.session) return supabaseDb(sb);
+    // Supabase could not be reached to renew the stored session, which is kept: open the page (it says why) instead of asking for the code
+    if (error && error.name === "AuthRetryableFetchError" && localStorage.getItem("chicomaria-auth")) return supabaseDb(sb);
+    if (error) motivo = "A sessão não foi renovada: " + motivoErro(error) + ".";
+  } catch (e) {}
+  try { motivo = sessionStorage.getItem("cm-saiu") || motivo; sessionStorage.removeItem("cm-saiu"); } catch (e) {}
+  await pedirCodigo(sb, motivo);
   return supabaseDb(sb);
 }
-function pedirCodigo(sb) {
+function pedirCodigo(sb, motivo) {
   return new Promise((resolve) => {
     const el = (t, css, txt) => { const x = document.createElement(t); if (css) x.style.cssText = css; if (txt) x.textContent = txt; return x; };
     const ov = el("div", "position:fixed;inset:0;z-index:100;background:var(--bg,#eef1ee);display:flex;align-items:center;justify-content:center;padding:16px");
@@ -126,7 +145,7 @@ function pedirCodigo(sb) {
     const p = el("div", "color:var(--muted,#666);font-size:14px", "Escreva o código da equipa. Só é preciso uma vez neste telemóvel.");
     const inp = el("input", "padding:12px;font-size:20px;border:1px solid var(--line,#ccc);border-radius:10px;background:var(--paper,#fff);color:var(--ink,#000)");
     inp.type = "password"; inp.autocomplete = "current-password"; inp.setAttribute("aria-label", "Código da equipa"); inp.placeholder = "Código da equipa";
-    const err = el("div", "color:var(--warn,#a5532a);font-size:14px;min-height:18px");
+    const err = el("div", "color:var(--warn,#a5532a);font-size:14px;min-height:18px", motivo);
     const b = el("button", "padding:12px;border:0;border-radius:10px;background:var(--accent,#2a47a8);color:#fff;font-weight:700;font-size:16px", "Entrar");
     b.type = "submit";
     form.append(t, p, inp, err, b); ov.append(form); document.body.append(ov); inp.focus();
@@ -142,13 +161,17 @@ function pedirCodigo(sb) {
 }
 // What went wrong, in words the team can act on. Reads carry the HTTP status (fail above); sign-in errors carry their own.
 function motivoErro(e) {
-  const st = (e && (e.status || (e.originalError && e.originalError.status))) || 0, m = String((e && e.message) || "");
+  const st = (e && (e.status || (e.originalError && e.originalError.status))) || 0, m = String((e && e.message) || ""), nome = (e && e.name) || "";
   if (st === 540 || /paused/i.test(m)) return "a base de dados está em pausa no Supabase (retomar em supabase.com)";
   if (st === 429) return "demasiadas tentativas, espere um minuto";
   if (/api key/i.test(m)) return "o Supabase recusou a chave da app";
   if (/jwt|jws/i.test(m)) return "a sessão deste telemóvel deixou de valer";
-  if (!st || /fetch|network|load failed/i.test(m)) return navigator.onLine === false ? "sem internet" : "não foi possível contactar o Supabase (sem internet, ou a base de dados está em pausa)";
-  return "erro " + st + (m ? ", " + m.slice(0, 120) : "");
+  if (e && e.code === "sem_sessao") return "não foi possível contactar o Supabase para renovar a sessão";
+  if (st >= 500) return "o Supabase está com problemas (erro " + st + "), tente daqui a pouco";
+  if (nome === "AuthRetryableFetchError" || (!st && /fetch|network|load failed/i.test(m))) return navigator.onLine === false ? "sem internet" : "não foi possível contactar o Supabase (sem internet, ou a base de dados está em pausa)";
+  // an error page instead of an answer, as a paused project sends
+  if (nome === "AuthUnknownError" || /unexpected token|not valid json/i.test(m)) return "o Supabase respondeu com uma página de erro (base de dados em pausa?)";
+  return "erro" + (st ? " " + st : "") + (m && m !== "{}" ? ", " + m.slice(0, 120) : "");
 }
 // rows: array of arrays; first row is the header. Semicolons and a BOM so Excel in Portugal opens it straight away.
 function downloadCsv(filename, rows) {
