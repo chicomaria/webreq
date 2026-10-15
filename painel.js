@@ -32,7 +32,7 @@ async function aplicarDados(db) {
 async function abrirPainel() {
   const db = await abrirDb();
   if (!db) { $("sub").textContent = "Sem ligação"; return null; }
-  try { await aplicarDados(db); } catch (e) { toast("Não foi possível carregar os dados iniciais."); }
+  try { await aplicarDados(db); } catch (e) { toast("Não foi possível carregar os dados iniciais: " + motivoErro(e) + "."); }
   return db;
 }
 

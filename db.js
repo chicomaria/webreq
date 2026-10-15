@@ -7,13 +7,27 @@ const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 function supabaseDb(sb) {
   const T = "docs", cache = new Map(), subs = new Map();
   const emit = (col) => (subs.get(col) || []).forEach((fn) => fn());
-  const fail = (error) => { const e = new Error(error.message || "erro"); e.code = error.code; throw e; };
+  const fail = (error, status) => { const e = new Error(error.message || "erro"); e.code = error.code; e.status = status; throw e; };
+  // a failed read says why in the page subtitle; the page's own text comes back with the next good read
+  let subAntes = null, renovou = false;
+  function semLigacao(e) {
+    const el = document.getElementById("sub");
+    if (el) { if (subAntes == null) subAntes = el.textContent; el.textContent = "Sem ligação à base de dados: " + motivoErro(e); }
+    // the server no longer accepts this phone's session: get a new one once, else ask for the team code again
+    if (!renovou && /jwt|jws/i.test(e.message || "")) {
+      renovou = true;
+      sb.auth.refreshSession().then(({ error }) => { if (error) sb.auth.signOut({ scope: "local" }); else reloadAll(); });
+    }
+  }
   async function load(col) {
-    const { data, error } = await sb.from(T).select("id,data").eq("col", col);
-    if (error) fail(error);
+    const { data, error, status } = await sb.from(T).select("id,data").eq("col", col);
+    if (error) fail(error, status);
+    if (subAntes != null) { const el = document.getElementById("sub"); if (el) el.textContent = subAntes; subAntes = null; }
     cache.set(col, new Map(data.map((r) => [r.id, r.data]))); emit(col);
   }
-  const reloadAll = () => { for (const c of cache.keys()) load(c).catch(() => {}); };
+  const reloadAll = () => { for (const c of cache.keys()) load(c).catch(semLigacao); };
+  // a session that ends while the page is open must not keep reading without it (the rules would return empty lists)
+  sb.auth.onAuthStateChange((ev) => { if (ev === "SIGNED_OUT") location.reload(); });
   sb.channel("docs-live")
     .on("postgres_changes", { event: "*", schema: "public", table: T }, (p) => {
       const r = p.eventType === "DELETE" ? p.old : p.new;
@@ -24,10 +38,11 @@ function supabaseDb(sb) {
     .subscribe((st) => { if (st === "SUBSCRIBED") reloadAll(); });
   // phones sleep and miss events: refresh when the app comes back to the screen
   document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") reloadAll(); });
+  window.addEventListener("online", reloadAll);
   function watch(col, fn) {
     if (!subs.has(col)) subs.set(col, []);
     subs.get(col).push(fn);
-    if (!cache.has(col)) { cache.set(col, new Map()); load(col).catch(() => { const el = document.getElementById("sub"); if (el) el.textContent = "Sem ligação à base de dados"; }); } else fn();
+    if (!cache.has(col)) { cache.set(col, new Map()); load(col).catch(semLigacao); } else fn();
   }
   // writes only touch collections already cached; one that is not loaded yet is read fresh by the first watch()
   // (creating an empty entry here made a later watch() show that collection as empty)
@@ -120,10 +135,20 @@ function pedirCodigo(sb) {
       if (!inp.value.trim()) { err.textContent = "Escreva o código."; return; }
       b.disabled = true; b.textContent = "A verificar…"; err.textContent = "";
       const { error } = await sb.auth.signInWithPassword({ email: TEAM_EMAIL, password: inp.value.trim() });
-      if (error) { b.disabled = false; b.textContent = "Entrar"; err.textContent = /fetch|network/i.test(error.message || "") ? "Sem internet. Tente de novo." : "Código errado."; inp.select(); return; }
+      if (error) { b.disabled = false; b.textContent = "Entrar"; err.textContent = error.code === "invalid_credentials" || /invalid login credentials/i.test(error.message || "") ? "Código errado." : "Não foi possível entrar: " + motivoErro(error) + "."; inp.select(); return; }
       ov.remove(); resolve();
     });
   });
+}
+// What went wrong, in words the team can act on. Reads carry the HTTP status (fail above); sign-in errors carry their own.
+function motivoErro(e) {
+  const st = (e && (e.status || (e.originalError && e.originalError.status))) || 0, m = String((e && e.message) || "");
+  if (st === 540 || /paused/i.test(m)) return "a base de dados está em pausa no Supabase (retomar em supabase.com)";
+  if (st === 429) return "demasiadas tentativas, espere um minuto";
+  if (/api key/i.test(m)) return "o Supabase recusou a chave da app";
+  if (/jwt|jws/i.test(m)) return "a sessão deste telemóvel deixou de valer";
+  if (!st || /fetch|network|load failed/i.test(m)) return navigator.onLine === false ? "sem internet" : "não foi possível contactar o Supabase (sem internet, ou a base de dados está em pausa)";
+  return "erro " + st + (m ? ", " + m.slice(0, 120) : "");
 }
 // rows: array of arrays; first row is the header. Semicolons and a BOM so Excel in Portugal opens it straight away.
 function downloadCsv(filename, rows) {
