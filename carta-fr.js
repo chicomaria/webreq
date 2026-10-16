@@ -12,7 +12,7 @@ window.CARTA_FR = {
   },
   secoes: {
     "Sustento": "Pour commencer", "Paparicos": "Petits plaisirs", "Comedeirices": "Grandes assiettes", "Lambarices": "Gourmandises",
-    "Binho": "Vin", "Espumantes": "Effervescents", "Branco": "Blanc", "Rosé": "Rosé", "Tinto": "Rouge", "Sobremesa": "Vins de dessert",
+    "Binho": "Vin", "Espumantes": "Mousseux", "Branco": "Blanc", "Rosé": "Rosé", "Tinto": "Rouge", "Sobremesa": "Vins de dessert",
     "Gin": "Gin", "Espirituosas": "Spiritueux", "Cerveja": "Bière", "Laranjadas caseiras": "Sodas maison",
     "Bicas": "Café & thé", "Pingas sem álcool": "Sans alcool", "Coquetéis": "Cocktails",
   },
