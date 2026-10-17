@@ -193,7 +193,7 @@ button.cat .on-n { color: var(--accent); }
     if (a && b && a[0] === b[0]) return qtd * a[1] / b[1] * p.preco;
     return null;
   }
-  const sortProd = (a, b) => (S.cats.indexOf(a.categoria) - S.cats.indexOf(b.categoria)) || ((a.ordem || 0) - (b.ordem || 0)) || a.nome.localeCompare(b.nome, "pt");
+  const sortProd = (a, b) => (S.cats.indexOf(a.categoria) - S.cats.indexOf(b.categoria)) || ((a.ordem || 0) - (b.ordem || 0)) || (a.nome || "").localeCompare(b.nome || "", "pt");
   function catsOf(list) {
     const known = [...S.cats];
     for (const p of list) if (!known.includes(p.categoria)) known.push(p.categoria);
@@ -636,10 +636,13 @@ button.cat .on-n { color: var(--accent); }
           if (p && Number(p.preco) === x.se && (p.precoUnidade || "") === x.seUn) await S.db.collection("produtos").doc(id).update(x.set);
         }
         // updates from the spreadsheet the team filled in: overwrite these fields, keep order counts
+        // (an article the team deleted only comes back when the update is a whole article, with a name)
         for (const [id, d] of Object.entries(m.atualizar || {})) {
           if (S.produtos.has(id)) await S.db.collection("produtos").doc(id).update(d);
-          else await S.db.collection("produtos").doc(id).set(d);
+          else if (d.nome) await S.db.collection("produtos").doc(id).set(d);
         }
+        // whole categories that show in Frequentes, including articles the team added to them
+        for (const c of m.frequentes || []) for (const p of S.produtos.values()) if (p.categoria === c && !p.semanal) await S.db.collection("produtos").doc(p.id).update({ semanal: true });
         for (const id of m.apagar || []) if (S.produtos.has(id)) await S.db.collection("produtos").doc(id).delete();
         feitas.add(m.id);
         await S.db.doc("config/migracoes").set({ feitas: [...feitas] });

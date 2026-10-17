@@ -5,8 +5,9 @@ const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 
 // Small document store on top of one Supabase table (docs: col, id, data jsonb), live via Realtime.
 function supabaseDb(sb) {
-  const T = "docs", cache = new Map(), subs = new Map();
-  const emit = (col) => (subs.get(col) || []).forEach((fn) => fn());
+  const T = "docs", cache = new Map(), subs = new Map(), carregadas = new Set();
+  // pages only hear about a collection once it has been read from the server (an empty cache is not "no documents")
+  const emit = (col) => { if (carregadas.has(col)) (subs.get(col) || []).forEach((fn) => fn()); };
   const fail = (error, status) => { const e = new Error(error.message || "erro"); e.code = error.code; e.status = status; throw e; };
   // a failed read says why in the page subtitle; the page's own text comes back once every collection reads again
   // (unless the page wrote something else in the meantime)
@@ -30,7 +31,7 @@ function supabaseDb(sb) {
     if (error) fail(error, status);
     falhadas.delete(col);
     if (erroTxt != null && !falhadas.size) { const el = document.getElementById("sub"); if (el && el.textContent === erroTxt) el.textContent = subAntes; subAntes = erroTxt = null; }
-    cache.set(col, new Map(data.map((r) => [r.id, r.data]))); emit(col);
+    cache.set(col, new Map(data.map((r) => [r.id, r.data]))); carregadas.add(col); emit(col);
   }
   const reloadAll = () => { for (const c of cache.keys()) load(c).catch((e) => semLigacao(e, c)); };
   // a session that ends while the page is open goes back to the team-code screen, saying why when it is known
@@ -53,7 +54,7 @@ function supabaseDb(sb) {
   function watch(col, fn) {
     if (!subs.has(col)) subs.set(col, []);
     subs.get(col).push(fn);
-    if (!cache.has(col)) { cache.set(col, new Map()); load(col).catch((e) => semLigacao(e, col)); } else fn();
+    if (!cache.has(col)) { cache.set(col, new Map()); load(col).catch((e) => semLigacao(e, col)); } else if (carregadas.has(col)) fn();
   }
   // writes only touch collections already cached; one that is not loaded yet is read fresh by the first watch()
   // (creating an empty entry here made a later watch() show that collection as empty)

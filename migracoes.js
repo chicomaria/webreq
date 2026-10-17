@@ -1976,5 +1976,11 @@ window.MIGRACOES = [
     "obs": "5,60 €/kg; cada peça tem 3 a 4 kg (custo calculado com 3,5 kg)."
    }
   }
+ },
+ {
+  "id": "2026-10-17-vinhos-frequentes",
+  "frequentes": [
+   "Vinhos"
+  ]
  }
 ];
