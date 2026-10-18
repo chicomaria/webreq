@@ -670,7 +670,8 @@ button.cat .on-n { color: var(--accent); }
     const onErr = () => {};
     db.doc("config/categorias").onSnapshot((s) => { S.cats = (s.exists && Array.isArray(s.data().lista)) ? [...s.data().lista] : S.cats; S.loaded.cfg = true; soon(); migrar(); }, onErr);
     db.doc("config/migracoes").onSnapshot((s) => { S.migFeitas = (s.exists && Array.isArray(s.data().feitas)) ? s.data().feitas : []; S.loaded.mig = true; migrar(); }, onErr);
-    db.collection("produtos").onSnapshot((snap) => { S.produtos = new Map(snap.docs.map((d) => [d.id, { id: d.id, ...d.data() }])); S.loaded.produtos = true; soon(); migrar(); }, onErr);
+    // articles without a name are leftovers of an old bug (a data update re-run on a deleted article): not shown
+    db.collection("produtos").onSnapshot((snap) => { S.produtos = new Map(snap.docs.filter((d) => d.data() && d.data().nome).map((d) => [d.id, { id: d.id, ...d.data() }])); S.loaded.produtos = true; soon(); migrar(); }, onErr);
     db.collection("rascunho").onSnapshot((snap) => { S.rasc = new Map(snap.docs.map((d) => [d.id, d.data()])); S.loaded.rasc = true; soon(); }, onErr);
     db.collection("encomendas").orderBy("criada", "desc").limit(60).onSnapshot((snap) => { S.encomendas = snap.docs.map((d) => ({ id: d.id, ...d.data() })); S.loaded.enc = true; soon(); }, onErr);
     render();
