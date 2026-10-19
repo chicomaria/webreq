@@ -194,6 +194,13 @@ button.cat .on-n { color: var(--accent); }
     return null;
   }
   const sortProd = (a, b) => (S.cats.indexOf(a.categoria) - S.cats.indexOf(b.categoria)) || ((a.ordem || 0) - (b.ordem || 0)) || (a.nome || "").localeCompare(b.nome || "", "pt");
+  // "Todos": inside each category the most ordered articles come first (times in a closed order, kept in vezes and counted in the loaded history)
+  function maisPedidos() {
+    const n = new Map();
+    for (const e of S.encomendas) for (const pid of new Set((e.itens || []).map((l) => l.pid))) n.set(pid, (n.get(pid) || 0) + 1);
+    const vezes = (p) => Math.max(p.vezes || 0, n.get(p.id) || 0);
+    return (a, b) => (S.cats.indexOf(a.categoria) - S.cats.indexOf(b.categoria)) || (vezes(b) - vezes(a)) || sortProd(a, b);
+  }
   function catsOf(list) {
     const known = [...S.cats];
     for (const p of list) if (!known.includes(p.categoria)) known.push(p.categoria);
@@ -239,6 +246,8 @@ button.cat .on-n { color: var(--accent); }
   }
   try { const a = JSON.parse(localStorage.getItem("abertas") || "[]"); if (Array.isArray(a)) S.abertas = new Set(a); } catch (e) {}
   try { const t = localStorage.getItem("tab"); if (t) S.tab = t; const f = localStorage.getItem("filtro"); if (f) S.filtro = f; } catch (e) {}
+  // the home page links straight to a tab (encomendas.html#his: what is still to be delivered)
+  if (["enc", "res", "his", "art"].includes(location.hash.slice(1))) { S.tab = location.hash.slice(1); history.replaceState(null, "", location.pathname + location.search); }
   document.querySelectorAll("nav.tabs button").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.tab === S.tab)));
 
   function render() {
@@ -293,7 +302,7 @@ button.cat .on-n { color: var(--accent); }
         if (S.filtro === "semanal") return p.semanal || qtyOf(p.id) > 0;
         if (S.filtro === "pedidos") return qtyOf(p.id) > 0;
         return true;
-      }).sort(sortProd);
+      }).sort(S.filtro === "todos" && !q ? maisPedidos() : sortProd);
       if (!ps.length) {
         list.append(S.produtos.size ? emptyBox("Nenhum artigo encontrado", q ? "Experimente outro nome, ou crie o artigo no separador Artigos." : "Ainda não escolheu nenhum artigo.") : emptyBox("Ainda não há artigos", "Adicione o primeiro no separador Artigos."));
         return;

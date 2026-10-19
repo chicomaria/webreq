@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#eef1ee">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Source+Sans+3:wght@400;600;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="base.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="db.js"></script>
+<script src="ui.js"></script>
+<script src="registos.js"></script>
+<title>Receção de mercadorias · Chico Maria</title>
+<style>
+.forn { padding: 12px; display: grid; gap: 8px; margin-top: 8px; }
+.forn.ok { border-color: var(--ok); }
+.forn.nok { border-color: var(--warn); }
+.forn .t { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.forn .t strong { font-family: var(--font-display); font-size: 21px; letter-spacing: .03em; text-transform: uppercase; }
+.forn .arts { color: var(--muted); font-size: 13px; }
+.forn .est { font-size: 13px; }
+.dois { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.dois button { border: 1px solid var(--line); background: var(--bg); border-radius: 10px; padding: 12px 6px; font-family: var(--font-display); font-weight: 700; font-size: 17px; letter-spacing: .04em; text-transform: uppercase; color: var(--ink); }
+.dois button.sim[aria-pressed="true"] { background: var(--ok); border-color: var(--ok); color: #fff; }
+.dois button.nao[aria-pressed="true"] { background: var(--warn); border-color: var(--warn); color: #fff; }
+.dois button:disabled { opacity: .6; }
+.semana { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+ul.his { list-style: none; margin: 0; padding: 0 12px 6px; }
+ul.his li { display: flex; justify-content: space-between; gap: 10px; padding: 6px 0; border-top: 1px solid var(--line); font-size: 14px; }
+ul.his li:first-child { border-top: 0; }
+ul.his li small { display: block; color: var(--muted); font-size: 12px; }
+.panel h3 { margin: 0; font-family: var(--font-display); font-size: 22px; text-transform: uppercase; letter-spacing: .04em; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand"><h1><a href="./" class="home" aria-label="Início">‹</a> Receção de mercadorias</h1><span class="sub" id="sub">A ligar…</span></div>
+    <nav class="tabs" role="tablist">
+      <button role="tab" data-tab="sem" aria-selected="true">Esta semana</button>
+      <button role="tab" data-tab="his" aria-selected="false">Histórico</button>
+    </nav>
+  </header>
+  <main id="main"></main>
+</div>
+<script>
+(async () => {
+  const S = { db: null, loaded: { enc: false, rec: false }, encs: [], recs: [], tab: "sem", busy: new Set() };
+  try { const t = localStorage.getItem("rc-tab"); if (t) S.tab = t; } catch (e) {}
+  document.querySelectorAll("nav.tabs button").forEach((b) => b.addEventListener("click", () => { S.tab = b.dataset.tab; try { localStorage.setItem("rc-tab", S.tab); } catch (e) {} render(); }));
+  const ESTADO = { conforme: ["Conforme", "ok"], nao_conforme: ["Não conforme", "warn"], auto: ["Conforme (automático)", "muted"], pendente: ["Por validar", ""] };
+  const quando = (iso) => (diaKey(iso) === hojeKey() ? "hoje" : fmtDia(diaKey(iso))) + " às " + hora(iso);
+  const fmtN = (v) => v == null ? "" : Number(v).toLocaleString("pt-PT", { maximumFractionDigits: 3 });
+  const artigos = (itens) => itens.map((l) => l.nome + (l.qtd ? " " + fmtN(l.qtd) + " " + (l.unidade || "") : "")).join(" · ");
+
+  function render() {
+    document.querySelectorAll("nav.tabs button").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.tab === S.tab)));
+    const m = $("main"); m.replaceChildren();
+    if (!S.db) { m.append(h("div", { class: "empty" }, h("strong", { text: S.db === false ? "Sem ligação à base de dados" : "A carregar…" }), S.db === false ? "Verifique a internet e recarregue a página." : "")); return; }
+    if (!S.loaded.enc || !S.loaded.rec) { m.append(h("div", { class: "empty" }, h("strong", { text: "A carregar…" }))); return; }
+    m.append(S.tab === "sem" ? viewSemana() : viewHis());
+  }
+
+  // weeks still open for validation: the current one, and the next one when an order from the weekend is already in
+  function semanasAbertas() {
+    const agora = new Date();
+    return semanasComEncomendas(S.encs).filter((seg) => agora < prazoSemana(seg)).sort();
+  }
+  function viewSemana() {
+    const frag = document.createDocumentFragment();
+    const abertas = semanasAbertas();
+    frag.append(h("p", { class: "note", text: "Valide os lotes de cada fornecedor que entregou esta semana. O que não for validado até sábado à noite fica registado como conforme." }));
+    if (!abertas.length) {
+      frag.append(h("div", { class: "card empty" }, h("strong", { text: "Nada para receber esta semana" }), "Quando fechar uma encomenda nas Encomendas, os fornecedores aparecem aqui."));
+      return frag;
+    }
+    for (const seg of abertas) {
+      const lista = rececaoDaSemana(S.encs, S.recs, seg);
+      const falta = lista.filter((g) => g.estado === "pendente").length;
+      frag.append(h("h2", { class: "sec semana" }, "Semana de " + fmtSemana(seg),
+        h("small", { text: falta ? falta + " por validar até sábado " + fmtDia(somaDias(seg, 5)).replace(/^[^,]*, ?/, "") : "Tudo validado" })));
+      for (const g of lista) frag.append(cartao(seg, g));
+    }
+    return frag;
+  }
+  function cartao(seg, g) {
+    const r = g.registo, key = idRececao(seg, g.fornecedor), busy = S.busy.has(key);
+    const [txt, cls] = ESTADO[g.estado];
+    const est = r ? txt + ", " + quando(r.em) + (r.nota ? ". " + r.nota : "") : txt;
+    return h("div", { class: "card forn" + (g.estado === "conforme" ? " ok" : g.estado === "nao_conforme" ? " nok" : "") },
+      h("div", { class: "t" }, h("strong", { text: g.fornecedor }), h("span", { class: "tag " + cls, text: txt })),
+      h("div", { class: "arts", text: artigos(g.itens) }),
+      r ? h("div", { class: "est", text: est }) : null,
+      h("div", { class: "dois" },
+        h("button", { type: "button", class: "sim", "aria-pressed": String(g.estado === "conforme"), disabled: busy, onclick: () => validar(seg, g, "conforme") }, "Conforme"),
+        h("button", { type: "button", class: "nao", "aria-pressed": String(g.estado === "nao_conforme"), disabled: busy, onclick: () => naoConforme(seg, g) }, "Não conforme")));
+  }
+  async function validar(seg, g, estado, nota) {
+    const key = idRececao(seg, g.fornecedor);
+    if (S.busy.has(key) || (estado === "conforme" && g.estado === "conforme")) return;
+    S.busy.add(key); render();
+    const em = new Date().toISOString();
+    try {
+      await S.db.collection("rececoes").doc(key).set({ semana: seg, fornecedor: g.fornecedor, estado, nota: nota || "", em });
+      // the lot is in: tick its articles as received in the orders too
+      for (const enc of g.encs) {
+        const rec = {}; for (const l of g.itens) if (l.enc === enc) rec[l.pid] = true;
+        await S.db.collection("encomendas").doc(enc).update({ recebidos: rec }).catch(() => {});
+      }
+      toast(g.fornecedor + ": " + (estado === "conforme" ? "conforme" : "não conforme"));
+    } catch (e) { toast("Não foi possível guardar. Tente de novo."); }
+    S.busy.delete(key); render();
+  }
+  function naoConforme(seg, g) {
+    const r = g.registo;
+    const ta = h("textarea", { id: "nc-nota", rows: 3, placeholder: "Ex.: peixe acima de 4 °C, caixa danificada, faltou 1 kg de alho" });
+    ta.value = r && r.estado === "nao_conforme" ? r.nota || "" : "";
+    const form = h("form", { class: "form" }, h("h3", { text: g.fornecedor + ": não conforme" }),
+      h("label", { for: "nc-nota" }, "O que não estava conforme? (opcional)", ta),
+      h("div", { class: "row-actions" }, h("button", { type: "button", class: "btn", onclick: () => ov.remove() }, "Cancelar"), h("button", { type: "submit", class: "btn primary" }, "Guardar")));
+    form.addEventListener("submit", (ev) => { ev.preventDefault(); ov.remove(); validar(seg, g, "nao_conforme", ta.value.trim()); });
+    const ov = h("div", { class: "overlay", onclick: (e) => { if (e.target === ov) ov.remove(); } }, h("div", { class: "panel", role: "dialog", "aria-modal": "true", "aria-label": "Não conforme" }, form));
+    document.body.append(ov); ta.focus();
+  }
+
+  function viewHis() {
+    const frag = document.createDocumentFragment();
+    const semanas = semanasComEncomendas(S.encs);
+    const linhas = [];
+    for (const seg of semanas) for (const g of rececaoDaSemana(S.encs, S.recs, seg)) linhas.push([seg, g]);
+    frag.append(h("div", { class: "tools" }, h("button", { class: "btn", disabled: !linhas.length, onclick: () => downloadCsv("rececao-mercadorias.csv",
+      [["Semana (segunda)", "Fornecedor", "Estado", "Validado em", "Nota", "Artigos"], ...linhas.map(([seg, g]) => [seg, g.fornecedor, ESTADO[g.estado][0], g.registo ? diaKey(g.registo.em) + " " + hora(g.registo.em) : g.estado === "auto" ? diaKey(prazoSemana(seg).toISOString()) + " 00:00" : "", g.registo ? g.registo.nota || "" : "", artigos(g.itens)])]) }, "Descarregar (Excel)")));
+    if (!semanas.length) { frag.append(h("div", { class: "card empty" }, h("strong", { text: "Ainda não há receções" }), "As semanas com encomendas fechadas aparecem aqui.")); return frag; }
+    for (const seg of semanas) {
+      const lista = rececaoDaSemana(S.encs, S.recs, seg);
+      const nok = lista.filter((g) => g.estado === "nao_conforme").length;
+      frag.append(h("h2", { class: "sec semana" }, "Semana de " + fmtSemana(seg), h("small", { text: lista.length + (lista.length === 1 ? " fornecedor" : " fornecedores") + (nok ? " · " + nok + " não conforme" + (nok === 1 ? "" : "s") : "") })));
+      frag.append(h("div", { class: "card" }, h("ul", { class: "his" }, lista.map((g) => {
+        const [txt, cls] = ESTADO[g.estado];
+        return h("li", {}, h("span", {}, g.fornecedor, h("small", { text: g.registo ? quando(g.registo.em) + (g.registo.nota ? " · " + g.registo.nota : "") : g.estado === "auto" ? "Sem validação até sábado" : "" })), h("span", { class: "tag " + cls, text: txt }));
+      }))));
+    }
+    return frag;
+  }
+
+  render();
+  const db = await abrirDb();
+  if (!db) { S.db = false; $("sub").textContent = "Sem ligação"; render(); return; }
+  S.db = db; $("sub").textContent = "Lotes dos fornecedores";
+  let t; const soon = () => { clearTimeout(t); t = setTimeout(() => { if (!document.querySelector(".overlay")) render(); }, 50); };
+  db.collection("encomendas").onSnapshot((s) => { S.encs = s.docs.map((d) => ({ id: d.id, ...d.data() })); S.loaded.enc = true; soon(); });
+  db.collection("rececoes").onSnapshot((s) => { S.recs = s.docs.map((d) => ({ id: d.id, ...d.data() })); S.loaded.rec = true; soon(); });
+  // a week that passes Saturday while the page is open moves its pending lots to automatic
+  setInterval(soon, 60000);
+})();
+</script>
+</body>
+</html>

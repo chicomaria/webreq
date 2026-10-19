@@ -12,6 +12,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="db.js"></script>
 <script src="ui.js"></script>
+<script src="registos.js"></script>
 <title>Chico Maria · Backoffice</title>
 <style>
 .tiles { display: grid; gap: 10px; margin-top: 6px; }
@@ -23,22 +24,56 @@ a.tile svg { width: 48px; height: 48px; padding: 10px; border-radius: 12px; back
 a.tile strong { display: block; font-family: var(--font-display); font-size: 22px; letter-spacing: .03em; text-transform: uppercase; }
 a.tile span.s { display: block; color: var(--muted); font-size: 13px; margin-top: 2px; }
 a.tile .go { color: var(--muted); font-size: 22px; }
+a.tile .go { display: flex; align-items: center; gap: 8px; }
+.badge { font-family: var(--font-body); font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 99px; background: var(--amarelo); color: #221a02; white-space: nowrap; }
+/* quick summary at the top: one blip per record, yellow while something is missing, green when done */
+.resumo { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-top: 10px; }
+@media (min-width: 640px) { .resumo { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
+a.blip { display: grid; grid-template-columns: 9px minmax(0, 1fr); column-gap: 6px; align-items: center; padding: 6px 7px; border-radius: 10px; background: var(--paper); border: 1px solid var(--line); color: var(--ink); text-decoration: none; min-width: 0; }
+a.blip:active { background: var(--accent-soft); }
+a.blip i { grid-row: span 2; width: 9px; height: 9px; border-radius: 99px; background: var(--line); }
+a.blip b, a.blip small { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+a.blip b { font-family: var(--font-display); font-size: clamp(12px, 3.6vw, 15px); font-weight: 700; letter-spacing: .01em; text-transform: uppercase; line-height: 1.1; }
+a.blip small { font-size: 11px; color: var(--muted); }
+a.blip.ok i { background: var(--ok); }
+a.blip.pend i { background: var(--amarelo); box-shadow: 0 0 0 3px var(--amarelo-soft); }
 .date { font-family: var(--font-display); font-weight: 600; font-size: 15px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; margin-top: 14px; }
 </style>
 </head>
 <body>
 <div class="wrap">
   <header class="top"><div class="brand"><h1>Chico Maria · Backoffice</h1><span class="sub" id="sub">A ligar…</span></div></header>
+  <nav class="resumo" aria-label="Resumo">
+    <a class="blip" id="b-tmp" href="temperaturas.html"><i></i><b>Temperaturas</b><small>…</small></a>
+    <a class="blip" id="b-lmp" href="limpezas.html"><i></i><b>Limpezas</b><small>…</small></a>
+    <a class="blip" id="b-hor" href="horarios.html"><i></i><b>Equipa</b><small>…</small></a>
+    <a class="blip" id="b-rec" href="rececao.html"><i></i><b>Receção</b><small>…</small></a>
+    <a class="blip" id="b-ole" href="oleos.html"><i></i><b>Óleos</b><small>…</small></a>
+    <a class="blip" id="b-enc" href="encomendas.html#his"><i></i><b>Encomenda</b><small>…</small></a>
+  </nav>
+
   <div class="date" id="hoje"></div>
   <h2 class="grp">Dia a dia</h2>
   <div class="tiles">
     <a class="tile" href="encomendas.html">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4h6l1 2h3v15H5V6h3z"/><path d="M9 11h6M9 15h6"/></svg>
-      <div><strong>Encomendas</strong><span class="s" id="s-enc">Requisições aos fornecedores</span></div><span class="go" aria-hidden="true">›</span>
+      <div><strong>Encomendas</strong><span class="s" id="s-enc">Requisições aos fornecedores</span></div><span class="go"><span class="badge" id="t-enc" hidden></span><span aria-hidden="true">›</span></span>
+    </a>
+    <a class="tile" href="rececao.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 8l-9-5-9 5v8l9 5 9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/><path d="M7.5 5.5l9 5"/></svg>
+      <div><strong>Receção de mercadorias</strong><span class="s" id="s-rec">Lotes dos fornecedores, semana a semana</span></div><span class="go" aria-hidden="true">›</span>
     </a>
     <a class="tile" href="temperaturas.html">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 14.8V4a2 2 0 1 0-4 0v10.8a4 4 0 1 0 4 0z"/><path d="M12 9v7"/></svg>
       <div><strong>Temperaturas</strong><span class="s" id="s-tmp">Registo dos 6 frios</span></div><span class="go" aria-hidden="true">›</span>
+    </a>
+    <a class="tile" href="limpezas.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3l-3 8"/><path d="M8 11h8l2 10H6z"/><path d="M10 15v6M14 15v6"/></svg>
+      <div><strong>Limpezas</strong><span class="s" id="s-lmp">Checklist diária: bar, cozinha, arrumos, WC</span></div><span class="go" aria-hidden="true">›</span>
+    </a>
+    <a class="tile" href="oleos.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/><path d="M9.5 14.5a2.5 2.5 0 0 0 2.5 2.5"/></svg>
+      <div><strong>Óleos</strong><span class="s" id="s-ole">Substituição e recolha</span></div><span class="go" aria-hidden="true">›</span>
     </a>
     <a class="tile" href="horarios.html">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
@@ -94,12 +129,51 @@ a.tile .go { color: var(--muted); font-size: 22px; }
   const db = await abrirDb();
   if (!db) { $("sub").textContent = "Sem ligação"; return; }
   $("sub").textContent = "Equipa";
-  db.collection("rascunho").onSnapshot((s) => { const n = s.docs.length; $("s-enc").textContent = n ? n + (n === 1 ? " artigo" : " artigos") + " na encomenda em curso" : "Requisições aos fornecedores"; });
-  db.collection("temperaturas").onSnapshot((s) => {
-    const hoje = diaKey(new Date().toISOString());
-    const frios = new Set(s.docs.map((x) => x.data()).filter((t) => diaKey(t.em) === hoje).map((t) => t.frio));
-    $("s-tmp").textContent = frios.size + " de 6 frios registados hoje";
+  // what each record needs today or this week; collections not read yet stay grey
+  const R = {};
+  const blip = (id, ok, txt) => { const el = $(id); el.className = "blip " + (ok ? "ok" : "pend"); el.querySelector("small").textContent = txt; el.title = el.querySelector("b").textContent + ": " + txt; };
+  function resumo() {
+    const hoje = hojeKey(), agora = new Date();
+    if (R.temperaturas) {
+      const n = new Set(R.temperaturas.filter((t) => t.em && diaKey(t.em) === hoje).map((t) => t.frio)).size;
+      blip("b-tmp", n >= 6, n + " de 6 hoje"); $("s-tmp").textContent = n + " de 6 frios registados hoje";
+    }
+    if (R.limpezas) {
+      const as = limpezasDoDia(R.limpezas, hoje), n = as.filter((a) => a.registo).length;
+      blip("b-lmp", n === as.length, n + " de " + as.length + " hoje"); $("s-lmp").textContent = n === as.length ? "Checklist de hoje feita" : n + " de " + as.length + " áreas limpas hoje";
+    }
+    if (R.picagens) {
+      const dentro = naCasa(R.picagens, agora).map((p) => p.nome);
+      blip("b-hor", dentro.length > 0, dentro.length ? dentro.length + " na casa" : "ninguém na casa");
+      $("s-hor").textContent = dentro.length ? "Na casa: " + dentro.join(", ") : "Ninguém registado na casa";
+    }
+    if (R.encomendas && R.rececoes) {
+      const lotes = semanasComEncomendas(R.encomendas).filter((seg) => agora < prazoSemana(seg)).flatMap((seg) => rececaoDaSemana(R.encomendas, R.rececoes, seg, agora));
+      const p = lotes.filter((g) => g.estado === "pendente").length;
+      blip("b-rec", !p, p ? p + " por validar" : lotes.length ? "tudo validado" : "sem entregas");
+      $("s-rec").textContent = p ? p + (p === 1 ? " fornecedor por validar" : " fornecedores por validar") + " até sábado" : lotes.length ? "Lotes desta semana validados" : "Lotes dos fornecedores, semana a semana";
+    }
+    if (R.oleos) {
+      const ok = oleoNaSemana(R.oleos), u = ultimoOleo(R.oleos, "substituicao");
+      const txt = u ? (diaKey(u.em) === hoje ? "hoje" : fmtDia(diaKey(u.em))) : "";
+      blip("b-ole", ok, ok ? "trocado " + (diaKey(u.em) === hoje ? "hoje" : new Date(u.em).toLocaleDateString("pt-PT", { weekday: "long" }).split("-")[0]) : u ? "último " + diaKey(u.em).slice(8) + "/" + diaKey(u.em).slice(5, 7) : "sem registos");
+      $("s-ole").textContent = u ? "Última substituição: " + txt + " às " + hora(u.em) : "Substituição e recolha";
+    }
+    if (R.encomendas) {
+      const n = artigosPorEntregar(R.encomendas, agora);
+      blip("b-enc", !n, n ? n + " por entregar" : "tudo entregue");
+      const b = $("t-enc"); b.hidden = !n; b.textContent = n + " por entregar";
+    }
+  }
+  let t; const soon = () => { clearTimeout(t); t = setTimeout(resumo, 50); };
+  for (const col of ["temperaturas", "limpezas", "picagens", "encomendas", "rececoes", "oleos"]) db.collection(col).onSnapshot((s) => {
+    R[col] = s.docs.map((x) => ({ id: x.id, ...x.data() }));
+    if (col === "picagens") { R.picagens = R.picagens.filter((p) => p.em && p.pessoa); fecharTurnosAbertos(db, R.picagens); }
+    soon();
   });
+  // the day, the week and 01:00 change while the page stays open
+  setInterval(() => { if (R.picagens) fecharTurnosAbertos(db, R.picagens); resumo(); }, 60000);
+  db.collection("rascunho").onSnapshot((s) => { const n = s.docs.length; $("s-enc").textContent = n ? n + (n === 1 ? " artigo" : " artigos") + " na encomenda em curso" : "Requisições aos fornecedores"; });
   const conta = (col, id, fn) => db.collection(col).onSnapshot((s) => { const t = fn(s.docs.map((x) => x.data())); if (t) $(id).textContent = t; });
   conta("fichas", "s-pr", (d) => { const p = d.filter((f) => f.tipo !== "cocktail"), v = p.filter((f) => !(f.ingredientes || []).length).length; return p.length ? p.filter((f) => f.atual).length + " pratos atuais" + (v ? " · " + v + " fichas por preencher" : "") : ""; });
   conta("fichas", "s-ck", (d) => { const n = d.filter((f) => f.tipo === "cocktail").length; return n ? n + (n === 1 ? " cocktail" : " cocktails") + " com receita e história" : ""; });
@@ -107,12 +181,6 @@ a.tile .go { color: var(--muted); font-size: 22px; }
   conta("fornecedores", "s-fr", (d) => d.length ? d.length + " fornecedores e os preços das fichas" : "");
   conta("redes", "s-rs", (d) => d.length ? d.filter((p) => p.estado !== "publicado").length + " ideias por publicar" : "");
   conta("mercearia", "s-mc", (d) => d.length ? d.filter((i) => i.estado === "venda").length + " à venda, " + d.filter((i) => i.estado !== "venda" && i.estado !== "descartado").length + " em estudo" : "");
-  db.collection("picagens").onSnapshot((s) => {
-    const last = new Map();
-    for (const d of s.docs.map((x) => x.data()).sort((a, b) => a.em.localeCompare(b.em))) last.set(d.pessoa, d);
-    const dentro = [...last.values()].filter((d) => d.tipo === "entrada").map((d) => d.nome);
-    $("s-hor").textContent = dentro.length ? "Na casa: " + dentro.join(", ") : "Ninguém registado na casa";
-  });
 })();
 </script>
 </body>

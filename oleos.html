@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#eef1ee">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Source+Sans+3:wght@400;600;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="base.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="db.js"></script>
+<script src="ui.js"></script>
+<script src="registos.js"></script>
+<title>Óleos · Chico Maria</title>
+<style>
+.botoes { display: grid; gap: 10px; margin-top: 10px; }
+@media (min-width: 640px) { .botoes { grid-template-columns: 1fr 1fr; } }
+.botoes button { display: grid; gap: 4px; text-align: left; padding: 16px 14px; border-radius: 14px; border: 1px solid var(--line); background: var(--paper); color: var(--ink); }
+.botoes button strong { font-family: var(--font-display); font-weight: 700; font-size: 22px; letter-spacing: .03em; text-transform: uppercase; }
+.botoes button span { font-size: 13px; color: var(--muted); }
+.botoes button .go { justify-self: start; margin-top: 6px; background: var(--accent); color: var(--paper); border-radius: 8px; padding: 8px 12px; font-weight: 700; font-size: 14px; }
+.botoes button:disabled { opacity: .6; }
+ul.his { list-style: none; margin: 0; padding: 0 12px 6px; }
+ul.his li { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 6px 0; border-top: 1px solid var(--line); font-size: 14px; }
+ul.his li:first-child { border-top: 0; }
+ul.his li small { display: block; color: var(--muted); font-size: 12px; }
+ul.his .btn { padding: 3px 8px; font-size: 12px; }
+.panel h3 { margin: 0; font-family: var(--font-display); font-size: 22px; text-transform: uppercase; letter-spacing: .04em; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand"><h1><a href="./" class="home" aria-label="Início">‹</a> Óleos</h1><span class="sub" id="sub">A ligar…</span></div>
+    <nav class="tabs" role="tablist">
+      <button role="tab" data-tab="reg" aria-selected="true">Registar</button>
+      <button role="tab" data-tab="his" aria-selected="false">Histórico</button>
+    </nav>
+  </header>
+  <main id="main"></main>
+</div>
+<script>
+(async () => {
+  const S = { db: null, loaded: false, regs: [], tab: "reg", busy: false };
+  try { const t = localStorage.getItem("ol-tab"); if (t) S.tab = t; } catch (e) {}
+  document.querySelectorAll("nav.tabs button").forEach((b) => b.addEventListener("click", () => { S.tab = b.dataset.tab; try { localStorage.setItem("ol-tab", S.tab); } catch (e) {} render(); }));
+  const quando = (iso) => {
+    const d = diaKey(iso), dias = Math.round((new Date(hojeKey() + "T12:00") - new Date(d + "T12:00")) / 864e5);
+    return (dias === 0 ? "hoje" : dias === 1 ? "ontem" : fmtDia(d)) + " às " + hora(iso) + (dias > 1 ? " (há " + dias + " dias)" : "");
+  };
+
+  function render() {
+    document.querySelectorAll("nav.tabs button").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.tab === S.tab)));
+    const m = $("main"); m.replaceChildren();
+    if (!S.db) { m.append(h("div", { class: "empty" }, h("strong", { text: S.db === false ? "Sem ligação à base de dados" : "A carregar…" }), S.db === false ? "Verifique a internet e recarregue a página." : "")); return; }
+    if (!S.loaded) { m.append(h("div", { class: "empty" }, h("strong", { text: "A carregar…" }))); return; }
+    m.append(S.tab === "reg" ? viewReg() : viewHis());
+  }
+
+  function viewReg() {
+    const frag = document.createDocumentFragment();
+    frag.append(h("div", { class: "botoes" }, Object.entries(TIPOS_OLEO).map(([tipo, nome]) => {
+      const u = ultimoOleo(S.regs, tipo);
+      return h("button", { type: "button", disabled: S.busy, onclick: () => registar(tipo, new Date().toISOString()) },
+        h("strong", { text: nome }), h("span", { text: u ? "Última: " + quando(u.em) : "Ainda sem registos" }),
+        h("span", { class: "go", text: tipo === "substituicao" ? "Substituição efetuada" : "Recolha efetuada" }));
+    })));
+    frag.append(h("div", { class: "tools" }, h("button", { type: "button", class: "btn", onclick: outraHora }, "Registar noutra data ou hora")));
+    const ult = [...S.regs].sort((a, b) => b.em.localeCompare(a.em)).slice(0, 5);
+    if (ult.length) {
+      frag.append(h("h2", { class: "sec" }, "Últimos registos"));
+      frag.append(h("div", { class: "card" }, h("ul", { class: "his" }, ult.map(linha))));
+    }
+    return frag;
+  }
+  function linha(r) {
+    return h("li", {}, h("span", {}, TIPOS_OLEO[r.tipo] || r.tipo, h("small", { text: quando(r.em) })),
+      confirmBtn("Apagar", "Tocar de novo", () => S.db.collection("oleos").doc(r.id).delete().then(() => toast("Registo apagado")).catch(() => toast("Não foi possível apagar."))));
+  }
+  async function registar(tipo, em) {
+    if (S.busy) return;
+    S.busy = true; render();
+    try {
+      await S.db.collection("oleos").doc(newId()).set({ tipo, em, dia: diaKey(em), mes: mesKey(em) });
+      toast(TIPOS_OLEO[tipo] + " registada " + (diaKey(em) === hojeKey() ? "às " + hora(em) : "em " + fmtDia(diaKey(em)) + " às " + hora(em)));
+    } catch (e) { toast("Não foi possível guardar. Tente de novo."); }
+    S.busy = false; render();
+  }
+  const local = (d) => d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()) + "T" + pad(d.getHours()) + ":" + pad(d.getMinutes());
+  function outraHora() {
+    const tipo = h("select", { id: "o-tipo" }, Object.entries(TIPOS_OLEO).map(([k, n]) => h("option", { value: k }, n)));
+    const quandoInp = h("input", { id: "o-em", type: "datetime-local", value: local(new Date()), max: local(new Date()) });
+    const err = h("p", { class: "note", style: "color:var(--warn)" }); err.hidden = true;
+    const form = h("form", { class: "form" }, h("h3", { text: "Registar noutra data" }),
+      h("label", { for: "o-tipo" }, "O que foi feito", tipo), h("label", { for: "o-em" }, "Data e hora", quandoInp), err,
+      h("div", { class: "row-actions" }, h("button", { type: "button", class: "btn", onclick: () => ov.remove() }, "Cancelar"), h("button", { type: "submit", class: "btn primary" }, "Guardar")));
+    form.addEventListener("submit", (ev) => {
+      ev.preventDefault();
+      const d = quandoInp.value ? new Date(quandoInp.value) : null;
+      if (!d || isNaN(d)) { err.textContent = "Escolha a data e a hora."; err.hidden = false; return; }
+      if (d > new Date()) { err.textContent = "A data não pode ser no futuro."; err.hidden = false; return; }
+      ov.remove(); registar(tipo.value, d.toISOString());
+    });
+    const ov = h("div", { class: "overlay", onclick: (e) => { if (e.target === ov) ov.remove(); } }, h("div", { class: "panel", role: "dialog", "aria-modal": "true", "aria-label": "Registar noutra data" }, form));
+    document.body.append(ov);
+  }
+
+  function viewHis() {
+    const frag = document.createDocumentFragment();
+    const regs = [...S.regs].sort((a, b) => b.em.localeCompare(a.em));
+    frag.append(h("div", { class: "tools" }, h("button", { class: "btn", disabled: !regs.length, onclick: () => downloadCsv("oleos.csv",
+      [["Data", "Hora", "Registo"], ...[...regs].reverse().map((r) => [diaKey(r.em), hora(r.em), TIPOS_OLEO[r.tipo] || r.tipo])]) }, "Descarregar (Excel)")));
+    if (!regs.length) { frag.append(h("div", { class: "card empty" }, h("strong", { text: "Ainda sem registos" }), "Registe aqui cada substituição e cada recolha de óleo.")); return frag; }
+    const meses = [...new Set(regs.map((r) => mesKey(r.em)))];
+    for (const m of meses) {
+      const rs = regs.filter((r) => mesKey(r.em) === m);
+      const n = (t, um, varios) => { const k = rs.filter((r) => r.tipo === t).length; return k + " " + (k === 1 ? um : varios); };
+      frag.append(h("h2", { class: "sec" }, fmtMes(m), h("small", { text: n("substituicao", "substituição", "substituições") + " · " + n("recolha", "recolha", "recolhas") })));
+      frag.append(h("div", { class: "card" }, h("ul", { class: "his" }, rs.map(linha))));
+    }
+    return frag;
+  }
+
+  render();
+  const db = await abrirDb();
+  if (!db) { S.db = false; $("sub").textContent = "Sem ligação"; render(); return; }
+  S.db = db; $("sub").textContent = "Substituição e recolha";
+  let t; const soon = () => { clearTimeout(t); t = setTimeout(() => { if (!document.querySelector(".overlay")) render(); }, 50); };
+  db.collection("oleos").onSnapshot((s) => { S.regs = s.docs.map((d) => ({ id: d.id, ...d.data() })).filter((r) => r.em && r.tipo); S.loaded = true; soon(); });
+})();
+</script>
+</body>
+</html>

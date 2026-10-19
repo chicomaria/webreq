@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#eef1ee">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Source+Sans+3:wght@400;600;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="base.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="db.js"></script>
+<script src="ui.js"></script>
+<script src="registos.js"></script>
+<title>Limpezas · Chico Maria</title>
+<style>
+.areas { display: grid; gap: 8px; margin-top: 8px; }
+.area { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 12px; background: var(--paper); border: 1px solid var(--line); border-radius: 12px; }
+.area.feita { border-color: var(--ok); background: var(--ok-soft); }
+.area .nm { font-family: var(--font-display); font-weight: 700; font-size: 22px; letter-spacing: .03em; text-transform: uppercase; }
+.area .st { font-size: 13px; color: var(--muted); }
+.area.feita .st { color: var(--ok); font-weight: 600; }
+.area .acoes { display: flex; gap: 6px; align-items: center; }
+.area .acoes .btn.danger { padding: 4px 8px; font-size: 12px; }
+.marcar { border: 0; border-radius: 10px; padding: 14px; min-width: 120px; background: var(--ok); color: #fff; font-family: var(--font-display); font-weight: 700; font-size: 18px; letter-spacing: .04em; text-transform: uppercase; }
+.marcar:disabled { opacity: .6; }
+table.mat td.n small { display: block; color: var(--muted); font-size: 10px; font-family: var(--font-body); }
+table.mat td.assumida { color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand"><h1><a href="./" class="home" aria-label="Início">‹</a> Limpezas</h1><span class="sub" id="sub">A ligar…</span></div>
+    <nav class="tabs" role="tablist">
+      <button role="tab" data-tab="hoje" aria-selected="true">Hoje</button>
+      <button role="tab" data-tab="his" aria-selected="false">Histórico</button>
+    </nav>
+  </header>
+  <main id="main"></main>
+</div>
+<script>
+(async () => {
+  const S = { db: null, loaded: false, regs: [], tab: "hoje", mes: mesKey(new Date().toISOString()), busy: new Set() };
+  try { const t = localStorage.getItem("lp-tab"); if (t) S.tab = t; } catch (e) {}
+  document.querySelectorAll("nav.tabs button").forEach((b) => b.addEventListener("click", () => { S.tab = b.dataset.tab; try { localStorage.setItem("lp-tab", S.tab); } catch (e) {} render(); }));
+
+  function render() {
+    document.querySelectorAll("nav.tabs button").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.tab === S.tab)));
+    const m = $("main"); m.replaceChildren();
+    if (!S.db) { m.append(h("div", { class: "empty" }, h("strong", { text: S.db === false ? "Sem ligação à base de dados" : "A carregar…" }), S.db === false ? "Verifique a internet e recarregue a página." : "")); return; }
+    if (!S.loaded) { m.append(h("div", { class: "empty" }, h("strong", { text: "A carregar…" }))); return; }
+    m.append(S.tab === "hoje" ? viewHoje() : viewHis());
+  }
+
+  function viewHoje() {
+    const frag = document.createDocumentFragment();
+    const dia = hojeKey(), areas = limpezasDoDia(S.regs, dia), feitas = areas.filter((a) => a.registo).length;
+    frag.append(h("h2", { class: "sec" }, "Checklist de hoje", h("small", { text: feitas + " de " + areas.length + " feitas" })));
+    frag.append(h("div", { class: "areas" }, areas.map((a) => {
+      const busy = S.busy.has(a.id);
+      return h("div", { class: "area" + (a.registo ? " feita" : "") },
+        h("div", {}, h("div", { class: "nm", text: a.nome }), h("div", { class: "st", text: a.registo ? "Feita às " + hora(a.registo.em) : "Por fazer" })),
+        a.registo
+          ? h("div", { class: "acoes" }, confirmBtn("Anular", "Tocar de novo", () => anular(dia, a)))
+          : h("button", { type: "button", class: "marcar", disabled: busy, onclick: () => marcar(dia, [a]) }, "Feita"));
+    })));
+    const falta = areas.filter((a) => !a.registo);
+    if (falta.length > 1) frag.append(h("div", { class: "tools" }, h("button", { type: "button", class: "btn primary", disabled: falta.some((a) => S.busy.has(a.id)), onclick: () => marcar(dia, falta) }, "Marcar todas como feitas")));
+    frag.append(h("p", { class: "note", text: "O que não for marcado até à meia-noite fica registado como feito às " + HORA_LIMPEZA_ASSUMIDA + "." }));
+    // yesterday at a glance, so a forgotten area is seen the next day
+    const ontem = somaDias(dia, -1), ao = limpezasDoDia(S.regs, ontem);
+    if (ontem >= LIMPEZAS_DESDE) frag.append(h("h2", { class: "sec" }, "Ontem", h("small", { text: ao.map((a) => a.nome + " " + (a.registo ? hora(a.registo.em) : a.assumida ? HORA_LIMPEZA_ASSUMIDA + "*" : "—")).join(" · ") })));
+    return frag;
+  }
+  async function marcar(dia, areas) {
+    areas.forEach((a) => S.busy.add(a.id)); render();
+    const em = new Date().toISOString();
+    try {
+      for (const a of areas) await S.db.collection("limpezas").doc(dia + "_" + a.id).set({ dia, mes: dia.slice(0, 7), area: a.id, nome: a.nome, em });
+      toast(areas.length === 1 ? areas[0].nome + ": feita às " + hora(em) : "Limpezas marcadas às " + hora(em));
+    } catch (e) { toast("Não foi possível guardar. Tente de novo."); }
+    areas.forEach((a) => S.busy.delete(a.id)); render();
+  }
+  function anular(dia, a) {
+    S.db.collection("limpezas").doc(dia + "_" + a.id).delete().then(() => toast(a.nome + ": registo anulado")).catch(() => toast("Não foi possível anular."));
+  }
+
+  // every day from the start of the records (or of the month) up to today, newest first
+  function diasDoMes(mes) {
+    const hoje = hojeKey(), out = new Set(S.regs.filter((r) => r.mes === mes).map((r) => r.dia));
+    let d = mes + "-01" < LIMPEZAS_DESDE ? LIMPEZAS_DESDE : mes + "-01";
+    while (d.slice(0, 7) === mes && d <= hoje) { out.add(d); d = somaDias(d, 1); }
+    return [...out].sort().reverse();
+  }
+  function viewHis() {
+    const frag = document.createDocumentFragment();
+    const meses = [...new Set([mesKey(new Date().toISOString()), ...S.regs.map((r) => r.mes)])].filter(Boolean).sort().reverse();
+    if (!meses.includes(S.mes)) S.mes = meses[0];
+    const sel = h("select", { "aria-label": "Mês" }, meses.map((k) => h("option", { value: k, selected: k === S.mes }, fmtMes(k))));
+    sel.addEventListener("change", () => { S.mes = sel.value; render(); });
+    const dias = diasDoMes(S.mes), linhas = dias.map((d) => [d, limpezasDoDia(S.regs, d)]);
+    const cel = (a) => a.registo ? hora(a.registo.em) : a.assumida ? HORA_LIMPEZA_ASSUMIDA + " (assumida)" : "";
+    const csv = h("button", { class: "btn", disabled: !dias.length, onclick: () => downloadCsv("limpezas-" + S.mes + ".csv",
+      [["Data", ...AREAS_LIMPEZA.map(([, n]) => n)], ...[...linhas].reverse().map(([d, as]) => [d, ...as.map(cel)])]) }, "Descarregar (Excel)");
+    frag.append(h("div", { class: "tools" }, sel, csv));
+    if (!dias.length) { frag.append(h("div", { class: "card empty" }, h("strong", { text: "Sem registos neste mês" }))); return frag; }
+    const tb = h("tbody");
+    for (const [d, as] of linhas) tb.append(h("tr", {}, h("td", { text: fmtDia(d) }), as.map((a) => h("td", { class: "n" + (a.assumida ? " assumida" : "") },
+      a.registo ? hora(a.registo.em) : a.assumida ? [HORA_LIMPEZA_ASSUMIDA + "*"] : "—"))));
+    frag.append(h("div", { class: "card scroll" }, h("table", { class: "data mat" }, h("thead", {}, h("tr", {}, h("th", { text: "Dia" }), AREAS_LIMPEZA.map(([, n]) => h("th", { class: "n", text: n })))), tb)));
+    frag.append(h("p", { class: "note", text: "* Sem registo até à meia-noite: assumida às " + HORA_LIMPEZA_ASSUMIDA + "." }));
+    return frag;
+  }
+
+  render();
+  const db = await abrirDb();
+  if (!db) { S.db = false; $("sub").textContent = "Sem ligação"; render(); return; }
+  S.db = db; $("sub").textContent = "Bar, cozinha, arrumos e WC";
+  let t; const soon = () => { clearTimeout(t); t = setTimeout(render, 50); };
+  db.collection("limpezas").onSnapshot((s) => { S.regs = s.docs.map((d) => ({ id: d.id, ...d.data() })).filter((r) => r.dia && r.area); S.loaded = true; soon(); });
+  // the page left open past midnight moves on to the new day
+  let dia = hojeKey(); setInterval(() => { if (hojeKey() !== dia) { dia = hojeKey(); soon(); } }, 60000);
+})();
+</script>
+</body>
+</html>

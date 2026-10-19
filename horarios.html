@@ -12,6 +12,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="db.js"></script>
 <script src="ui.js"></script>
+<script src="registos.js"></script>
 <title>Horários · Chico Maria</title>
 <style>
 .people { display: grid; gap: 8px; margin-top: 10px; }
@@ -31,6 +32,7 @@
 .sum b { font-family: var(--font-mono); font-weight: 500; }
 table.data tr.edit { cursor: pointer; }
 table.data td.open { color: var(--warn); font-weight: 600; }
+table.data td.n small { display: block; font-size: 10px; font-family: var(--font-body); font-weight: 400; }
 .panel h3 { margin: 0; font-family: var(--font-display); font-size: 22px; text-transform: uppercase; letter-spacing: .04em; }
 </style>
 </head>
@@ -64,12 +66,16 @@ table.data td.open { color: var(--warn); font-weight: 600; }
 
   // last clock event per person decides whether the button says ENTRADA or SAÍDA
   function ultima(pid) { let u = null; for (const p of S.pics) if (p.pessoa === pid && (!u || p.em > u.em)) u = p; return u; }
-  const dentro = (pid) => { const u = ultima(pid); return !!u && u.tipo === "entrada"; };
+  // an entrada nobody closed counts as out from 01:00 (the saída is written as soon as a page sees it)
+  const dentro = (pid) => aindaDentro(ultima(pid));
   function estado(pid) {
-    const u = ultima(pid); if (!u) return "Sem registos";
-    const hoje = diaKey(new Date().toISOString()), d = diaKey(u.em);
-    const q = d === hoje ? hora(u.em) : fmtDia(d) + " " + hora(u.em);
-    return u.tipo === "entrada" ? "Na casa desde " + q : "Saiu " + (d === hoje ? "às " : "") + q;
+    let u = ultima(pid); if (!u) return "Sem registos";
+    const auto = u.tipo === "entrada" && !aindaDentro(u);
+    const em = auto ? limiteSaida(u.em).toISOString() : u.em;
+    const hoje = diaKey(new Date().toISOString()), d = diaKey(em);
+    const q = d === hoje ? hora(em) : fmtDia(d) + " " + hora(em);
+    if (u.tipo === "entrada" && !auto) return "Na casa desde " + q;
+    return "Saiu " + (d === hoje ? "às " : "") + q + (auto || (u.auto && !u.corrigido) ? " (saída automática)" : "");
   }
   async function picar(p) {
     if (S.busy.has(p.id)) return;
@@ -144,7 +150,7 @@ table.data td.open { color: var(--warn); font-weight: 600; }
     sel.addEventListener("change", () => { S.mes = sel.value; render(); });
     const ts = all.filter((t) => t.mes === S.mes);
     const csv = h("button", { class: "btn", disabled: !ts.length, onclick: () => downloadCsv((soExtras ? "horarios-extras-" : "horarios-") + S.mes + ".csv",
-      [["Data", "Nome", "Entrada", "Saída", "Horas"], ...[...ts].reverse().map((t) => [t.dia, t.nome, t.ent ? hora(t.ent.em) : "", t.sai ? hora(t.sai.em) : "", t.min != null ? (t.min / 60).toFixed(2).replace(".", ",") : ""])]) }, "Descarregar (Excel)");
+      [["Data", "Nome", "Entrada", "Saída", "Horas", "Nota"], ...[...ts].reverse().map((t) => [t.dia, t.nome, t.ent ? hora(t.ent.em) : "", t.sai ? hora(t.sai.em) : "", t.min != null ? (t.min / 60).toFixed(2).replace(".", ",") : "", autoSai(t) ? "saída automática (sem saída registada)" : ""])]) }, "Descarregar (Excel)");
     frag.append(h("div", { class: "tools" }, sel, csv));
     if (!ts.length) { frag.append(h("div", { class: "card empty" }, h("strong", { text: soExtras ? "Sem registos de extras neste mês" : "Sem registos neste mês" }), soExtras ? "Os extras dão entrada no separador Entradas." : "")); return frag; }
     const tot = new Map(); for (const t of ts) if (t.min != null) tot.set(t.nome, (tot.get(t.nome) || 0) + t.min);
@@ -154,14 +160,15 @@ table.data td.open { color: var(--warn); font-weight: 600; }
       if (t.dia !== dia) { dia = t.dia; tb.append(h("tr", { class: "day" }, h("td", { colspan: "4", text: fmtDia(dia) }))); }
       tb.append(h("tr", { class: "edit", tabindex: "0", title: "Corrigir", onclick: () => corrigir(t), onkeydown: (e) => { if (e.key === "Enter") corrigir(t); } },
         h("td", { text: t.nome }), h("td", { class: "n" + (t.ent ? "" : " open"), text: t.ent ? hora(t.ent.em) : "falta" }),
-        (() => { const naCasa = !t.sai && t.ent && t.ent === ultima(t.pessoa);
-          return h("td", { class: "n" + (t.sai || naCasa ? "" : " open"), style: naCasa ? "color:var(--ok)" : null, text: t.sai ? hora(t.sai.em) + (t.sai.dia !== t.dia ? " (+1)" : "") : (naCasa ? "na casa" : "falta") }); })(),
+        (() => { const naCasa = !t.sai && t.ent && t.ent === ultima(t.pessoa) && aindaDentro(t.ent);
+          return h("td", { class: "n" + (t.sai || naCasa ? "" : " open"), style: naCasa ? "color:var(--ok)" : null }, t.sai ? hora(t.sai.em) + (t.sai.dia !== t.dia ? " (+1)" : "") : (naCasa ? "na casa" : "falta"), autoSai(t) ? h("small", { text: "automática" }) : null); })(),
         h("td", { class: "n", text: t.min != null ? fmtH(t.min) : "" })));
     }
     frag.append(h("div", { class: "card scroll" }, h("table", { class: "data" }, h("thead", {}, h("tr", {}, h("th", { text: "Nome" }), h("th", { class: "n", text: "Entrada" }), h("th", { class: "n", text: "Saída" }), h("th", { class: "n", text: "Horas" }))), tb)));
-    frag.append(h("p", { class: "note", text: "Toque numa linha para corrigir horas ou apagar um registo." }));
+    frag.append(h("p", { class: "note", text: "Toque numa linha para corrigir horas ou apagar um registo. Quem não dá saída sai automaticamente à 01:00." }));
     return frag;
   }
+  const autoSai = (t) => !!(t.sai && t.sai.auto && !t.sai.corrigido);
   const local = (iso) => { const d = new Date(iso); return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()) + "T" + pad(d.getHours()) + ":" + pad(d.getMinutes()); };
   function corrigir(t) {
     const ent = h("input", { id: "c-ent", type: "datetime-local", value: t.ent ? local(t.ent.em) : "" });
@@ -205,7 +212,9 @@ table.data td.open { color: var(--warn); font-weight: 600; }
     // the four regulars are created once with fixed ids, so two phones doing it at the same time write the same documents
     if (!semeado) { semeado = true; FIXOS.forEach(([id, nome], i) => { if (!S.equipa.some((p) => p.id === id)) db.collection("equipa").doc(id).set({ nome, extra: false, ativo: true, ordem: i + 1 }).catch(() => {}); }); }
   });
-  db.collection("picagens").onSnapshot((s) => { S.pics = s.docs.map((d) => ({ id: d.id, ...d.data() })); S.loaded.pic = true; soon(); });
+  db.collection("picagens").onSnapshot((s) => { S.pics = s.docs.map((d) => ({ id: d.id, ...d.data() })).filter((p) => p.em && p.pessoa); S.loaded.pic = true; fecharTurnosAbertos(db, S.pics); soon(); });
+  // at 01:00 the open shifts close by themselves while the page is open
+  setInterval(() => { if (S.loaded.pic) { fecharTurnosAbertos(db, S.pics); soon(); } }, 60000);
 })();
 </script>
 </body>
