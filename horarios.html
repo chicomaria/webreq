@@ -189,7 +189,9 @@ table.data td.n small { display: block; font-size: 10px; font-family: var(--font
     const err = h("p", { class: "note", style: "color:var(--warn)" }); err.hidden = true;
     const save = h("button", { type: "submit", class: "btn primary" }, "Guardar");
     const del = confirmBtn("Apagar turno", "Tocar de novo para apagar", async () => {
-      try { for (const p of [t.ent, t.sai]) if (p) await S.db.collection("picagens").doc(p.id).delete(); toast("Turno apagado"); ov.remove(); } catch (e) { toast("Não foi possível apagar."); }
+      // an automatic exit written meanwhile by another phone goes too
+      const ids = new Set([t.ent && t.ent.id, t.sai && t.sai.id, t.ent && comSaidaAuto(t.ent) && "auto-" + t.ent.id].filter(Boolean));
+      try { for (const id of ids) await S.db.collection("picagens").doc(id).delete(); toast("Turno apagado"); ov.remove(); } catch (e) { toast("Não foi possível apagar."); }
     });
     const form = h("form", { class: "form" }, h("h3", { text: t.nome + " · " + fmtDia(t.dia) }),
       h("label", { for: "c-ent" }, "Entrada", ent), h("label", { for: "c-sai" }, "Saída", sai), err,
@@ -207,7 +209,8 @@ table.data td.n small { display: block; font-size: 10px; font-family: var(--font
         const col = S.db.collection("picagens");
         if (p && em) { if (em !== p.em) await col.doc(p.id).update({ em, dia: diaKey(em), mes: mesKey(em), corrigido: true }); }
         else if (p && !em) await col.doc(p.id).delete();
-        else if (!p && em) await col.doc(newId()).set({ ...base, tipo, em, dia: diaKey(em), mes: mesKey(em), corrigido: true });
+        // a saída added to an open shift takes the automatic exit's id, so it replaces one written meanwhile and blocks a later one
+        else if (!p && em) await col.doc(tipo === "saida" && t.ent && comSaidaAuto(t.ent) ? "auto-" + t.ent.id : newId()).set({ ...base, tipo, em, dia: diaKey(em), mes: mesKey(em), corrigido: true });
       };
       try { await put(t.ent, "entrada", e1); await put(t.sai, "saida", e2); toast("Turno corrigido"); ov.remove(); }
       catch (e) { save.disabled = false; toast("Não foi possível guardar."); }
