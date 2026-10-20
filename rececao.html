@@ -24,14 +24,16 @@
 .forn .est { font-size: 13px; }
 .dois { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .dois button { border: 1px solid var(--line); background: var(--bg); border-radius: 10px; padding: 12px 6px; font-family: var(--font-display); font-weight: 700; font-size: 17px; letter-spacing: .04em; text-transform: uppercase; color: var(--ink); }
-.dois button.sim[aria-pressed="true"] { background: var(--ok); border-color: var(--ok); color: #fff; }
-.dois button.nao[aria-pressed="true"] { background: var(--warn); border-color: var(--warn); color: #fff; }
+.dois button.sim[aria-pressed="true"] { background: var(--ok); border-color: var(--ok); color: var(--on-fill); }
+.dois button.nao[aria-pressed="true"] { background: var(--warn); border-color: var(--warn); color: var(--on-fill); }
+.dois button.armed { background: var(--ok-soft); border-color: var(--ok); color: var(--ok); }
 .dois button:disabled { opacity: .6; }
 .semana { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
 ul.his { list-style: none; margin: 0; padding: 0 12px 6px; }
-ul.his li { display: flex; justify-content: space-between; gap: 10px; padding: 6px 0; border-top: 1px solid var(--line); font-size: 14px; }
+ul.his li { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 6px 0; border-top: 1px solid var(--line); font-size: 14px; }
 ul.his li:first-child { border-top: 0; }
 ul.his li small { display: block; color: var(--muted); font-size: 12px; }
+ul.his li .tag { flex: none; white-space: nowrap; }
 .panel h3 { margin: 0; font-family: var(--font-display); font-size: 22px; text-transform: uppercase; letter-spacing: .04em; }
 </style>
 </head>
@@ -53,8 +55,9 @@ ul.his li small { display: block; color: var(--muted); font-size: 12px; }
   document.querySelectorAll("nav.tabs button").forEach((b) => b.addEventListener("click", () => { S.tab = b.dataset.tab; try { localStorage.setItem("rc-tab", S.tab); } catch (e) {} render(); }));
   const ESTADO = { conforme: ["Conforme", "ok"], nao_conforme: ["Não conforme", "warn"], auto: ["Conforme (automático)", "muted"], pendente: ["Por validar", ""] };
   const quando = (iso) => (diaKey(iso) === hojeKey() ? "hoje" : fmtDia(diaKey(iso))) + " às " + hora(iso);
-  const fmtN = (v) => v == null ? "" : Number(v).toLocaleString("pt-PT", { maximumFractionDigits: 3 });
-  const artigos = (itens) => itens.map((l) => l.nome + (l.qtd ? " " + fmtN(l.qtd) + " " + (l.unidade || "") : "")).join(" · ");
+  const artigos = (g) => g.itens.length ? textoArtigos(g.itens) : (g.registo && g.registo.artigos) || "";
+  // a validation as one line: "Conforme, hoje às 10:00. Nota"
+  const linhaReg = (r) => ESTADO[r.estado][0] + ", " + quando(r.em) + (r.nota ? ". " + r.nota : "");
 
   function render() {
     document.querySelectorAll("nav.tabs button").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.tab === S.tab)));
@@ -78,7 +81,7 @@ ul.his li small { display: block; color: var(--muted); font-size: 12px; }
       return frag;
     }
     for (const seg of abertas) {
-      const lista = rececaoDaSemana(S.encs, S.recs, seg);
+      const lista = rececaoDaSemana(S.encs, S.recs, seg).filter((g) => !g.semEncomenda);
       const falta = lista.filter((g) => g.estado === "pendente").length;
       frag.append(h("h2", { class: "sec semana" }, "Semana de " + fmtSemana(seg),
         h("small", { text: falta ? falta + " por validar até sábado " + fmtDia(somaDias(seg, 5)).replace(/^[^,]*, ?/, "") : "Tudo validado" })));
@@ -87,60 +90,86 @@ ul.his li small { display: block; color: var(--muted); font-size: 12px; }
     return frag;
   }
   function cartao(seg, g) {
-    const r = g.registo, key = idRececao(seg, g.fornecedor), busy = S.busy.has(key);
-    const [txt, cls] = ESTADO[g.estado];
-    const est = r ? txt + ", " + quando(r.em) + (r.nota ? ". " + r.nota : "") : txt;
+    const r = g.registo, busy = S.busy.has(g.id), [txt, cls] = ESTADO[g.estado];
+    // a lot from an order closed after the validation: the earlier validation stays visible
+    const est = !r ? null : g.estado === "pendente" ? "Novo lote por validar. Antes: " + linhaReg(r) : linhaReg(r);
+    // going back from Não conforme to Conforme takes a second tap (the note stays in the history)
+    const armado = S.armado === g.id;
     return h("div", { class: "card forn" + (g.estado === "conforme" ? " ok" : g.estado === "nao_conforme" ? " nok" : "") },
       h("div", { class: "t" }, h("strong", { text: g.fornecedor }), h("span", { class: "tag " + cls, text: txt })),
-      h("div", { class: "arts", text: artigos(g.itens) }),
-      r ? h("div", { class: "est", text: est }) : null,
+      h("div", { class: "arts", text: artigos(g) }),
+      est ? h("div", { class: "est", text: est }) : null,
       h("div", { class: "dois" },
-        h("button", { type: "button", class: "sim", "aria-pressed": String(g.estado === "conforme"), disabled: busy, onclick: () => validar(seg, g, "conforme") }, "Conforme"),
+        h("button", { type: "button", class: "sim" + (armado ? " armed" : ""), "aria-pressed": String(g.estado === "conforme"), disabled: busy, onclick: () => {
+          if (g.estado === "nao_conforme" && !armado) { S.armado = g.id; render(); setTimeout(() => { if (S.armado === g.id) { S.armado = null; render(); } }, 4000); return; }
+          S.armado = null; validar(seg, g, "conforme");
+        } }, armado ? "Tocar de novo" : "Conforme"),
         h("button", { type: "button", class: "nao", "aria-pressed": String(g.estado === "nao_conforme"), disabled: busy, onclick: () => naoConforme(seg, g) }, "Não conforme")));
   }
+  // saves the validation (the one it replaces goes to anteriores) and ticks the lot's articles as received; true when saved
   async function validar(seg, g, estado, nota) {
-    const key = idRececao(seg, g.fornecedor);
-    if (S.busy.has(key) || (estado === "conforme" && g.estado === "conforme")) return;
-    S.busy.add(key); render();
-    const em = new Date().toISOString();
+    if (S.busy.has(g.id) || (estado === "conforme" && g.estado === "conforme")) return false;
+    S.busy.add(g.id); render();
+    const em = new Date().toISOString(), r = g.registo;
+    const anteriores = r ? [...(r.anteriores || []), { estado: r.estado, nota: r.nota || "", em: r.em, artigos: r.artigos || "" }] : [];
+    let ok = false;
     try {
-      await S.db.collection("rececoes").doc(key).set({ semana: seg, fornecedor: g.fornecedor, estado, nota: nota || "", em });
-      // the lot is in: tick its articles as received in the orders too
+      await S.db.collection("rececoes").doc(g.id).set({ semana: seg, fornecedor: g.fornecedor, estado, nota: nota || "", em, encs: g.encs, artigos: artigos(g), anteriores });
+      ok = true;
+      let falhou = false;
       for (const enc of g.encs) {
         const rec = {}; for (const l of g.itens) if (l.enc === enc) rec[l.pid] = true;
-        await S.db.collection("encomendas").doc(enc).update({ recebidos: rec }).catch(() => {});
+        await S.db.collection("encomendas").doc(enc).update({ recebidos: rec }).catch(() => { falhou = true; });
       }
-      toast(g.fornecedor + ": " + (estado === "conforme" ? "conforme" : "não conforme"));
+      toast(g.fornecedor + ": " + (estado === "conforme" ? "conforme" : "não conforme") + (falhou ? ". Os artigos não ficaram marcados como recebidos nas Encomendas." : ""));
     } catch (e) { toast("Não foi possível guardar. Tente de novo."); }
-    S.busy.delete(key); render();
+    S.busy.delete(g.id); render();
+    return ok;
   }
   function naoConforme(seg, g) {
     const r = g.registo;
     const ta = h("textarea", { id: "nc-nota", rows: 3, placeholder: "Ex.: peixe acima de 4 °C, caixa danificada, faltou 1 kg de alho" });
     ta.value = r && r.estado === "nao_conforme" ? r.nota || "" : "";
+    const err = h("p", { class: "note", style: "color:var(--warn)" }); err.hidden = true;
+    const save = h("button", { type: "submit", class: "btn primary" }, "Guardar");
     const form = h("form", { class: "form" }, h("h3", { text: g.fornecedor + ": não conforme" }),
-      h("label", { for: "nc-nota" }, "O que não estava conforme? (opcional)", ta),
-      h("div", { class: "row-actions" }, h("button", { type: "button", class: "btn", onclick: () => ov.remove() }, "Cancelar"), h("button", { type: "submit", class: "btn primary" }, "Guardar")));
-    form.addEventListener("submit", (ev) => { ev.preventDefault(); ov.remove(); validar(seg, g, "nao_conforme", ta.value.trim()); });
-    const ov = h("div", { class: "overlay", onclick: (e) => { if (e.target === ov) ov.remove(); } }, h("div", { class: "panel", role: "dialog", "aria-modal": "true", "aria-label": "Não conforme" }, form));
+      h("label", { for: "nc-nota" }, "O que não estava conforme? (opcional)", ta), err,
+      h("div", { class: "row-actions" }, h("button", { type: "button", class: "btn", onclick: () => { ov.remove(); render(); } }, "Cancelar"), save));
+    // the dialog stays open until the record is saved, so the note is not lost on a failed write
+    form.addEventListener("submit", async (ev) => {
+      ev.preventDefault(); save.disabled = true; save.textContent = "A guardar…"; err.hidden = true;
+      if (await validar(seg, g, "nao_conforme", ta.value.trim())) { ov.remove(); render(); return; }
+      save.disabled = false; save.textContent = "Guardar"; err.textContent = "Não foi possível guardar. Verifique a internet e tente de novo."; err.hidden = false;
+    });
+    const ov = h("div", { class: "overlay", onclick: (e) => { if (e.target === ov) { ov.remove(); render(); } } }, h("div", { class: "panel", role: "dialog", "aria-modal": "true", "aria-label": "Não conforme" }, form));
     document.body.append(ov); ta.focus();
   }
 
   function viewHis() {
     const frag = document.createDocumentFragment();
-    const semanas = semanasComEncomendas(S.encs);
-    const linhas = [];
-    for (const seg of semanas) for (const g of rececaoDaSemana(S.encs, S.recs, seg)) linhas.push([seg, g]);
-    frag.append(h("div", { class: "tools" }, h("button", { class: "btn", disabled: !linhas.length, onclick: () => downloadCsv("rececao-mercadorias.csv",
-      [["Semana (segunda)", "Fornecedor", "Estado", "Validado em", "Nota", "Artigos"], ...linhas.map(([seg, g]) => [seg, g.fornecedor, ESTADO[g.estado][0], g.registo ? diaKey(g.registo.em) + " " + hora(g.registo.em) : g.estado === "auto" ? diaKey(prazoSemana(seg).toISOString()) + " 00:00" : "", g.registo ? g.registo.nota || "" : "", artigos(g.itens)])]) }, "Descarregar (Excel)")));
+    const semanas = semanasDaRececao(S.encs, S.recs);
+    // one CSV row per validation (earlier ones included) and one per lot taken as conforme
+    const rows = [];
+    for (const seg of semanas) for (const g of rececaoDaSemana(S.encs, S.recs, seg)) {
+      const r = g.registo;
+      for (const a of (r && r.anteriores) || []) rows.push([seg, g.fornecedor, ESTADO[a.estado][0] + " (validação anterior)", diaKey(a.em) + " " + hora(a.em), a.nota || "", a.artigos || ""]);
+      if (r) rows.push([seg, g.fornecedor, ESTADO[r.estado][0], diaKey(r.em) + " " + hora(r.em), r.nota || "", r.artigos || artigos(g)]);
+      if (g.estado === "auto" || (r && g.novas.length && new Date() >= prazoSemana(seg))) rows.push([seg, g.fornecedor, ESTADO.auto[0], diaKey(prazoSemana(seg).toISOString()) + " 00:00", "", textoArtigos(g.itens.filter((l) => g.novas.includes(l.enc)))]);
+      if (g.estado === "pendente") rows.push([seg, g.fornecedor, ESTADO.pendente[0], "", "", textoArtigos(g.itens.filter((l) => g.novas.includes(l.enc)))]);
+    }
+    frag.append(h("div", { class: "tools" }, h("button", { class: "btn", disabled: !rows.length, onclick: () => downloadCsv("rececao-mercadorias.csv",
+      [["Semana (segunda)", "Fornecedor", "Estado", "Validado em", "Nota", "Artigos"], ...rows]) }, "Descarregar (Excel)")));
     if (!semanas.length) { frag.append(h("div", { class: "card empty" }, h("strong", { text: "Ainda não há receções" }), "As semanas com encomendas fechadas aparecem aqui.")); return frag; }
     for (const seg of semanas) {
       const lista = rececaoDaSemana(S.encs, S.recs, seg);
       const nok = lista.filter((g) => g.estado === "nao_conforme").length;
       frag.append(h("h2", { class: "sec semana" }, "Semana de " + fmtSemana(seg), h("small", { text: lista.length + (lista.length === 1 ? " fornecedor" : " fornecedores") + (nok ? " · " + nok + " não conforme" + (nok === 1 ? "" : "s") : "") })));
       frag.append(h("div", { class: "card" }, h("ul", { class: "his" }, lista.map((g) => {
-        const [txt, cls] = ESTADO[g.estado];
-        return h("li", {}, h("span", {}, g.fornecedor, h("small", { text: g.registo ? quando(g.registo.em) + (g.registo.nota ? " · " + g.registo.nota : "") : g.estado === "auto" ? "Sem validação até sábado" : "" })), h("span", { class: "tag " + cls, text: txt }));
+        const [txt, cls] = ESTADO[g.estado], r = g.registo;
+        const det = [r ? quando(r.em) + (r.nota ? " · " + r.nota : "") : g.estado === "auto" ? "Sem validação até sábado" : "",
+          r && g.novas.length ? (g.estado === "pendente" ? "novo lote por validar" : "novo lote sem validação até sábado") : "",
+          ...((r && r.anteriores) || []).map((a) => "antes: " + ESTADO[a.estado][0].toLowerCase() + ", " + quando(a.em) + (a.nota ? " · " + a.nota : ""))].filter(Boolean);
+        return h("li", {}, h("span", {}, g.fornecedor, det.map((d) => h("small", { text: d }))), h("span", { class: "tag " + cls, text: txt }));
       }))));
     }
     return frag;

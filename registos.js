@@ -18,6 +18,8 @@ const fmtSemana = (seg) => {
 const slugReg = (s) => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60) || "x";
 
 // ---------- Receção de mercadorias ----------
+// weeks before the page existed have no receção record (nobody could validate them)
+const RECECAO_DESDE = "2026-10-19";
 // An order is delivered the same week; one closed on Saturday or Sunday arrives the following week.
 function semanaDaEncomenda(iso) {
   const dia = diaKey(iso), w = new Date(dia + "T12:00").getDay();
@@ -27,31 +29,42 @@ function semanaDaEncomenda(iso) {
 const prazoSemana = (seg) => new Date(somaDias(seg, 6) + "T00:00");
 const fornecedorDe = (l) => String(l.fornecedor || "").trim() || "Sem fornecedor";
 const idRececao = (seg, fornecedor) => seg + "_" + slugReg(fornecedor);
+const fmtQtd = (v) => v == null || v === "" ? "" : Number(v).toLocaleString("pt-PT", { maximumFractionDigits: 3 });
+const textoArtigos = (itens) => itens.map((l) => l.nome + (l.qtd ? " " + fmtQtd(l.qtd) + (l.unidade ? " " + l.unidade : "") : "")).join(" · ");
 
 // suppliers with ordered articles in a week: [{ fornecedor, itens: [{ pid, nome, qtd, unidade, enc }], encs: [order ids] }]
+// (spellings that differ only in case or accents are one supplier, as they share one record)
 function fornecedoresDaSemana(encomendas, seg) {
   const by = new Map();
   for (const e of encomendas) {
     if (!e.criada || semanaDaEncomenda(e.criada) !== seg) continue;
     for (const l of e.itens || []) {
-      const f = fornecedorDe(l);
-      if (!by.has(f)) by.set(f, { fornecedor: f, itens: [], encs: new Set() });
-      const g = by.get(f); g.itens.push({ ...l, enc: e.id }); g.encs.add(e.id);
+      const f = fornecedorDe(l), k = slugReg(f);
+      if (!by.has(k)) by.set(k, { fornecedor: f, itens: [], encs: new Set() });
+      const g = by.get(k); g.itens.push({ ...l, enc: e.id }); g.encs.add(e.id);
     }
   }
   return [...by.values()].map((g) => ({ ...g, encs: [...g.encs] }))
     .sort((a, b) => (a.fornecedor === "Sem fornecedor") - (b.fornecedor === "Sem fornecedor") || a.fornecedor.localeCompare(b.fornecedor, "pt"));
 }
-// each supplier of the week with its state: conforme | nao_conforme (validated), auto (deadline passed), pendente
+// each supplier of the week with its state: conforme | nao_conforme (validated), auto (deadline passed), pendente.
+// A validation covers the orders it saw (encs): an order closed after it is a new lot and needs its own check.
+// A record whose orders were deleted stays in the list (history), with the articles it saved.
 function rececaoDaSemana(encomendas, rececoes, seg, agora) {
   const reg = new Map(rececoes.filter((r) => r.semana === seg).map((r) => [r.id, r]));
   const passou = (agora || new Date()) >= prazoSemana(seg);
-  return fornecedoresDaSemana(encomendas, seg).map((g) => {
-    const r = reg.get(idRececao(seg, g.fornecedor));
-    return { ...g, registo: r || null, estado: r ? r.estado : passou ? "auto" : "pendente" };
+  const out = fornecedoresDaSemana(encomendas, seg).map((g) => {
+    const id = idRececao(seg, g.fornecedor), r = reg.get(id) || null;
+    reg.delete(id);
+    const novas = r ? g.encs.filter((e) => !(r.encs || []).includes(e)) : g.encs;
+    return { ...g, id, registo: r, novas, estado: r && (!novas.length || passou) ? r.estado : passou ? "auto" : "pendente" };
   });
+  for (const r of reg.values()) out.push({ fornecedor: r.fornecedor, itens: [], encs: [], id: r.id, registo: r, novas: [], estado: r.estado, semEncomenda: true });
+  return out;
 }
-const semanasComEncomendas = (encomendas) => [...new Set(encomendas.filter((e) => e.criada).map((e) => semanaDaEncomenda(e.criada)))].sort().reverse();
+const semanasComEncomendas = (encomendas) => [...new Set(encomendas.filter((e) => e.criada).map((e) => semanaDaEncomenda(e.criada)))].filter((s) => s >= RECECAO_DESDE).sort().reverse();
+// weeks for the history: with orders, or with records kept after their orders were deleted
+const semanasDaRececao = (encomendas, rececoes) => [...new Set([...semanasComEncomendas(encomendas), ...rececoes.map((r) => r.semana).filter(Boolean)])].sort().reverse();
 // articles of closed orders not yet in: not ticked as received (validating a lot ticks its articles), until the week's deadline
 function artigosPorEntregar(encomendas, agora) {
   const now = agora || new Date();
@@ -80,8 +93,13 @@ const ultimoOleo = (regs, tipo) => regs.filter((r) => r.tipo === tipo).sort((a, 
 const oleoNaSemana = (regs) => { const seg = segundaDe(hojeKey()); return regs.some((r) => r.tipo === "substituicao" && segundaDe(diaKey(r.em)) === seg); };
 
 // ---------- Horários: automatic exit ----------
+// shifts started before this day are left as they were (an open one stays "falta" for a manager to fix)
+const SAIDA_AUTO_DESDE = "2026-10-19";
+// until 06:00 someone closed automatically at 01:00 can still clock out: the tap replaces the 01:00
+const TOLERANCIA_SAIDA = 5 * 3600e3;
 // a shift nobody closed ends at 01:00, the first 01:00 after the entrada
 function limiteSaida(iso) { const d = new Date(iso), l = new Date(d); l.setHours(1, 0, 0, 0); if (l <= d) l.setDate(l.getDate() + 1); return l; }
+const comSaidaAuto = (p) => diaKey(p.em) >= SAIDA_AUTO_DESDE;
 // last clock event of each person
 function ultimasPicagens(pics) {
   const last = new Map();
@@ -99,7 +117,7 @@ function saidasAutomaticas(pics, agora) {
   for (const ps of by.values()) {
     ps.sort((a, b) => a.em.localeCompare(b.em));
     ps.forEach((p, i) => {
-      if (p.tipo !== "entrada") return;
+      if (p.tipo !== "entrada" || !comSaidaAuto(p)) return;
       const lim = limiteSaida(p.em), next = ps[i + 1];
       if (now < lim || (next && (next.tipo !== "entrada" || new Date(next.em) <= lim))) return;
       const em = lim.toISOString();
@@ -108,12 +126,16 @@ function saidasAutomaticas(pics, agora) {
   }
   return out;
 }
-// writes them (the fixed id means two phones doing it at once write the same document)
-const saidasFeitas = new Set();
-function fecharTurnosAbertos(db, pics) {
-  for (const s of saidasAutomaticas(pics)) {
-    if (saidasFeitas.has(s.id)) continue;
-    saidasFeitas.add(s.id);
-    db.collection("picagens").doc(s.id).set(s.data).catch(() => saidasFeitas.delete(s.id));
-  }
+// writes them. A phone that slept holds a copy that can be hours old, so the decision is taken again on a fresh read,
+// and a document that already exists (perhaps corrected by hand) is never replaced.
+let fechoEmCurso = false, fechoFalhou = 0;
+async function fecharTurnosAbertos(db, pics) {
+  if (fechoEmCurso || Date.now() - fechoFalhou < 5 * 60e3 || !saidasAutomaticas(pics).length) return;
+  fechoEmCurso = true;
+  try {
+    const m = await db.carregar("picagens");
+    const frescas = [...m].map(([id, d]) => ({ id, ...d }));
+    for (const s of saidasAutomaticas(frescas)) if (!m.has(s.id)) await db.collection("picagens").doc(s.id).set(s.data);
+  } catch (e) { fechoFalhou = Date.now(); }
+  fechoEmCurso = false;
 }

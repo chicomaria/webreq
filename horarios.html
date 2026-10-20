@@ -21,7 +21,7 @@
 .person .nm { font-family: var(--font-display); font-weight: 700; font-size: 22px; letter-spacing: .03em; text-transform: uppercase; }
 .person .st { font-size: 13px; color: var(--muted); }
 .person.in .st { color: var(--ok); font-weight: 600; }
-.clock { border: 0; border-radius: 10px; padding: 14px 14px; min-width: 132px; font-family: var(--font-display); font-weight: 700; font-size: 18px; letter-spacing: .04em; text-transform: uppercase; color: #fff; }
+.clock { border: 0; border-radius: 10px; padding: 14px 14px; min-width: 132px; font-family: var(--font-display); font-weight: 700; font-size: 18px; letter-spacing: .04em; text-transform: uppercase; color: var(--on-fill); }
 .clock.in { background: var(--ok); }
 .clock.out { background: var(--warn); }
 .clock:disabled { opacity: .6; }
@@ -66,33 +66,46 @@ table.data td.n small { display: block; font-size: 10px; font-family: var(--font
 
   // last clock event per person decides whether the button says ENTRADA or SAÍDA
   function ultima(pid) { let u = null; for (const p of S.pics) if (p.pessoa === pid && (!u || p.em > u.em)) u = p; return u; }
-  // an entrada nobody closed counts as out from 01:00 (the saída is written as soon as a page sees it)
+  // what the button does now: an entrada nobody closed counts as out from 01:00 (the saída is written as soon as a page
+  // sees it), but until 06:00 that person can still clock out, which replaces the automatic 01:00 with the real time
+  function acao(pid) {
+    const u = ultima(pid), now = Date.now();
+    if (aindaDentro(u)) return { tipo: "saida" };
+    if (u && u.tipo === "entrada" && comSaidaAuto(u) && now - limiteSaida(u.em) < TOLERANCIA_SAIDA) return { tipo: "saida", tardia: "auto-" + u.id };
+    if (u && u.tipo === "saida" && u.auto && !u.corrigido && now - new Date(u.em) < TOLERANCIA_SAIDA) return { tipo: "saida", tardia: u.id };
+    return { tipo: "entrada" };
+  }
   const dentro = (pid) => aindaDentro(ultima(pid));
   function estado(pid) {
-    let u = ultima(pid); if (!u) return "Sem registos";
-    const auto = u.tipo === "entrada" && !aindaDentro(u);
-    const em = auto ? limiteSaida(u.em).toISOString() : u.em;
-    const hoje = diaKey(new Date().toISOString()), d = diaKey(em);
-    const q = d === hoje ? hora(em) : fmtDia(d) + " " + hora(em);
-    if (u.tipo === "entrada" && !auto) return "Na casa desde " + q;
-    return "Saiu " + (d === hoje ? "às " : "") + q + (auto || (u.auto && !u.corrigido) ? " (saída automática)" : "");
+    const u = ultima(pid); if (!u) return "Sem registos";
+    const hoje = diaKey(new Date().toISOString()), quando = (iso) => (diaKey(iso) === hoje ? "às " + hora(iso) : fmtDia(diaKey(iso)) + " " + hora(iso));
+    if (aindaDentro(u)) return "Na casa desde " + (diaKey(u.em) === hoje ? hora(u.em) : fmtDia(diaKey(u.em)) + " " + hora(u.em));
+    if (u.tipo === "entrada" && !comSaidaAuto(u)) return "Sem saída registada desde " + quando(u.em);
+    const auto = u.tipo === "entrada" || (u.auto && !u.corrigido);
+    const em = u.tipo === "entrada" ? limiteSaida(u.em).toISOString() : u.em;
+    return "Saiu " + quando(em) + (auto ? " (saída automática)" + (acao(pid).tardia ? ". Se saiu mais tarde, dê saída agora." : "") : "");
   }
-  async function picar(p) {
+  async function picar(p, mostrado) {
     if (S.busy.has(p.id)) return;
+    const a = acao(p.id);
+    // the card may be a minute old (another phone, or 01:00 passing): do what it showed, or show the new state first
+    if (a.tipo !== mostrado) { toast("O registo de " + p.nome + " mudou. Confirme no botão."); render(); return; }
     S.busy.add(p.id); render();
-    const tipo = dentro(p.id) ? "saida" : "entrada", em = new Date().toISOString();
+    const em = new Date().toISOString(), base = { pessoa: p.id, nome: p.nome, extra: !!p.extra, tipo: a.tipo, em, dia: diaKey(em), mes: mesKey(em) };
     try {
-      await S.db.collection("picagens").doc(newId()).set({ pessoa: p.id, nome: p.nome, extra: !!p.extra, tipo, em, dia: diaKey(em), mes: mesKey(em) });
-      toast((tipo === "entrada" ? "Entrada" : "Saída") + " de " + p.nome + " às " + hora(em));
+      // a late exit takes the place of the automatic one (same document, so there is never a second saída)
+      if (a.tardia) await S.db.collection("picagens").doc(a.tardia).set({ ...base, corrigido: true });
+      else await S.db.collection("picagens").doc(newId()).set(base);
+      toast((a.tipo === "entrada" ? "Entrada" : "Saída") + " de " + p.nome + " às " + hora(em));
     } catch (e) { toast("Não foi possível registar. Tente de novo."); }
     setTimeout(() => { S.busy.delete(p.id); render(); }, 1500);
   }
   function personCard(p) {
-    const inn = dentro(p.id);
-    const extraTools = p.extra && !inn ? h("div", { class: "extra-tools" }, confirmBtn("Retirar da lista", "Tocar de novo", () => S.db.collection("equipa").doc(p.id).update({ ativo: false }).then(() => toast(p.nome + " saiu da lista. Os registos ficam guardados.")))) : null;
+    const inn = dentro(p.id), tipo = acao(p.id).tipo;
+    const extraTools = p.extra && tipo === "entrada" ? h("div", { class: "extra-tools" }, confirmBtn("Retirar da lista", "Tocar de novo", () => S.db.collection("equipa").doc(p.id).update({ ativo: false }).then(() => toast(p.nome + " saiu da lista. Os registos ficam guardados.")))) : null;
     return h("div", { class: "person" + (inn ? " in" : "") },
       h("div", {}, h("div", { class: "nm", text: p.nome }), h("div", { class: "st", text: estado(p.id) }), extraTools),
-      h("button", { type: "button", class: "clock " + (inn ? "out" : "in"), disabled: S.busy.has(p.id), onclick: () => picar(p) }, inn ? "Dar saída" : "Dar entrada"));
+      h("button", { type: "button", class: "clock " + (tipo === "saida" ? "out" : "in"), disabled: S.busy.has(p.id), onclick: () => picar(p, tipo) }, tipo === "saida" ? "Dar saída" : "Dar entrada"));
   }
   function viewPicar() {
     const frag = document.createDocumentFragment();
@@ -183,14 +196,16 @@ table.data td.n small { display: block; font-size: 10px; font-family: var(--font
       h("div", { class: "row-actions" }, del, h("button", { type: "button", class: "btn", onclick: () => ov.remove() }, "Cancelar"), save));
     form.addEventListener("submit", async (ev) => {
       ev.preventDefault();
-      const e1 = ent.value ? new Date(ent.value).toISOString() : null, e2 = sai.value ? new Date(sai.value).toISOString() : null;
+      // an unchanged field keeps its exact time (the form shows minutes only), so only the edited side is marked corrected
+      const val = (inp, p) => !inp.value ? null : p && inp.value === local(p.em) ? p.em : new Date(inp.value).toISOString();
+      const e1 = val(ent, t.ent), e2 = val(sai, t.sai);
       if (!e1 && !e2) { err.textContent = "Indique pelo menos a entrada ou a saída."; err.hidden = false; return; }
       if (e1 && e2 && e2 <= e1) { err.textContent = "A saída tem de ser depois da entrada."; err.hidden = false; return; }
       save.disabled = true;
       const base = { pessoa: t.pessoa, nome: t.nome, extra: !!t.extra };
       const put = async (p, tipo, em) => {
         const col = S.db.collection("picagens");
-        if (p && em) await col.doc(p.id).update({ em, dia: diaKey(em), mes: mesKey(em), corrigido: true });
+        if (p && em) { if (em !== p.em) await col.doc(p.id).update({ em, dia: diaKey(em), mes: mesKey(em), corrigido: true }); }
         else if (p && !em) await col.doc(p.id).delete();
         else if (!p && em) await col.doc(newId()).set({ ...base, tipo, em, dia: diaKey(em), mes: mesKey(em), corrigido: true });
       };

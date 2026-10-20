@@ -24,8 +24,7 @@ a.tile svg { width: 48px; height: 48px; padding: 10px; border-radius: 12px; back
 a.tile strong { display: block; font-family: var(--font-display); font-size: 22px; letter-spacing: .03em; text-transform: uppercase; }
 a.tile span.s { display: block; color: var(--muted); font-size: 13px; margin-top: 2px; }
 a.tile .go { color: var(--muted); font-size: 22px; }
-a.tile .go { display: flex; align-items: center; gap: 8px; }
-.badge { font-family: var(--font-body); font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 99px; background: var(--amarelo); color: #221a02; white-space: nowrap; }
+.badge { display: inline-block; margin-top: 5px; font-family: var(--font-body); font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 99px; background: var(--amarelo); color: #221a02; white-space: nowrap; }
 /* quick summary at the top: one blip per record, yellow while something is missing, green when done */
 .resumo { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-top: 10px; }
 @media (min-width: 640px) { .resumo { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
@@ -57,7 +56,7 @@ a.blip.pend i { background: var(--amarelo); box-shadow: 0 0 0 3px var(--amarelo-
   <div class="tiles">
     <a class="tile" href="encomendas.html">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4h6l1 2h3v15H5V6h3z"/><path d="M9 11h6M9 15h6"/></svg>
-      <div><strong>Encomendas</strong><span class="s" id="s-enc">Requisições aos fornecedores</span></div><span class="go"><span class="badge" id="t-enc" hidden></span><span aria-hidden="true">›</span></span>
+      <div><strong>Encomendas</strong><span class="s" id="s-enc">Requisições aos fornecedores</span><span class="badge" id="t-enc" hidden></span></div><span class="go" aria-hidden="true">›</span>
     </a>
     <a class="tile" href="rececao.html">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 8l-9-5-9 5v8l9 5 9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/><path d="M7.5 5.5l9 5"/></svg>

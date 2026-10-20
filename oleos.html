@@ -79,14 +79,18 @@ ul.his .btn { padding: 3px 8px; font-size: 12px; }
     return h("li", {}, h("span", {}, TIPOS_OLEO[r.tipo] || r.tipo, h("small", { text: quando(r.em) })),
       confirmBtn("Apagar", "Tocar de novo", () => S.db.collection("oleos").doc(r.id).delete().then(() => toast("Registo apagado")).catch(() => toast("Não foi possível apagar."))));
   }
+  // true when saved
   async function registar(tipo, em) {
-    if (S.busy) return;
+    if (S.busy) return false;
     S.busy = true; render();
+    let ok = false;
     try {
       await S.db.collection("oleos").doc(newId()).set({ tipo, em, dia: diaKey(em), mes: mesKey(em) });
+      ok = true;
       toast(TIPOS_OLEO[tipo] + " registada " + (diaKey(em) === hojeKey() ? "às " + hora(em) : "em " + fmtDia(diaKey(em)) + " às " + hora(em)));
     } catch (e) { toast("Não foi possível guardar. Tente de novo."); }
     S.busy = false; render();
+    return ok;
   }
   const local = (d) => d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()) + "T" + pad(d.getHours()) + ":" + pad(d.getMinutes());
   function outraHora() {
@@ -95,13 +99,16 @@ ul.his .btn { padding: 3px 8px; font-size: 12px; }
     const err = h("p", { class: "note", style: "color:var(--warn)" }); err.hidden = true;
     const form = h("form", { class: "form" }, h("h3", { text: "Registar noutra data" }),
       h("label", { for: "o-tipo" }, "O que foi feito", tipo), h("label", { for: "o-em" }, "Data e hora", quandoInp), err,
-      h("div", { class: "row-actions" }, h("button", { type: "button", class: "btn", onclick: () => ov.remove() }, "Cancelar"), h("button", { type: "submit", class: "btn primary" }, "Guardar")));
-    form.addEventListener("submit", (ev) => {
+      h("div", { class: "row-actions" }, h("button", { type: "button", class: "btn", onclick: () => { ov.remove(); render(); } }, "Cancelar"), h("button", { type: "submit", class: "btn primary" }, "Guardar")));
+    // the dialog stays open until the record is saved
+    form.addEventListener("submit", async (ev) => {
       ev.preventDefault();
       const d = quandoInp.value ? new Date(quandoInp.value) : null;
       if (!d || isNaN(d)) { err.textContent = "Escolha a data e a hora."; err.hidden = false; return; }
       if (d > new Date()) { err.textContent = "A data não pode ser no futuro."; err.hidden = false; return; }
-      ov.remove(); registar(tipo.value, d.toISOString());
+      err.hidden = true;
+      if (await registar(tipo.value, d.toISOString())) { ov.remove(); render(); return; }
+      err.textContent = "Não foi possível guardar. Verifique a internet e tente de novo."; err.hidden = false;
     });
     const ov = h("div", { class: "overlay", onclick: (e) => { if (e.target === ov) ov.remove(); } }, h("div", { class: "panel", role: "dialog", "aria-modal": "true", "aria-label": "Registar noutra data" }, form));
     document.body.append(ov);
