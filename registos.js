@@ -95,10 +95,10 @@ const oleoNaSemana = (regs) => { const seg = segundaDe(hojeKey()); return regs.s
 // ---------- Horários: automatic exit ----------
 // shifts started before this day are left as they were (an open one stays "falta" for a manager to fix)
 const SAIDA_AUTO_DESDE = "2026-10-19";
-// until 06:00 someone closed automatically at 01:00 can still clock out: the tap replaces the 01:00
-const TOLERANCIA_SAIDA = 5 * 3600e3;
 // a shift nobody closed ends at 01:00, the first 01:00 after the entrada
 function limiteSaida(iso) { const d = new Date(iso), l = new Date(d); l.setHours(1, 0, 0, 0); if (l <= d) l.setDate(l.getDate() + 1); return l; }
+// until 06:00 that night someone closed automatically can still clock out: the tap replaces the 01:00
+const fimSaidaTardia = (lim) => { const f = new Date(lim); f.setHours(6, 0, 0, 0); return f; };
 const comSaidaAuto = (p) => diaKey(p.em) >= SAIDA_AUTO_DESDE;
 // last clock event of each person
 function ultimasPicagens(pics) {
@@ -127,7 +127,7 @@ function saidasAutomaticas(pics, agora) {
   return out;
 }
 // writes them. A phone that slept holds a copy that can be hours old, so the decision is taken again on a fresh read,
-// and a document that already exists (perhaps corrected by hand) is never replaced.
+// and the write never replaces a document with that id (a late exit or a correction made in the meantime).
 let fechoEmCurso = false, fechoFalhou = 0;
 async function fecharTurnosAbertos(db, pics) {
   if (fechoEmCurso || Date.now() - fechoFalhou < 5 * 60e3 || !saidasAutomaticas(pics).length) return;
@@ -135,7 +135,7 @@ async function fecharTurnosAbertos(db, pics) {
   try {
     const m = await db.carregar("picagens");
     const frescas = [...m].map(([id, d]) => ({ id, ...d }));
-    for (const s of saidasAutomaticas(frescas)) if (!m.has(s.id)) await db.collection("picagens").doc(s.id).set(s.data);
+    for (const s of saidasAutomaticas(frescas)) if (!m.has(s.id)) await db.collection("picagens").doc(s.id).criar(s.data);
   } catch (e) { fechoFalhou = Date.now(); }
   fechoEmCurso = false;
 }

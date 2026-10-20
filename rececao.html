@@ -19,7 +19,8 @@
 .forn.ok { border-color: var(--ok); }
 .forn.nok { border-color: var(--warn); }
 .forn .t { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
-.forn .t strong { font-family: var(--font-display); font-size: 21px; letter-spacing: .03em; text-transform: uppercase; }
+.forn .t strong { min-width: 0; overflow-wrap: anywhere; font-family: var(--font-display); font-size: 21px; letter-spacing: .03em; text-transform: uppercase; }
+.forn .t .tag { flex: none; white-space: nowrap; }
 .forn .arts { color: var(--muted); font-size: 13px; }
 .forn .est { font-size: 13px; }
 .dois { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
@@ -89,47 +90,60 @@ ul.his li .tag { flex: none; white-space: nowrap; }
     }
     return frag;
   }
+  // earlier lots of the same supplier this week (a later order is a new lot with its own validation)
+  const lotesAnteriores = (r) => ((r && r.anteriores) || []).filter((a) => !a.mesmoLote);
+  const linhaLote = (a) => "Lote anterior: " + linhaReg(a) + (a.artigos ? " · " + a.artigos : "");
   function cartao(seg, g) {
     const r = g.registo, busy = S.busy.has(g.id), [txt, cls] = ESTADO[g.estado];
-    // a lot from an order closed after the validation: the earlier validation stays visible
-    const est = !r ? null : g.estado === "pendente" ? "Novo lote por validar. Antes: " + linhaReg(r) : linhaReg(r);
+    const novoLote = !!r && g.estado === "pendente";
+    const arts = novoLote ? textoArtigos(g.itens.filter((l) => g.novas.includes(l.enc))) : r && r.artigos ? r.artigos : artigos(g);
+    const linhas = novoLote ? [...lotesAnteriores(r).map(linhaLote), linhaLote(r)] : r ? [linhaReg(r), ...lotesAnteriores(r).map(linhaLote)] : [];
     // going back from Não conforme to Conforme takes a second tap (the note stays in the history)
-    const armado = S.armado === g.id;
+    const armado = S.armado && S.armado.id === g.id;
     return h("div", { class: "card forn" + (g.estado === "conforme" ? " ok" : g.estado === "nao_conforme" ? " nok" : "") },
-      h("div", { class: "t" }, h("strong", { text: g.fornecedor }), h("span", { class: "tag " + cls, text: txt })),
-      h("div", { class: "arts", text: artigos(g) }),
-      est ? h("div", { class: "est", text: est }) : null,
+      h("div", { class: "t" }, h("strong", { text: g.fornecedor }), h("span", { class: "tag " + cls, text: novoLote ? "Novo lote" : txt })),
+      h("div", { class: "arts", text: arts }),
+      linhas.map((l) => h("div", { class: "est", text: l })),
       h("div", { class: "dois" },
         h("button", { type: "button", class: "sim" + (armado ? " armed" : ""), "aria-pressed": String(g.estado === "conforme"), disabled: busy, onclick: () => {
-          if (g.estado === "nao_conforme" && !armado) { S.armado = g.id; render(); setTimeout(() => { if (S.armado === g.id) { S.armado = null; render(); } }, 4000); return; }
-          S.armado = null; validar(seg, g, "conforme");
+          if (g.estado === "nao_conforme" && !armado) { armar(g.id); return; }
+          armar(null); validar(seg, g, "conforme");
         } }, armado ? "Tocar de novo" : "Conforme"),
         h("button", { type: "button", class: "nao", "aria-pressed": String(g.estado === "nao_conforme"), disabled: busy, onclick: () => naoConforme(seg, g) }, "Não conforme")));
   }
-  // saves the validation (the one it replaces goes to anteriores) and ticks the lot's articles as received; true when saved
-  async function validar(seg, g, estado, nota) {
+  function armar(id) {
+    if (S.armado) clearTimeout(S.armado.t);
+    S.armado = id ? { id, t: setTimeout(() => { S.armado = null; render(); }, 4000) } : null;
+    render();
+  }
+  // saves the validation and ticks the lot's articles as received; true when saved.
+  // The record it replaces (read now, not when the card was drawn) goes to anteriores: an earlier lot, or the same lot changed.
+  async function validar(seg, g, estado, nota, doDialogo) {
     if (S.busy.has(g.id) || (estado === "conforme" && g.estado === "conforme")) return false;
     S.busy.add(g.id); render();
-    const em = new Date().toISOString(), r = g.registo;
-    const anteriores = r ? [...(r.anteriores || []), { estado: r.estado, nota: r.nota || "", em: r.em, artigos: r.artigos || "" }] : [];
+    const em = new Date().toISOString(), r = S.recs.find((x) => x.id === g.id) || null;
+    const novas = r ? g.encs.filter((e) => !(r.encs || []).includes(e)) : g.encs, novoLote = !!r && novas.length > 0;
+    const lote = r && !novoLote ? r.artigos || artigos(g) : textoArtigos(g.itens.filter((l) => novas.includes(l.enc)));
+    const anteriores = r ? [...(r.anteriores || []), { estado: r.estado, nota: r.nota || "", em: r.em, artigos: r.artigos || "", encs: r.encs || [], mesmoLote: !novoLote }] : [];
     let ok = false;
     try {
-      await S.db.collection("rececoes").doc(g.id).set({ semana: seg, fornecedor: g.fornecedor, estado, nota: nota || "", em, encs: g.encs, artigos: artigos(g), anteriores });
+      await S.db.collection("rececoes").doc(g.id).set({ semana: seg, fornecedor: g.fornecedor, estado, nota: nota || "", em, encs: [...new Set([...((r && r.encs) || []), ...g.encs])], artigos: lote, anteriores });
       ok = true;
       let falhou = false;
-      for (const enc of g.encs) {
+      // only the lot being validated (an earlier lot was ticked when it was validated)
+      for (const enc of novoLote ? novas : g.encs) {
         const rec = {}; for (const l of g.itens) if (l.enc === enc) rec[l.pid] = true;
         await S.db.collection("encomendas").doc(enc).update({ recebidos: rec }).catch(() => { falhou = true; });
       }
       toast(g.fornecedor + ": " + (estado === "conforme" ? "conforme" : "não conforme") + (falhou ? ". Os artigos não ficaram marcados como recebidos nas Encomendas." : ""));
-    } catch (e) { toast("Não foi possível guardar. Tente de novo."); }
+    } catch (e) { if (!doDialogo) toast("Não foi possível guardar. Tente de novo."); }
     S.busy.delete(g.id); render();
     return ok;
   }
   function naoConforme(seg, g) {
     const r = g.registo;
     const ta = h("textarea", { id: "nc-nota", rows: 3, placeholder: "Ex.: peixe acima de 4 °C, caixa danificada, faltou 1 kg de alho" });
-    ta.value = r && r.estado === "nao_conforme" ? r.nota || "" : "";
+    ta.value = r && r.estado === "nao_conforme" && g.estado === "nao_conforme" ? r.nota || "" : "";
     const err = h("p", { class: "note", style: "color:var(--warn)" }); err.hidden = true;
     const save = h("button", { type: "submit", class: "btn primary" }, "Guardar");
     const form = h("form", { class: "form" }, h("h3", { text: g.fornecedor + ": não conforme" }),
@@ -138,7 +152,7 @@ ul.his li .tag { flex: none; white-space: nowrap; }
     // the dialog stays open until the record is saved, so the note is not lost on a failed write
     form.addEventListener("submit", async (ev) => {
       ev.preventDefault(); save.disabled = true; save.textContent = "A guardar…"; err.hidden = true;
-      if (await validar(seg, g, "nao_conforme", ta.value.trim())) { ov.remove(); render(); return; }
+      if (await validar(seg, g, "nao_conforme", ta.value.trim(), true)) { ov.remove(); render(); return; }
       save.disabled = false; save.textContent = "Guardar"; err.textContent = "Não foi possível guardar. Verifique a internet e tente de novo."; err.hidden = false;
     });
     const ov = h("div", { class: "overlay", onclick: (e) => { if (e.target === ov) { ov.remove(); render(); } } }, h("div", { class: "panel", role: "dialog", "aria-modal": "true", "aria-label": "Não conforme" }, form));
@@ -148,27 +162,28 @@ ul.his li .tag { flex: none; white-space: nowrap; }
   function viewHis() {
     const frag = document.createDocumentFragment();
     const semanas = semanasDaRececao(S.encs, S.recs);
-    // one CSV row per validation (earlier ones included) and one per lot taken as conforme
+    // one CSV row per lot validation (a changed one says so) and one per lot taken as conforme or still to validate
     const rows = [];
     for (const seg of semanas) for (const g of rececaoDaSemana(S.encs, S.recs, seg)) {
-      const r = g.registo;
-      for (const a of (r && r.anteriores) || []) rows.push([seg, g.fornecedor, ESTADO[a.estado][0] + " (validação anterior)", diaKey(a.em) + " " + hora(a.em), a.nota || "", a.artigos || ""]);
+      const r = g.registo, novos = textoArtigos(g.itens.filter((l) => g.novas.includes(l.enc)));
+      for (const a of (r && r.anteriores) || []) rows.push([seg, g.fornecedor, ESTADO[a.estado][0] + (a.mesmoLote ? " (alterado depois)" : ""), diaKey(a.em) + " " + hora(a.em), a.nota || "", a.artigos || ""]);
       if (r) rows.push([seg, g.fornecedor, ESTADO[r.estado][0], diaKey(r.em) + " " + hora(r.em), r.nota || "", r.artigos || artigos(g)]);
-      if (g.estado === "auto" || (r && g.novas.length && new Date() >= prazoSemana(seg))) rows.push([seg, g.fornecedor, ESTADO.auto[0], diaKey(prazoSemana(seg).toISOString()) + " 00:00", "", textoArtigos(g.itens.filter((l) => g.novas.includes(l.enc)))]);
-      if (g.estado === "pendente") rows.push([seg, g.fornecedor, ESTADO.pendente[0], "", "", textoArtigos(g.itens.filter((l) => g.novas.includes(l.enc)))]);
+      if (g.estado === "auto" || (r && g.novas.length && new Date() >= prazoSemana(seg))) rows.push([seg, g.fornecedor, ESTADO.auto[0], diaKey(prazoSemana(seg).toISOString()) + " 00:00", "", novos]);
+      if (g.estado === "pendente") rows.push([seg, g.fornecedor, ESTADO.pendente[0], "", "", novos]);
     }
     frag.append(h("div", { class: "tools" }, h("button", { class: "btn", disabled: !rows.length, onclick: () => downloadCsv("rececao-mercadorias.csv",
       [["Semana (segunda)", "Fornecedor", "Estado", "Validado em", "Nota", "Artigos"], ...rows]) }, "Descarregar (Excel)")));
     if (!semanas.length) { frag.append(h("div", { class: "card empty" }, h("strong", { text: "Ainda não há receções" }), "As semanas com encomendas fechadas aparecem aqui.")); return frag; }
     for (const seg of semanas) {
       const lista = rececaoDaSemana(S.encs, S.recs, seg);
-      const nok = lista.filter((g) => g.estado === "nao_conforme").length;
-      frag.append(h("h2", { class: "sec semana" }, "Semana de " + fmtSemana(seg), h("small", { text: lista.length + (lista.length === 1 ? " fornecedor" : " fornecedores") + (nok ? " · " + nok + " não conforme" + (nok === 1 ? "" : "s") : "") })));
+      // lots found non-conforme this week, earlier lots included
+      const nok = lista.reduce((n, g) => n + (g.registo && g.registo.estado === "nao_conforme" ? 1 : 0) + lotesAnteriores(g.registo).filter((a) => a.estado === "nao_conforme").length, 0);
+      frag.append(h("h2", { class: "sec semana" }, "Semana de " + fmtSemana(seg), h("small", { text: lista.length + (lista.length === 1 ? " fornecedor" : " fornecedores") + (nok ? " · " + nok + (nok === 1 ? " lote não conforme" : " lotes não conformes") : "") })));
       frag.append(h("div", { class: "card" }, h("ul", { class: "his" }, lista.map((g) => {
         const [txt, cls] = ESTADO[g.estado], r = g.registo;
-        const det = [r ? quando(r.em) + (r.nota ? " · " + r.nota : "") : g.estado === "auto" ? "Sem validação até sábado" : "",
+        const det = [r ? quando(r.em) + (r.nota ? " · " + r.nota : "") + (r.artigos ? " · " + r.artigos : "") : g.estado === "auto" ? "Sem validação até sábado" : "",
           r && g.novas.length ? (g.estado === "pendente" ? "novo lote por validar" : "novo lote sem validação até sábado") : "",
-          ...((r && r.anteriores) || []).map((a) => "antes: " + ESTADO[a.estado][0].toLowerCase() + ", " + quando(a.em) + (a.nota ? " · " + a.nota : ""))].filter(Boolean);
+          ...((r && r.anteriores) || []).map((a) => (a.mesmoLote ? "antes de alterado: " : "lote anterior: ") + ESTADO[a.estado][0].toLowerCase() + ", " + quando(a.em) + (a.nota ? " · " + a.nota : "") + (!a.mesmoLote && a.artigos ? " · " + a.artigos : ""))].filter(Boolean);
         return h("li", {}, h("span", {}, g.fornecedor, det.map((d) => h("small", { text: d }))), h("span", { class: "tag " + cls, text: txt }));
       }))));
     }

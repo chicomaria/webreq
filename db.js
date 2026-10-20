@@ -68,6 +68,8 @@ function supabaseDb(sb) {
       async set(data) { const { error, status } = await sb.from(T).upsert({ col, id, data, atualizado: new Date().toISOString() }); if (error) fail(error, status); local(col, (m) => m.set(id, data)); },
       async update(patch) { const { error, status } = await sb.rpc("doc_update", { p_col: col, p_id: id, p_patch: patch }); if (error) fail(error, status); local(col, (m) => { if (m.has(id)) m.set(id, merge(m.get(id), patch)); }); },
       async delete() { const { error, status } = await sb.from(T).delete().eq("col", col).eq("id", id); if (error) fail(error, status); local(col, (m) => m.delete(id)); },
+      // writes only when no document has this id yet (never replaces one written meanwhile), then reads the collection again
+      async criar(data) { const { error, status } = await sb.from(T).upsert({ col, id, data, atualizado: new Date().toISOString() }, { ignoreDuplicates: true }); if (error) fail(error, status); if (cache.has(col)) await load(col); },
       onSnapshot(fn) { watch(col, () => { const d = cache.get(col).get(id); fn({ exists: d !== undefined, data: () => d }); }); },
     };
   }

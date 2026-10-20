@@ -54,7 +54,7 @@ table.data td.n small { display: block; font-size: 10px; font-family: var(--font
   const S = { db: null, loaded: { eq: false, pic: false }, equipa: [], pics: [], tab: "picar", mes: mesKey(new Date().toISOString()), busy: new Set() };
   try { const t = localStorage.getItem("hor-tab"); if (t) S.tab = t; } catch (e) {}
   document.querySelectorAll("nav.tabs button").forEach((b) => b.addEventListener("click", () => { S.tab = b.dataset.tab; try { localStorage.setItem("hor-tab", S.tab); } catch (e) {} render(); }));
-  const fmtH = (min) => Math.floor(min / 60) + "h" + pad(Math.round(min % 60));
+  const fmtH = (min) => { const m = Math.round(min); return Math.floor(m / 60) + "h" + pad(m % 60); };
 
   function render() {
     document.querySelectorAll("nav.tabs button").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.tab === S.tab)));
@@ -71,8 +71,8 @@ table.data td.n small { display: block; font-size: 10px; font-family: var(--font
   function acao(pid) {
     const u = ultima(pid), now = Date.now();
     if (aindaDentro(u)) return { tipo: "saida" };
-    if (u && u.tipo === "entrada" && comSaidaAuto(u) && now - limiteSaida(u.em) < TOLERANCIA_SAIDA) return { tipo: "saida", tardia: "auto-" + u.id };
-    if (u && u.tipo === "saida" && u.auto && !u.corrigido && now - new Date(u.em) < TOLERANCIA_SAIDA) return { tipo: "saida", tardia: u.id };
+    if (u && u.tipo === "entrada" && comSaidaAuto(u) && now < fimSaidaTardia(limiteSaida(u.em))) return { tipo: "saida", tardia: "auto-" + u.id };
+    if (u && u.tipo === "saida" && u.auto && !u.corrigido && now < fimSaidaTardia(new Date(u.em))) return { tipo: "saida", tardia: u.id };
     return { tipo: "entrada" };
   }
   const dentro = (pid) => aindaDentro(ultima(pid));
