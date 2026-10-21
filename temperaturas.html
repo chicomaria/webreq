@@ -78,8 +78,9 @@ table.mat td.n small { display: block; color: var(--muted); font-size: 10px; fon
     const frag = document.createDocumentFragment();
     if (R.fim) return viewFim();
     const f = FRIOS[R.i], u = ultimo(f.n);
-    const inp = h("input", { id: "t-inp", type: "text", inputmode: "decimal", autocomplete: "off", "aria-label": "Temperatura de " + f.nome, placeholder: u ? fmtT(u.temp) : "0,0", value: R.vals[f.n] != null ? fmtT(R.vals[f.n]) : "" });
-    const val = () => { const s = inp.value.trim().replace(",", ".").replace("−", "-"); return s === "" ? NaN : Number(s); };
+    const inp = h("input", { id: "t-inp", type: "text", inputmode: "decimal", autocomplete: "off", "aria-label": "Temperatura de " + f.nome, placeholder: u ? fmtT(u.temp) : "0,0", value: R.vals[f.n] != null ? fmtT(R.vals[f.n]) : u ? fmtT(u.temp) : "" });
+    // the box starts with the last reading (selected, so typing replaces it); an emptied box also means the last reading
+    const val = () => { const s = inp.value.trim().replace(",", ".").replace("−", "-"); return s === "" ? (u ? u.temp : NaN) : Number(s); };
     const step = (d) => { const base = isNaN(val()) ? (u ? u.temp : 0) : val(); inp.value = fmtT(Math.round((base + d) * 10) / 10); };
     const err = h("p", { class: "note", style: "color:var(--warn);text-align:center" }); err.hidden = true;
     const last = R.i === FRIOS.length - 1;
