@@ -6963,5 +6963,387 @@ window.DADOS = [
     }
    }
   }
+ },
+ {
+  "id": "2026-11-17-fichas-outono",
+  "atualizar": {
+   "fichas": {
+    "hummus-de-tremoco": {
+     "doses": 25,
+     "ingredientes": [
+      {
+       "ing": "tremoco",
+       "qtd": 0.5
+      },
+      {
+       "ing": "azeite",
+       "qtd": 0.3
+      },
+      {
+       "ing": "pimentao-doce",
+       "qtd": 0.02
+      },
+      {
+       "ing": "alho",
+       "qtd": 0.3
+      },
+      {
+       "ing": "limao",
+       "qtd": 1
+      },
+      {
+       "ing": "piri-piri",
+       "qtd": 0.02
+      },
+      {
+       "ing": "mostarda",
+       "qtd": 0.1
+      },
+      {
+       "ing": "cominhos",
+       "qtd": 0.02
+      },
+      {
+       "ing": "sal",
+       "qtd": null,
+       "medida": "q.b."
+      },
+      {
+       "ing": "pimenta",
+       "qtd": null,
+       "medida": "q.b."
+      }
+     ],
+     "preparacao": "juntar 0,5 L de água\ntriturar tudo num robot\ntemperar com sal e pimenta",
+     "obs": "Versão do Excel de outono. A folha diz 0,3 kg de alho para 0,5 kg de tremoço; confirmar."
+    },
+    "enguia-fumada": {
+     "doses": 15,
+     "ingredientes": [
+      {
+       "ing": "enguia-fumada",
+       "qtd": 1
+      },
+      {
+       "ing": "beterraba",
+       "qtd": 0.3,
+       "nota": "assada, em brunesa"
+      },
+      {
+       "ing": "kefir",
+       "qtd": 0.2,
+       "nota": "molho de kefir"
+      },
+      {
+       "ing": "coentros",
+       "qtd": 0.03,
+       "nota": "molho de kefir"
+      },
+      {
+       "ing": "limao",
+       "qtd": 1,
+       "nota": "molho de kefir (sumo)"
+      },
+      {
+       "ing": "alho-negro",
+       "qtd": 0.5,
+       "nota": "maionese de alho negro"
+      },
+      {
+       "ing": "ovo",
+       "qtd": 1,
+       "nota": "maionese de alho negro"
+      },
+      {
+       "ing": "oleo",
+       "qtd": 0.1,
+       "nota": "maionese de alho negro"
+      },
+      {
+       "ing": "mostarda",
+       "qtd": 0.05
+      },
+      {
+       "ing": "rebentos-de-mostarda",
+       "qtd": 0.01
+      },
+      {
+       "ing": "pimenta",
+       "qtd": 0.05
+      },
+      {
+       "ing": "piri-piri",
+       "qtd": 0.05
+      },
+      {
+       "ing": "sal",
+       "qtd": 0.03
+      }
+     ],
+     "preparacao": "filetar a enguia fumada por dose\nassar a beterraba e por fim cortar em brunesa pequena\npara o molho de kefir, juntar sumo de limão, kefir e coentros e triturar; temperar com sal e pimenta no fim\nmaio de alho negro: numa taça juntar um ovo, o alho negro e o óleo em fio; temperar por fim",
+     "obs": "Versão do Excel de outono. A carta descreve tosta em azeite, maionese de alho negro, ponzu gandarês e mizuna; a folha tem molho de kefir, beterraba e rebentos de mostarda, sem pão."
+    },
+    "bife-a-chico-maria": {
+     "doses": 11,
+     "ingredientes": [
+      {
+       "ing": "entrecote",
+       "qtd": 4.5
+      },
+      {
+       "ing": "batata-branca",
+       "qtd": 3,
+       "nota": "batata palito"
+      },
+      {
+       "ing": "oleo-fritar",
+       "qtd": null,
+       "medida": "q.b.",
+       "nota": "batata palito"
+      },
+      {
+       "ing": "sal",
+       "qtd": 0.03
+      },
+      {
+       "ing": "azeite",
+       "qtd": 0.1
+      },
+      {
+       "ing": "ossos",
+       "qtd": 1.5,
+       "nota": "jus"
+      },
+      {
+       "ing": "cebola",
+       "qtd": 1,
+       "nota": "jus"
+      },
+      {
+       "ing": "alho",
+       "qtd": 0.1,
+       "nota": "jus"
+      },
+      {
+       "ing": "alho-frances",
+       "qtd": 0.3,
+       "nota": "jus"
+      },
+      {
+       "ing": "cenoura",
+       "qtd": 0.3,
+       "nota": "jus"
+      },
+      {
+       "ing": "aipo",
+       "qtd": 0.3,
+       "nota": "jus"
+      },
+      {
+       "ing": "tomate",
+       "qtd": 0.3,
+       "nota": "jus"
+      },
+      {
+       "ing": "chalotas",
+       "qtd": 0.15,
+       "nota": "jus"
+      },
+      {
+       "ing": "cogumelos-paris",
+       "qtd": 0.2,
+       "nota": "jus"
+      },
+      {
+       "ing": "manteiga",
+       "qtd": null,
+       "medida": "q.b.",
+       "nota": "jus, se necessário"
+      }
+     ],
+     "preparacao": "jus 1ª volta\ncorar ossos no forno 300º\nnum tacho cebola, alho francês, aipo, alho, tomate, cenoura, corar em azeite\njuntar ossos e toda a gordura assim que estiverem tostados\nadicionar água até tapar\nassim que levantar fervura, deixar no lume mínimo durante pelo menos 10h\nassim que passar as horas, chinês e levar ao frio durante 12h ou até separar a gordura do caldo. retirar a mesma\n\njus 2ª volta\nchalotas, cogumelos e caldo num tacho ao lume\nassim que levantar fervura, deixar no lume mínimo durante 8h\nassim que passar as horas, chinês e levar ao frio durante 12h ou até separar a gordura do caldo. retirar a mesma\nse necessário juntar manteiga para acertar a cremosidade\n\ncortar carne em porções\ncorar\n\nbatata palito\nfritar em óleo abundante",
+     "obs": "Versão do Excel de outono. A folha usa entrecote; a carta diz coração de alcatra. O entrecote está ligado ao artigo das Encomendas (23 €/kg); a folha dizia 33,50 €/kg."
+    },
+    "filete-de-cavala-curada-gravlax": {
+     "doses": 25,
+     "ingredientes": [
+      {
+       "ing": "cavala",
+       "qtd": 2
+      },
+      {
+       "ing": "acucar",
+       "qtd": 0.5,
+       "nota": "cura"
+      },
+      {
+       "ing": "sal",
+       "qtd": 1,
+       "nota": "cura"
+      },
+      {
+       "ing": "lima",
+       "qtd": 1,
+       "nota": "cura"
+      },
+      {
+       "ing": "limao",
+       "qtd": 1,
+       "nota": "cura"
+      },
+      {
+       "ing": "laranja",
+       "qtd": 1,
+       "nota": "cura"
+      },
+      {
+       "ing": "funcho",
+       "qtd": null,
+       "medida": "q.b.",
+       "nota": "cura"
+      },
+      {
+       "ing": "coentros",
+       "qtd": null,
+       "medida": "q.b.",
+       "nota": "cura"
+      },
+      {
+       "ing": "pao",
+       "qtd": 1,
+       "nota": "tosta"
+      },
+      {
+       "ing": "azeite",
+       "qtd": 0.05,
+       "nota": "tosta"
+      },
+      {
+       "ing": "ovo",
+       "qtd": 1,
+       "nota": "maio de mostarda wasabi"
+      },
+      {
+       "ing": "mostarda",
+       "qtd": 0.2,
+       "nota": "maio de mostarda wasabi"
+      },
+      {
+       "ing": "mostarda-wasabi",
+       "qtd": 0.1,
+       "nota": "maio de mostarda wasabi"
+      },
+      {
+       "ing": "oleo",
+       "qtd": 0.2,
+       "nota": "maio de mostarda wasabi"
+      },
+      {
+       "ing": "vinagre",
+       "qtd": null,
+       "medida": "q.b.",
+       "nota": "maio de mostarda wasabi"
+      },
+      {
+       "ing": "pimenta",
+       "qtd": 0.02
+      },
+      {
+       "ing": "tomate",
+       "qtd": 0.4,
+       "nota": "espuma de tomate"
+      },
+      {
+       "ing": "cebola",
+       "qtd": 0.5,
+       "nota": "espuma de tomate"
+      },
+      {
+       "ing": "alho",
+       "qtd": null,
+       "medida": "1 dente",
+       "nota": "espuma de tomate"
+      },
+      {
+       "ing": "agar-agar",
+       "qtd": 0.04,
+       "nota": "espuma de tomate"
+      },
+      {
+       "ing": "rebentos-de-coentro",
+       "qtd": 0.02
+      }
+     ],
+     "preparacao": "arranjar cavala, tirar filetes (separar)\ncura em sal, açúcar, citrinos e funcho, coentros 1h\nretirar e passar por água\ntirar espinha do meio\ncortar em porções (30g)\ncortar pão em porções\ncorar em azeite\n\nmaio de mostarda wasabi\nnum copo, 1 ovo, 1 colher mostarda, vinagre, mostarda wasabi, pimenta, sal\nemulsionar com varinha vertendo óleo em fio\nretificar tempero\n\nespuma de tomate\ntriturar o tomate, a cebola, azeite e um alho, juntar o agar-agar e ferver\nmeter o preparado num sifão e recarregar com duas cargas de gás",
+     "obs": "Versão do Excel de outono (maio de mostarda wasabi e espuma de tomate em vez de maio de funcho e picle). Funcho, coentros, vinagre e alho estão na preparação mas não na lista da folha."
+    }
+   },
+   "ingredientes": {
+    "agar-agar": {
+     "preco": 81.1
+    }
+   }
+  },
+  "novos": {
+   "ingredientes": {
+    "enguia-fumada": {
+     "nome": "Enguia fumada",
+     "grupo": "Outros",
+     "unidade": "Kg",
+     "preco": 50,
+     "fornecedor": "",
+     "obs": ""
+    },
+    "beterraba": {
+     "nome": "Beterraba",
+     "grupo": "Legumes",
+     "unidade": "Kg",
+     "preco": 3.8,
+     "fornecedor": "",
+     "obs": ""
+    },
+    "kefir": {
+     "nome": "Kefir",
+     "grupo": "Lacticínios",
+     "unidade": "L",
+     "preco": 0.98,
+     "fornecedor": "",
+     "obs": ""
+    },
+    "alho-negro": {
+     "nome": "Alho negro",
+     "grupo": "Legumes",
+     "unidade": "Kg",
+     "preco": 2,
+     "fornecedor": "",
+     "obs": ""
+    },
+    "rebentos-de-mostarda": {
+     "nome": "Rebentos de mostarda",
+     "grupo": "Microverdes",
+     "unidade": "Kg",
+     "preco": 90,
+     "fornecedor": "",
+     "obs": ""
+    },
+    "entrecote": {
+     "nome": "Entrecote",
+     "grupo": "Outros",
+     "unidade": "Kg",
+     "preco": 33.5,
+     "fornecedor": "",
+     "obs": "",
+     "artigo": "entrecote"
+    },
+    "mostarda-wasabi": {
+     "nome": "Mostarda wasabi",
+     "grupo": "Especiarias",
+     "unidade": "Kg",
+     "preco": 8.5,
+     "fornecedor": "",
+     "obs": ""
+    }
+   }
+  }
  }
 ];
