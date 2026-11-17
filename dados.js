@@ -6953,5 +6953,15 @@ window.DADOS = [
     }
    }
   }
+ },
+ {
+  "id": "2026-11-17-preparacao-bar",
+  "novos": {
+   "config": {
+    "bar": {
+     "preparacao": "Mise en place geral (zestes de limão, preparar frutas, espremer frutas)\nSumo de lima fresco\nSumo de limão\nBase de gengibre\nCalda de açúcar"
+    }
+   }
+  }
  }
 ];

@@ -42,6 +42,7 @@
 .ck dd { margin: 0; font-size: 14px; line-height: 1.35; }
 .ck dd ul { margin: 0; padding-left: 18px; }
 .ck .s { color: var(--muted); font-size: 13px; }
+.ck ul.prep { margin: 0; padding-left: 20px; display: grid; gap: 3px; font-size: 15px; line-height: 1.35; }
 </style>
 </head>
 <body>
@@ -55,7 +56,7 @@
 <script>
 (async () => {
   // Cocktail sheets (fichas with tipo "cocktail"): recipe at a glance, the rest behind Expandir, costs in the detail view.
-  const S = { db: null, loaded: { f: false, i: false }, fichas: [], ing: new Map(), sel: null, q: "", abertos: new Set() };
+  const S = { db: null, loaded: { f: false, i: false }, fichas: [], ing: new Map(), sel: null, q: "", abertos: new Set(), bar: null };
   const F = fichasComuns(S, render);
 
   function render() {
@@ -73,6 +74,7 @@
     const todos = S.fichas.filter((f) => f.tipo === "cocktail");
     const lista = todos.filter((f) => !q || norm([f.nome, ...(f.ingredientes || []).map((r) => (S.ing.get(r.ing) || {}).nome)].join(" ")).includes(q))
       .sort((a, b) => a.nome.localeCompare(b.nome, "pt"));
+    if (!q) frag.append(cartaoBar());
     const busca = h("input", { type: "search", placeholder: "Procurar cocktail ou ingrediente", value: S.q, "aria-label": "Procurar cocktail" });
     busca.addEventListener("input", () => { S.q = busca.value; const p = busca.selectionStart; render(); const b = document.querySelector("input[type=search]"); b.focus(); b.setSelectionRange(p, p); });
     frag.append(h("div", { class: "tools" }, busca, h("button", { class: "btn primary", onclick: () => F.novaFicha("cocktail") }, "+ Cocktail")));
@@ -80,6 +82,17 @@
     if (!lista.length) frag.append(h("div", { class: "card empty" }, h("strong", { text: todos.length ? "Nenhum cocktail encontrado" : "Ainda sem cocktails" }), todos.length ? null : "Use + Cocktail."));
     else frag.append(h("div", { class: "list" }, lista.map(cartao)));
     return frag;
+  }
+  // what the bar prepares before service, at the top of the list (config/bar, one note per line)
+  function cartaoBar() {
+    const itens = passos((S.bar || {}).preparacao);
+    return h("div", { class: "card ck", id: "prep-bar" },
+      h("div", { class: "t" }, h("h3", { text: "Preparação do bar" }), h("button", { class: "btn", onclick: editarBar }, "Editar")),
+      itens.length ? h("ul", { class: "prep" }, itens.map((p) => h("li", { text: p }))) : h("div", { class: "s", text: "Sem notas. Use Editar para escrever o que se prepara antes do serviço." }));
+  }
+  function editarBar() {
+    abrirEditor({ titulo: "Preparação do bar", campos: [{ k: "preparacao", label: "Notas (uma por linha)", tipo: "textarea", rows: 10, obrigatorio: false }],
+      dados: S.bar || {}, guardar: (d) => S.db.doc("config/bar").set({ ...(S.bar || {}), preparacao: d.preparacao || "" }) });
   }
   function cartao(f) {
     const k = F.custo(f), aberto = S.abertos.has(f.id);
@@ -118,6 +131,7 @@
     re();
   });
   db.collection("ingredientes").onSnapshot((s) => { S.ing = new Map(s.docs.map((d) => [d.id, d.data()])); S.loaded.i = true; re(); });
+  db.doc("config/bar").onSnapshot((s) => { S.bar = s.exists ? s.data() : null; re(); });
   db.collection("produtos").onSnapshot((s) => { S.prod = new Map(s.docs.map((d) => [d.id, { id: d.id, ...d.data() }])); re(); });
 })();
 </script>
