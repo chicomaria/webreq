@@ -6330,5 +6330,628 @@ window.DADOS = [
     "pure-de-batata"
    ]
   }
+ },
+ {
+  "id": "2026-11-17-menu-cogumelos",
+  "novos": {
+   "ingredientes": {
+    "cogumelos-variados": {
+     "nome": "Cogumelos variados",
+     "grupo": "Outros",
+     "unidade": "Kg",
+     "preco": null,
+     "fornecedor": "",
+     "obs": "Cogumelos frescos que as fichas do menu de cogumelos não nomeiam. Ligue ao artigo certo em Fornecedores › Preços."
+    },
+    "shiitake": {
+     "nome": "Shiitake",
+     "grupo": "Outros",
+     "unidade": "Kg",
+     "preco": 9,
+     "fornecedor": "",
+     "artigo": "shitake",
+     "obs": ""
+    },
+    "juba-de-leao": {
+     "nome": "Juba de leão",
+     "grupo": "Outros",
+     "unidade": "Kg",
+     "preco": null,
+     "fornecedor": "",
+     "obs": ""
+    },
+    "magret-de-pato": {
+     "nome": "Magret de pato",
+     "grupo": "Outros",
+     "unidade": "un",
+     "preco": null,
+     "fornecedor": "",
+     "obs": ""
+    },
+    "corvina": {
+     "nome": "Corvina",
+     "grupo": "Outros",
+     "unidade": "Kg",
+     "preco": null,
+     "fornecedor": "",
+     "obs": ""
+    },
+    "natas-vegetais": {
+     "nome": "Natas vegetais",
+     "grupo": "Lacticínios",
+     "unidade": "L",
+     "preco": null,
+     "fornecedor": "",
+     "obs": ""
+    },
+    "vinho-do-porto": {
+     "nome": "Vinho do Porto",
+     "grupo": "Bar",
+     "unidade": "L",
+     "preco": null,
+     "fornecedor": "",
+     "obs": ""
+    },
+    "vinho-madeira": {
+     "nome": "Vinho Madeira",
+     "grupo": "Bar",
+     "unidade": "L",
+     "preco": null,
+     "fornecedor": "",
+     "obs": ""
+    },
+    "caldo-de-carne": {
+     "nome": "Caldo de carne",
+     "grupo": "Bases",
+     "unidade": "L",
+     "preco": null,
+     "fornecedor": "Casa",
+     "obs": ""
+    },
+    "vinagre-tinto": {
+     "nome": "Vinagre tinto",
+     "grupo": "Bases",
+     "unidade": "L",
+     "preco": 7.66,
+     "fornecedor": "",
+     "artigo": "vinagre-tinto",
+     "obs": ""
+    },
+    "mel": {
+     "nome": "Mel",
+     "grupo": "Bases",
+     "unidade": "Kg",
+     "preco": 6.5,
+     "fornecedor": "",
+     "artigo": "mel",
+     "obs": ""
+    },
+    "oleo-fumado": {
+     "nome": "Óleo fumado",
+     "grupo": "Gorduras",
+     "unidade": "L",
+     "preco": null,
+     "fornecedor": "",
+     "obs": ""
+    },
+    "pao-brioche": {
+     "nome": "Pão brioche",
+     "grupo": "Pastelaria",
+     "unidade": "Kg",
+     "preco": null,
+     "fornecedor": "",
+     "obs": ""
+    },
+    "agar-agar": {
+     "nome": "Agar-agar",
+     "grupo": "Pastelaria",
+     "unidade": "Kg",
+     "preco": null,
+     "fornecedor": "",
+     "obs": ""
+    },
+    "avela-torrada": {
+     "nome": "Avelã torrada",
+     "grupo": "Frutos",
+     "unidade": "Kg",
+     "preco": null,
+     "fornecedor": "",
+     "obs": ""
+    },
+    "castanhas-cozidas": {
+     "nome": "Castanhas cozidas",
+     "grupo": "Frutos",
+     "unidade": "Kg",
+     "preco": null,
+     "fornecedor": "",
+     "obs": ""
+    },
+    "flor-de-sal": {
+     "nome": "Flor de sal",
+     "grupo": "Especiarias",
+     "unidade": "Kg",
+     "preco": 5.98,
+     "fornecedor": "",
+     "artigo": "flor-de-sal",
+     "obs": ""
+    },
+    "oregaos": {
+     "nome": "Oregãos",
+     "grupo": "Especiarias",
+     "unidade": "Kg",
+     "preco": null,
+     "fornecedor": "",
+     "obs": ""
+    },
+    "pimentao-fumado": {
+     "nome": "Pimentão fumado",
+     "grupo": "Especiarias",
+     "unidade": "Kg",
+     "preco": null,
+     "fornecedor": "",
+     "obs": ""
+    },
+    "tabasco": {
+     "nome": "Tabasco",
+     "grupo": "Especiarias",
+     "unidade": "L",
+     "preco": null,
+     "fornecedor": "",
+     "obs": ""
+    },
+    "miso": {
+     "nome": "Miso",
+     "grupo": "Especiarias",
+     "unidade": "Kg",
+     "preco": null,
+     "fornecedor": "",
+     "obs": ""
+    },
+    "flor-de-alho": {
+     "nome": "Flor de alho",
+     "grupo": "Legumes",
+     "unidade": "Kg",
+     "preco": null,
+     "fornecedor": "",
+     "obs": ""
+    }
+   },
+   "fichas": {
+    "parfait-de-cogumelos": {
+     "tipo": "prato",
+     "categoria": "Menu de cogumelos",
+     "nome": "Parfait de cogumelos",
+     "atual": false,
+     "pvp": null,
+     "ingredientes": [
+      {
+       "ing": "cogumelos-variados",
+       "qtd": 0.4,
+       "nota": "frescos"
+      },
+      {
+       "ing": "cebola",
+       "qtd": 0.06
+      },
+      {
+       "ing": "alho",
+       "qtd": 0.01
+      },
+      {
+       "ing": "manteiga",
+       "qtd": 0.08
+      },
+      {
+       "ing": "natas-vegetais",
+       "qtd": 0.12
+      },
+      {
+       "ing": "vinho-do-porto",
+       "qtd": 0.04
+      },
+      {
+       "ing": "sal",
+       "qtd": 0.006
+      },
+      {
+       "ing": "azeite",
+       "qtd": 0.015
+      },
+      {
+       "ing": "molho-de-soja",
+       "qtd": 0.05
+      },
+      {
+       "ing": "pao",
+       "qtd": null,
+       "nota": "torrado, para servir"
+      }
+     ],
+     "preparacao": "parfait de cogumelo\nlimpar e cortar os cogumelos\npicar a cebola\nrefogar a cebola em azeite\njuntar os cogumelos e saltear até perderem a água\ntemperar com sal\njuntar a soja e deixar evaporar\nadicionar o vinho do Porto e deixar reduzir\njuntar as natas e deixar cozinhar alguns minutos\nadicionar a manteiga e triturar até obter um creme homogéneo\npassar por um passador fino e retificar os temperos\nrefrigerar até ficar firme\n\nservir com pão torrado",
+     "obs": "01 · Couvert. Experiência: despertar, surpreender e explorar a floresta. A ficha não diz quantas doses rende nem quanto pão leva."
+    },
+    "brioche-de-cogumelos": {
+     "tipo": "prato",
+     "categoria": "Menu de cogumelos",
+     "nome": "Brioche de cogumelos",
+     "atual": false,
+     "pvp": null,
+     "ingredientes": [
+      {
+       "ing": "pao-brioche",
+       "qtd": 0.3,
+       "nota": "brioche"
+      },
+      {
+       "ing": "shiitake",
+       "qtd": 0.4,
+       "nota": "texturas de cogumelo"
+      },
+      {
+       "ing": "pleurotus",
+       "qtd": 0.05,
+       "nota": "texturas de cogumelo (ostra)"
+      },
+      {
+       "ing": "azeite",
+       "qtd": 0.03,
+       "nota": "texturas de cogumelo"
+      },
+      {
+       "ing": "manteiga",
+       "qtd": 0.03,
+       "nota": "texturas de cogumelo"
+      },
+      {
+       "ing": "alho",
+       "qtd": 0.01,
+       "nota": "texturas de cogumelo"
+      },
+      {
+       "ing": "ovo",
+       "qtd": 1,
+       "nota": "texturas de cogumelo (a gema)"
+      },
+      {
+       "ing": "oleo-fumado",
+       "qtd": 0.005,
+       "nota": "texturas de cogumelo (5 g)"
+      },
+      {
+       "ing": "sal",
+       "qtd": null,
+       "medida": "q.b.",
+       "nota": "texturas de cogumelo"
+      },
+      {
+       "ing": "pimenta",
+       "qtd": null,
+       "medida": "q.b.",
+       "nota": "texturas de cogumelo"
+      },
+      {
+       "ing": "avela-torrada",
+       "qtd": 0.08,
+       "nota": "avelã caramelizada"
+      },
+      {
+       "ing": "acucar",
+       "qtd": 0.04,
+       "nota": "avelã caramelizada"
+      },
+      {
+       "ing": "flor-de-sal",
+       "qtd": 0.001,
+       "nota": "avelã caramelizada"
+      },
+      {
+       "ing": "vinagre",
+       "qtd": 0.04,
+       "nota": "gel de vinagrete (de vinho branco)"
+      },
+      {
+       "ing": "vinagre-tinto",
+       "qtd": 0.04,
+       "nota": "gel de vinagrete"
+      },
+      {
+       "ing": "laranja",
+       "qtd": 0.25,
+       "nota": "gel de vinagrete (20 ml de sumo)"
+      },
+      {
+       "ing": "azeite",
+       "qtd": 0.16,
+       "nota": "gel de vinagrete"
+      },
+      {
+       "ing": "mel",
+       "qtd": 0.015,
+       "nota": "gel de vinagrete"
+      },
+      {
+       "ing": "sal",
+       "qtd": 0.002,
+       "nota": "gel de vinagrete"
+      },
+      {
+       "ing": "oregaos",
+       "qtd": 0.005,
+       "nota": "gel de vinagrete"
+      },
+      {
+       "ing": "agar-agar",
+       "qtd": 0.002,
+       "nota": "gel de vinagrete"
+      },
+      {
+       "ing": "flor-de-alho",
+       "qtd": null,
+       "nota": "para finalizar"
+      }
+     ],
+     "preparacao": "texturas de cogumelo\nlimpar e cortar os cogumelos\nsaltear os cogumelos em azeite\nadicionar a manteiga e temperar com sal e pimenta\ncortar a ostra em formas uniformes e finas\n\navelã caramelizada\nlevar o açúcar e a água (15 ml) ao lume até formar um caramelo\nadicionar as avelãs e envolver bem\nespalhar sobre papel vegetal, separar e deixar arrefecer\nfinalizar com flor de sal\n\ngel de vinagrete\nmisturar tudo e triturar\nlevar ao lume até ferver, mexendo bem\ncolocar num recipiente e refrigerar até solidificar\ntriturar até obter um gel liso e colocar num biberão\n\nmontagem\nbrioche com as texturas de cogumelo, avelã caramelizada, gel de vinagrete e flor de alho",
+     "obs": "02 · Snack. Experiência: textura, intensidade e descoberta. A ficha não diz onde entram o alho, a gema e o óleo fumado, nem quantas doses rende."
+    },
+    "dumpling-de-pleurotus": {
+     "tipo": "prato",
+     "categoria": "Menu de cogumelos",
+     "nome": "Dumpling de pleurotus",
+     "atual": false,
+     "pvp": null,
+     "ingredientes": [
+      {
+       "ing": "pleurotus",
+       "qtd": null,
+       "nota": "dumpling"
+      },
+      {
+       "ing": "miso",
+       "qtd": null,
+       "nota": "redução de miso"
+      },
+      {
+       "ing": "cogumelos-variados",
+       "qtd": null,
+       "nota": "cogumelo fresco e grelhado"
+      }
+     ],
+     "preparacao": "",
+     "obs": "03 · Entrada. Nome a definir na ficha original; este nome é provisório. Componentes: dumpling de pleurotus, redução de miso, cogumelo fresco e grelhado. Experiência: sazonalidade, delicadeza e profundidade. A ficha não tem quantidades nem preparação."
+    },
+    "corvina-com-juba-de-leao": {
+     "tipo": "prato",
+     "categoria": "Menu de cogumelos",
+     "nome": "Corvina com juba de leão",
+     "atual": false,
+     "pvp": null,
+     "ingredientes": [
+      {
+       "ing": "corvina",
+       "qtd": null
+      },
+      {
+       "ing": "juba-de-leao",
+       "qtd": null
+      }
+     ],
+     "preparacao": "",
+     "obs": "Principal I (numerada 03 na ficha, como a entrada). Nome a definir na ficha original; este nome é provisório. Componentes: corvina, juba de leão e consommé. Experiência: identidade, textura e elegância. A ficha não tem quantidades nem preparação, nem diz de que é o consommé."
+    },
+    "magret-de-pato": {
+     "tipo": "prato",
+     "categoria": "Menu de cogumelos",
+     "nome": "Magret de pato",
+     "atual": false,
+     "doses": 10,
+     "pvp": null,
+     "ingredientes": [
+      {
+       "ing": "magret-de-pato",
+       "qtd": 10,
+       "nota": "cerca de 150 g por prato"
+      },
+      {
+       "ing": "sal",
+       "qtd": null,
+       "medida": "q.b.",
+       "nota": "magret (sal fino)"
+      },
+      {
+       "ing": "pimenta",
+       "qtd": null,
+       "medida": "q.b.",
+       "nota": "magret"
+      },
+      {
+       "ing": "aipo",
+       "qtd": 1.5,
+       "nota": "puré de aipo assado"
+      },
+      {
+       "ing": "natas",
+       "qtd": 0.15,
+       "nota": "puré de aipo assado"
+      },
+      {
+       "ing": "manteiga",
+       "qtd": 0.1,
+       "nota": "puré de aipo assado"
+      },
+      {
+       "ing": "azeite",
+       "qtd": 0.02,
+       "nota": "puré de aipo assado"
+      },
+      {
+       "ing": "molho-de-soja",
+       "qtd": 0.02,
+       "nota": "puré de aipo assado"
+      },
+      {
+       "ing": "pimentao-fumado",
+       "qtd": 0.01,
+       "nota": "puré de aipo assado"
+      },
+      {
+       "ing": "tabasco",
+       "qtd": 0.005,
+       "nota": "puré de aipo assado (5 g)"
+      },
+      {
+       "ing": "sal",
+       "qtd": null,
+       "medida": "q.b.",
+       "nota": "puré de aipo assado"
+      },
+      {
+       "ing": "pimenta",
+       "qtd": null,
+       "medida": "q.b.",
+       "nota": "puré de aipo assado"
+      },
+      {
+       "ing": "cogumelos-variados",
+       "qtd": 0.6,
+       "nota": "cogumelos salteados"
+      },
+      {
+       "ing": "azeite",
+       "qtd": 0.015,
+       "nota": "cogumelos salteados"
+      },
+      {
+       "ing": "sal",
+       "qtd": null,
+       "medida": "q.b.",
+       "nota": "cogumelos salteados"
+      },
+      {
+       "ing": "cogumelos-variados",
+       "qtd": 0.3,
+       "nota": "jus de cogumelo"
+      },
+      {
+       "ing": "chalotas",
+       "qtd": 0.1,
+       "nota": "jus de cogumelo"
+      },
+      {
+       "ing": "alho",
+       "qtd": 0.01,
+       "nota": "jus de cogumelo"
+      },
+      {
+       "ing": "vinho-madeira",
+       "qtd": 0.15,
+       "nota": "jus de cogumelo"
+      },
+      {
+       "ing": "caldo-de-carne",
+       "qtd": 0.7,
+       "nota": "jus de cogumelo"
+      },
+      {
+       "ing": "manteiga",
+       "qtd": 0.03,
+       "nota": "jus de cogumelo"
+      },
+      {
+       "ing": "azeite",
+       "qtd": null,
+       "medida": "q.b.",
+       "nota": "jus de cogumelo"
+      },
+      {
+       "ing": "tomilho",
+       "qtd": null,
+       "medida": "q.b.",
+       "nota": "jus de cogumelo"
+      }
+     ],
+     "preparacao": "magret de pato\nlimpar os magrets e fazer cortes superficiais na pele, em forma de losangos\ntemperar com sal e pimenta\ncolocar numa frigideira fria, com a pele virada para baixo, e cozinhar em lume médio até a gordura derreter e a pele ficar crocante\nvirar e selar o outro lado\nlevar ao forno, se necessário, até atingir o ponto de confeção desejado\ndeixar repousar antes de cortar\n\npuré de aipo assado\ndescascar e cortar o aipo em pedaços\ntemperar com azeite e manteiga\nrefogar num tacho até caramelizar ao máximo\nadicionar as natas e os temperos\ntriturar com as natas e a manteiga até obter um puré cremoso\nretificar os temperos e reservar\n\ncogumelos salteados\nlimpar e cortar os cogumelos\nsaltear em azeite\ncozinhar até ficarem dourados e reservar\n\njus de cogumelo com vinho Madeira\npicar as chalotas, o alho e os cogumelos\nsaltear em azeite até ficarem bem dourados\nadicionar o vinho Madeira e deixar reduzir\njuntar o caldo e o tomilho\ndeixar cozinhar em lume brando até reduzir e concentrar os sabores\ncoar e adicionar a manteiga fria, mexendo até obter um molho brilhante\nretificar os temperos",
+     "obs": "04 · Principal I. Experiência: identidade, textura e elegância. Doses: 10, contando um magret por prato; confirme. O prato leva também «hacatay», que a ficha não explica. O azeite e o tomilho do jus estão na preparação mas não na lista."
+    },
+    "pudim-de-castanha": {
+     "tipo": "prato",
+     "categoria": "Menu de cogumelos",
+     "nome": "Pudim de castanha",
+     "atual": false,
+     "pvp": null,
+     "ingredientes": [
+      {
+       "ing": "castanhas-cozidas",
+       "qtd": 0.15,
+       "nota": "praliné de castanha"
+      },
+      {
+       "ing": "acucar",
+       "qtd": 0.1,
+       "nota": "praliné de castanha"
+      },
+      {
+       "ing": "manteiga",
+       "qtd": 0.02,
+       "nota": "praliné de castanha"
+      },
+      {
+       "ing": "flor-de-sal",
+       "qtd": null,
+       "medida": "1 pitada",
+       "nota": "praliné de castanha"
+      },
+      {
+       "ing": "cogumelos-variados",
+       "qtd": 0.15,
+       "nota": "cogumelo em calda (pequenos)"
+      },
+      {
+       "ing": "acucar",
+       "qtd": 0.1,
+       "nota": "cogumelo em calda"
+      },
+      {
+       "ing": "canela",
+       "qtd": null,
+       "medida": "1 pau",
+       "nota": "cogumelo em calda"
+      },
+      {
+       "ing": "laranja",
+       "qtd": 1,
+       "nota": "cogumelo em calda (a casca)"
+      },
+      {
+       "ing": "farinha",
+       "qtd": 0.1,
+       "nota": "areia de avelã"
+      },
+      {
+       "ing": "manteiga",
+       "qtd": 0.07,
+       "nota": "areia de avelã (fria)"
+      },
+      {
+       "ing": "acucar",
+       "qtd": 0.06,
+       "nota": "areia de avelã"
+      },
+      {
+       "ing": "avela-torrada",
+       "qtd": 0.08,
+       "nota": "areia de avelã (triturada)"
+      },
+      {
+       "ing": "sal",
+       "qtd": null,
+       "medida": "1 pitada",
+       "nota": "areia de avelã"
+      }
+     ],
+     "preparacao": "pudim de castanha\n(sem receita na ficha)\n\npraliné de castanha\nlevar o açúcar e a água (30 ml) ao lume até formar caramelo\nadicionar as castanhas e envolver\njuntar a manteiga e a flor de sal\nespalhar sobre papel vegetal e deixar arrefecer\ntriturar até obter um praliné homogéneo\n\ncogumelo em calda\nlimpar os cogumelos e cortar em pedaços pequenos, se necessário\nlevar a água (150 ml), o açúcar, a canela e a casca de laranja ao lume\nadicionar os cogumelos e cozinhar em lume brando até ficarem macios e envolvidos na calda\ndeixar arrefecer e reservar na calda\n\nareia de avelã\nmisturar a farinha, o açúcar, a avelã triturada e o sal\nadicionar a manteiga fria em cubos\ntrabalhar a mistura até obter uma textura arenosa\nespalhar num tabuleiro e levar ao forno a 160 °C durante 15 a 20 minutos\ndeixar arrefecer e reservar\n\nmontagem\npudim de castanha com praliné, gelado de chocolate negro, cogumelo em calda e areia de avelã",
+     "obs": "05 · Sobremesa. Experiência: surpresa, equilíbrio e desconstrução. Faltam as receitas do pudim de castanha e do gelado de chocolate negro, e quantas doses rende."
+    }
+   }
+  }
  }
 ];
