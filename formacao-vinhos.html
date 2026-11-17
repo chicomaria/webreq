@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#eef1ee">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Chico Maria">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Source+Sans+3:wght@400;600;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="base.css">
+<title>Formação de vinhos · Chico Maria</title>
+<style>
+/* Static page: the wine-service training of 12 Nov 2026, in one scroll. No database. */
+main { display: grid; gap: 22px; padding-bottom: 40px; }
+.fv-idx { display: flex; flex-wrap: wrap; gap: 6px; }
+.fv-idx a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 14px; border: 1px solid var(--line); border-radius: 999px; background: var(--paper); color: var(--ink); text-decoration: none; font-size: 14px; font-weight: 600; }
+.fv h2 { margin: 0 0 10px; font-family: var(--font-display); font-size: 26px; letter-spacing: .03em; text-transform: uppercase; scroll-margin-top: 12px; }
+.fv p { margin: 0; line-height: 1.45; }
+.fv .lead { font-size: 15px; color: var(--muted); margin-top: 8px; }
+.fv .card { padding: 14px; }
+.nums { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+@media (min-width: 640px) { .nums { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.nums .card b { display: block; font-family: var(--font-display); font-size: 36px; line-height: 1; color: var(--accent); }
+.nums .card span { display: block; font-size: 14px; line-height: 1.35; margin-top: 6px; }
+.g2 { display: grid; gap: 10px; }
+@media (min-width: 640px) { .g2 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.g4 { display: grid; gap: 10px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (min-width: 640px) { .g4 { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.fv .card strong { display: block; font-size: 16px; margin-bottom: 3px; }
+.fv .card .s { font-size: 14px; line-height: 1.4; color: var(--ink); }
+.fv .card .c { font-size: 13px; color: var(--accent); font-weight: 600; margin-top: 4px; display: block; }
+.fv .card.dest { background: var(--accent-soft); border-color: var(--accent); }
+.fv ol, .fv ul { margin: 0; padding-left: 22px; display: grid; gap: 5px; font-size: 15px; line-height: 1.4; }
+.op { display: grid; gap: 8px; }
+.op .card { display: grid; grid-template-columns: 90px minmax(0, 1fr); gap: 10px; align-items: baseline; }
+.op .card strong { margin: 0; }
+.temps { display: grid; gap: 8px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (min-width: 640px) { .temps { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
+.temps .card b { display: block; font-family: var(--font-mono); font-size: 20px; }
+.temps .card span { display: block; font-size: 13px; line-height: 1.35; margin-top: 4px; }
+.fv .nota { font-size: 14px; color: var(--muted); font-style: italic; margin-top: 8px; }
+.regra { background: var(--ink); color: var(--bg); border-radius: var(--radius); padding: 16px; }
+.regra small { display: block; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; opacity: .8; }
+.regra p { font-family: var(--font-display); font-size: 24px; line-height: 1.2; margin-top: 4px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand"><h1><a href="./" class="home" aria-label="Início">‹</a> Formação de vinhos</h1><span class="sub">Formação da equipa · 12 nov 2026</span></div>
+  </header>
+  <main>
+    <nav class="fv-idx" aria-label="Secções">
+      <a href="#porque">Porquê</a><a href="#cliente">O cliente</a><a href="#regioes">Regiões</a><a href="#castas">Castas</a><a href="#recomendar">Recomendar</a><a href="#harmonizar">Harmonizar</a><a href="#abrir">Abrir</a><a href="#temperaturas">Temperaturas</a><a href="#decantar">Decantar e defeitos</a>
+    </nav>
+
+    <section class="fv" id="porque">
+      <h2>Vender vinho à mesa</h2>
+      <div class="nums">
+        <div class="card"><b>35–40%</b><span>da faturação é vinho, com boa carta e serviço atento</span></div>
+        <div class="card"><b>70%</b><span>dos clientes aceitam uma sugestão feita com confiança</span></div>
+        <div class="card"><b>~360</b><span>castas em Portugal, e muitos microclimas</span></div>
+        <div class="card"><b>5–6</b><span>tipos de solo principais, cada um dá vinhos diferentes</span></div>
+      </div>
+      <p class="lead">«Temos vinhos excelentes, com uma relação qualidade-preço bombástica. Só nos falta saber vendê-los.» Uma pequena recomendação por mesa, ao longo do mês, faz subir o ticket médio e faz o cliente voltar.</p>
+    </section>
+
+    <section class="fv" id="cliente">
+      <h2>O que o cliente procura</h2>
+      <div class="g2">
+        <div class="card"><strong>1 · Confiança</strong><span class="s">Falar com segurança e contar a história do produtor.</span></div>
+        <div class="card"><strong>2 · Cultura de vinho</strong><span class="s">Saber quem faz o vinho, de onde vêm as uvas e em que solo crescem.</span></div>
+        <div class="card"><strong>3 · Autenticidade</strong><span class="s">Pequenos produtores e vinhos de nicho, da Bairrada e arredores, mais do que rótulos famosos.</span></div>
+        <div class="card"><strong>4 · Experiência</strong><span class="s">Quanto mais partilhamos, mais memórias o cliente leva e mais volta.</span></div>
+      </div>
+    </section>
+
+    <section class="fv" id="regioes">
+      <h2>Regiões</h2>
+      <div class="g2">
+        <div class="card"><strong>Vinho Verde</strong><span class="s">A região mais chuvosa. Frescos, ácidos, leves, pouco álcool. Peixe e marisco.</span><span class="c">Alvarinho, Loureiro</span></div>
+        <div class="card"><strong>Douro</strong><span class="s">45 °C de dia, 25 °C à noite. O xisto guarda o calor. Estrutura e complexidade, com frescura.</span><span class="c">Touriga Nacional</span></div>
+        <div class="card dest"><strong>Bairrada</strong><span class="s">Calcário dá salinidade e frescura aos brancos, argila dá potência à Baga. Muita acidez, muito gastronómicos.</span><span class="c">Baga, Bical</span></div>
+        <div class="card"><strong>Dão</strong><span class="s">Altitude e frescura. Região de elegância, tintos finos.</span><span class="c">Encruzado, Touriga Nacional</span></div>
+        <div class="card"><strong>Alentejo</strong><span class="s">Quente e grande. 14–15% de álcool, muita estrutura. O mais conhecido lá fora.</span><span class="c">Alicante Bouschet</span></div>
+        <div class="card"><strong>Solos</strong><span class="s">Xisto dá estrutura. Calcário dá mineralidade e acidez. Mesmo dentro da Bairrada, o solo muda de zona para zona.</span></div>
+      </div>
+      <p class="nota">O cliente pede um vinho fresco? Pensa numa região fresca: a costa, o Vinho Verde, o Dão.</p>
+    </section>
+
+    <section class="fv" id="castas">
+      <h2>Castas</h2>
+      <div class="g2">
+        <div class="card dest"><strong>Baga</strong><span class="s">"Plástica": de leves 12 graus a vinhos austeros que aguentam 20–30 anos. Não se deu no granito do Dão, encontrou-se na argila e calcário da Bairrada.</span></div>
+        <div class="card"><strong>Bical</strong><span class="s">A branca da Bairrada. Salinidade da costa, tensão, complexidade.</span></div>
+        <div class="card"><strong>Touriga Nacional</strong><span class="s">A rainha das tintas. Floral, aroma intenso, pouco tanino.</span></div>
+        <div class="card"><strong>Alicante Bouschet</strong><span class="s">Casta de força, 14–14,5%. Veio de França, falhou no Douro, encontrou-se no Alentejo.</span></div>
+        <div class="card"><strong>Alvarinho</strong><span class="s">Aromático e gastronómico. Marisco e peixe.</span></div>
+        <div class="card"><strong>Arinto</strong><span class="s">Em 5–6 regiões, brilha em Bucelas. Salino, gosta de madeira, envelhece bem.</span></div>
+        <div class="card"><strong>Encruzado</strong><span class="s">A grande branca do Dão, com estrutura.</span></div>
+        <div class="card"><strong>Loureiro</strong><span class="s">A outra casta do Vinho Verde, fresca e leve.</span></div>
+      </div>
+    </section>
+
+    <section class="fv" id="recomendar">
+      <h2>Recomendar</h2>
+      <div class="g2">
+        <div class="card">
+          <strong>Antes de sugerir</strong>
+          <ol>
+            <li>Saber o prato: peixe ou carne? Quem gosta de branco com carne: um branco com estrutura.</li>
+            <li>Perguntar região, casta ou estilo preferido.</li>
+            <li>Pedir uma baliza de preço, com discrição.</li>
+            <li>Contar a história do produtor, com segurança.</li>
+          </ol>
+        </div>
+        <div class="op">
+          <div class="card"><strong>Conforto</strong><span class="s">dentro do preço que o cliente disse</span></div>
+          <div class="card"><strong>Upsell</strong><span class="s">um pouco acima, com mais ênfase</span></div>
+          <div class="card dest"><strong>Premium</strong><span class="s">a mais cara, com paixão e história</span></div>
+        </div>
+      </div>
+      <p class="nota">Argumentos que funcionam: produção limitada, pequeno produtor, últimas garrafas, grande ano. Só quando é verdade.</p>
+    </section>
+
+    <section class="fv" id="harmonizar">
+      <h2>Harmonizar</h2>
+      <div class="g4">
+        <div class="card"><strong>Acidez</strong><span class="s">com acidez. Ceviche pede um vinho ácido.</span></div>
+        <div class="card"><strong>Gordura</strong><span class="s">leitão com espumante: a bolha limpa o palato.</span></div>
+        <div class="card"><strong>Proteína</strong><span class="s">com tanino. Chanfana, cozido, bife: tinto complexo.</span></div>
+        <div class="card"><strong>Peso</strong><span class="s">com peso. Prato leve, vinho leve.</span></div>
+      </div>
+      <p class="nota">Tanino é a secura de trincar uma banana verde. Com gordura e proteína, suaviza.</p>
+    </section>
+
+    <section class="fv" id="abrir">
+      <h2>Abrir a garrafa à mesa</h2>
+      <div class="card">
+        <ol>
+          <li>Pedir licença e trabalhar junto à mesa.</li>
+          <li>Apresentar com o rótulo virado para o cliente: nome, ano, região e castas.</li>
+          <li>Cortar a cápsula por baixo do gargalo, em um ou dois gestos.</li>
+          <li>Espiral ao centro, rodar, alavancar e tirar a rolha sem barulho.</li>
+          <li>Limpar o gargalo com um pano.</li>
+          <li>Provar à parte, explicando ao cliente que é para ver a rolha e a temperatura.</li>
+          <li>Dar a provar a quem pediu.</li>
+          <li>Servir os restantes.</li>
+        </ol>
+      </div>
+    </section>
+
+    <section class="fv" id="temperaturas">
+      <h2>Temperaturas de serviço</h2>
+      <div class="temps">
+        <div class="card"><b>6–9 °C</b><span>espumantes, brancos leves</span></div>
+        <div class="card"><b>10–12 °C</b><span>brancos estruturados e velhos</span></div>
+        <div class="card"><b>12–14 °C</b><span>tintos leves, claretes</span></div>
+        <div class="card"><b>14–16 °C</b><span>tintos encorpados e com madeira</span></div>
+        <div class="card dest"><b>16–17 °C</b><span>Porto, doces, aguardentes</span></div>
+      </div>
+      <p class="nota">Frio demais, o vinho parece água. Quente demais, só se sente o álcool.</p>
+    </section>
+
+    <section class="fv" id="decantar">
+      <h2>Decantar e defeitos</h2>
+      <div class="g2">
+        <div class="card">
+          <strong>Decantar</strong>
+          <ul>
+            <li>Para separar sedimentos e arejar vinhos jovens.</li>
+            <li>Nunca como espetáculo.</li>
+            <li>Vinho muito velho é frágil: provar primeiro, só decantar se estiver fechado.</li>
+            <li>Cor acastanhada não quer dizer estragado.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <strong>Defeitos</strong>
+          <ul>
+            <li><b>Rolha (TCA):</b> cartão molhado, mofo; na boca seca.</li>
+            <li><b>Oxidado:</b> vinho passado, mal guardado.</li>
+            <li><b>Avinagrado.</b></li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <div class="regra">
+      <small>Regra da casa</small>
+      <p>Confiança, sim. Inventar, nunca. Na dúvida: «vou confirmar».</p>
+    </div>
+  </main>
+</div>
+</body>
+</html>

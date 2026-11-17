@@ -5,6 +5,12 @@
 <meta name="robots" content="noindex, nofollow">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#eef1ee">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Chico Maria">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Source+Sans+3:wght@400;600;700&family=IBM+Plex+Mono:wght@500&display=swap">
@@ -34,6 +40,9 @@ table.data tr.edit { cursor: pointer; }
 table.data td.open { color: var(--warn); font-weight: 600; }
 table.data td.n small { display: block; font-size: 10px; font-family: var(--font-body); font-weight: 400; }
 .panel h3 { margin: 0; font-family: var(--font-display); font-size: 22px; text-transform: uppercase; letter-spacing: .04em; }
+.form .duas { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.form select, .form input[type="date"], .form input[type="time"] { width: 100%; min-width: 0; padding: 9px 11px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); font-size: 16px; color: var(--ink); }
+.form small.dica { font-size: 13px; color: var(--muted); margin-top: -4px; }
 </style>
 </head>
 <body>
@@ -164,58 +173,119 @@ table.data td.n small { display: block; font-size: 10px; font-family: var(--font
     const ts = all.filter((t) => t.mes === S.mes);
     const csv = h("button", { class: "btn", disabled: !ts.length, onclick: () => downloadCsv((soExtras ? "horarios-extras-" : "horarios-") + S.mes + ".csv",
       [["Data", "Nome", "Entrada", "Saída", "Horas", "Nota"], ...[...ts].reverse().map((t) => [t.dia, t.nome, t.ent ? hora(t.ent.em) : "", t.sai ? hora(t.sai.em) : "", t.min != null ? (t.min / 60).toFixed(2).replace(".", ",") : "", autoSai(t) ? "saída automática (sem saída registada)" : ""])]) }, "Descarregar (Excel)");
-    frag.append(h("div", { class: "tools" }, sel, csv));
+    frag.append(h("div", { class: "tools" }, sel, csv, h("button", { class: "btn primary", onclick: () => corrigir(null, soExtras) }, "+ Acrescentar turno")));
     if (!ts.length) { frag.append(h("div", { class: "card empty" }, h("strong", { text: soExtras ? "Sem registos de extras neste mês" : "Sem registos neste mês" }), soExtras ? "Os extras dão entrada no separador Entradas." : "")); return frag; }
     const tot = new Map(); for (const t of ts) if (t.min != null) tot.set(t.nome, (tot.get(t.nome) || 0) + t.min);
     frag.append(h("div", { class: "sum" }, [...tot.entries()].sort((a, b) => a[0].localeCompare(b[0], "pt")).map(([n, m]) => h("span", {}, n + " ", h("b", { text: fmtH(m) })))));
     const tb = h("tbody"); let dia = null;
     for (const t of ts) {
       if (t.dia !== dia) { dia = t.dia; tb.append(h("tr", { class: "day" }, h("td", { colspan: "4", text: fmtDia(dia) }))); }
-      tb.append(h("tr", { class: "edit", tabindex: "0", title: "Corrigir", onclick: () => corrigir(t), onkeydown: (e) => { if (e.key === "Enter") corrigir(t); } },
+      tb.append(h("tr", { class: "edit", tabindex: "0", title: "Corrigir", onclick: () => corrigir(t, soExtras), onkeydown: (e) => { if (e.key === "Enter") corrigir(t, soExtras); } },
         h("td", { text: t.nome }), h("td", { class: "n" + (t.ent ? "" : " open"), text: t.ent ? hora(t.ent.em) : "falta" }),
         (() => { const naCasa = !t.sai && t.ent && t.ent === ultima(t.pessoa) && aindaDentro(t.ent);
           return h("td", { class: "n" + (t.sai || naCasa ? "" : " open"), style: naCasa ? "color:var(--ok)" : null }, t.sai ? hora(t.sai.em) + (t.sai.dia !== t.dia ? " (+1)" : "") : (naCasa ? "na casa" : "falta"), autoSai(t) ? h("small", { text: "automática" }) : null); })(),
         h("td", { class: "n", text: t.min != null ? fmtH(t.min) : "" })));
     }
     frag.append(h("div", { class: "card scroll" }, h("table", { class: "data" }, h("thead", {}, h("tr", {}, h("th", { text: "Nome" }), h("th", { class: "n", text: "Entrada" }), h("th", { class: "n", text: "Saída" }), h("th", { class: "n", text: "Horas" }))), tb)));
-    frag.append(h("p", { class: "note", text: "Toque numa linha para corrigir horas ou apagar um registo. Quem não dá saída sai automaticamente à 01:00." }));
+    frag.append(h("p", { class: "note", text: "Toque numa linha para corrigir horas ou apagar um turno. Um turno que ninguém picou junta-se em “+ Acrescentar turno”. Quem não dá saída sai automaticamente à 01:00." }));
     return frag;
   }
   const autoSai = (t) => !!(t.sai && t.sai.auto && !t.sai.corrigido);
-  const local = (iso) => { const d = new Date(iso); return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()) + "T" + pad(d.getHours()) + ":" + pad(d.getMinutes()); };
-  function corrigir(t) {
-    const ent = h("input", { id: "c-ent", type: "datetime-local", value: t.ent ? local(t.ent.em) : "" });
-    const sai = h("input", { id: "c-sai", type: "datetime-local", value: t.sai ? local(t.sai.em) : "" });
+  // ---------- adding and correcting shifts: a day and two clock times ----------
+  // the exit goes to the next day when it is not after the entrada (or, with no entrada, when it is before 06:00)
+  const instante = (dia, hhmm) => new Date(dia + "T" + hhmm).toISOString();
+  function horasDoTurno(dia, e, s) {
+    const ent = e ? instante(dia, e) : null;
+    let sai = s ? instante(dia, s) : null;
+    if (sai && ((ent && sai <= ent) || (!ent && s < "06:00"))) sai = instante(somaDias(dia, 1), s);
+    return [ent, sai];
+  }
+  // usual hours of a person: median of their last ten complete shifts, else of everyone's, else 19:00 to 00:00
+  function horasHabituais(pid) {
+    const min = (iso) => { const d = new Date(iso); return d.getHours() * 60 + d.getMinutes(); };
+    const med = (xs) => [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)];
+    const fmt = (m) => { m = Math.round(m / 5) * 5 % 1440; return pad(Math.floor(m / 60)) + ":" + pad(m % 60); };
+    const todos = turnos(S.pics).filter((t) => t.ent && t.sai && !autoSai(t));
+    const deles = todos.filter((t) => t.pessoa === pid).slice(0, 10), base = deles.length >= 2 ? deles : todos.slice(0, 20);
+    if (!base.length) return ["19:00", "00:00"];
+    // exits after midnight count as 24:xx, so 23:50 and 00:10 average to midnight
+    return [fmt(med(base.map((t) => min(t.ent.em)))), fmt(med(base.map((t) => { const m = min(t.sai.em); return m < 360 ? m + 1440 : m; })))];
+  }
+  // the shifts of a person that overlap [a, b] (b missing: the entrada alone), so a typed shift never doubles a real one
+  function sobrepostos(pid, a, b, salvo) {
+    return turnos(S.pics.filter((p) => p.pessoa === pid)).filter((t) => t !== salvo && t.ent && !(salvo && t.ent.id === (salvo.ent || {}).id)).filter((t) => {
+      const x1 = t.ent.em, x2 = t.sai ? t.sai.em : limiteSaida(t.ent.em).toISOString(), y2 = b || a;
+      return a === x1 || (a < x2 && x1 < y2);
+    });
+  }
+  // one sheet for both: t is the shift being corrected, or null for a new one (soExtras: whose list it is)
+  function corrigir(t, soExtras) {
+    const novo = !t;
+    const pessoas = novo ? S.equipa.filter((p) => !!p.extra === !!soExtras && (p.ativo !== false || !p.extra)).sort((a, b) => (a.ordem || 99) - (b.ordem || 99) || a.nome.localeCompare(b.nome, "pt")) : [];
+    if (novo && !pessoas.length) { toast(soExtras ? "Ainda não há extras. Junte-os no separador Entradas." : "Ainda não há equipa."); return; }
+    const sel = novo ? h("select", { id: "c-pes" }, pessoas.map((p) => h("option", { value: p.id }, p.nome))) : null;
+    let dia0, e0, s0;
+    if (t) {
+      dia0 = t.ent ? diaKey(t.ent.em) : hora(t.sai.em) < "06:00" ? somaDias(diaKey(t.sai.em), -1) : diaKey(t.sai.em);
+      e0 = t.ent ? hora(t.ent.em) : ""; s0 = t.sai ? hora(t.sai.em) : "";
+    } else { dia0 = new Date().getHours() < 6 ? somaDias(hojeKey(), -1) : hojeKey(); [e0, s0] = horasHabituais(pessoas[0].id); }
+    const dia = h("input", { id: "c-dia", type: "date", value: dia0, max: hojeKey() });
+    const ent = h("input", { id: "c-ent", type: "time", value: e0 });
+    const sai = h("input", { id: "c-sai", type: "time", value: s0 });
+    const dica = h("small", { class: "dica" });
+    const pinta = () => { const [a, b] = horasDoTurno(dia.value, ent.value, sai.value); dica.textContent = b && diaKey(b) !== dia.value ? "Sai no dia seguinte, " + fmtDia(diaKey(b)) + "." + (a ? " " + fmtH((new Date(b) - new Date(a)) / 60000) + " de turno." : "") : a && b ? fmtH((new Date(b) - new Date(a)) / 60000) + " de turno." : ""; };
+    let mexeu = false;
+    [dia, ent, sai].forEach((x) => x.addEventListener("input", () => { if (x !== dia) mexeu = true; pinta(); }));
+    if (sel) sel.addEventListener("change", () => { if (!mexeu) { const [a, b] = horasHabituais(sel.value); ent.value = a; sai.value = b; pinta(); } });
+    pinta();
     const err = h("p", { class: "note", style: "color:var(--warn)" }); err.hidden = true;
-    const save = h("button", { type: "submit", class: "btn primary" }, "Guardar");
-    const del = confirmBtn("Apagar turno", "Tocar de novo para apagar", async () => {
+    const falha = (m) => { err.textContent = m; err.hidden = false; };
+    const save = h("button", { type: "submit", class: "btn primary" }, novo ? "Acrescentar" : "Guardar");
+    const del = novo ? null : confirmBtn("Apagar turno", "Tocar de novo para apagar", async () => {
       // an automatic exit written meanwhile by another phone goes too
       const ids = new Set([t.ent && t.ent.id, t.sai && t.sai.id, t.ent && comSaidaAuto(t.ent) && "auto-" + t.ent.id].filter(Boolean));
       try { for (const id of ids) await S.db.collection("picagens").doc(id).delete(); toast("Turno apagado"); ov.remove(); } catch (e) { toast("Não foi possível apagar."); }
     });
-    const form = h("form", { class: "form" }, h("h3", { text: t.nome + " · " + fmtDia(t.dia) }),
-      h("label", { for: "c-ent" }, "Entrada", ent), h("label", { for: "c-sai" }, "Saída", sai), err,
+    const form = h("form", { class: "form" }, h("h3", { text: novo ? "Acrescentar turno" : t.nome + " · " + fmtDia(t.dia) }),
+      novo ? h("label", { for: "c-pes" }, "Quem", sel) : null,
+      h("label", { for: "c-dia" }, "Dia em que entrou", dia),
+      h("div", { class: "duas" }, h("label", { for: "c-ent" }, "Entrada", ent), h("label", { for: "c-sai" }, "Saída", sai)), dica,
+      novo ? h("p", { class: "note", style: "margin:0", text: "Já vem com as horas habituais. Deixe a saída vazia se ainda está na casa." }) : null, err,
       h("div", { class: "row-actions" }, del, h("button", { type: "button", class: "btn", onclick: () => ov.remove() }, "Cancelar"), save));
     form.addEventListener("submit", async (ev) => {
       ev.preventDefault();
-      // an unchanged field keeps its exact time (the form shows minutes only), so only the edited side is marked corrected
-      const val = (inp, p) => !inp.value ? null : p && inp.value === local(p.em) ? p.em : new Date(inp.value).toISOString();
-      const e1 = val(ent, t.ent), e2 = val(sai, t.sai);
-      if (!e1 && !e2) { err.textContent = "Indique pelo menos a entrada ou a saída."; err.hidden = false; return; }
-      if (e1 && e2 && e2 <= e1) { err.textContent = "A saída tem de ser depois da entrada."; err.hidden = false; return; }
+      if (!dia.value) return falha("Indique o dia.");
+      let [e1, e2] = horasDoTurno(dia.value, ent.value, sai.value);
+      const agora = new Date().toISOString();
+      if (!e1 && !e2) return falha("Indique pelo menos a entrada ou a saída.");
+      if (novo && !e1) return falha("Indique a hora de entrada.");
+      if ((e1 && e1 > agora) || (e2 && e2 > agora)) return falha(e2 && e2 > agora && !(e1 > agora) ? "A saída ainda não chegou. Deixe-a vazia se a pessoa ainda está na casa." : "A entrada não pode ser no futuro.");
+      if (e1 && e2 && new Date(e2) - new Date(e1) > 20 * 3600e3) return falha("O turno teria mais de 20 horas. Verifique o dia e as horas.");
+      const pid = novo ? sel.value : t.pessoa, quem = novo ? pessoas.find((p) => p.id === pid) : t;
+      if (e1) { const c = sobrepostos(pid, e1, e2, t); if (c.length) return falha(quem.nome + " já tem um turno que começa " + fmtDia(diaKey(c[0].ent.em)) + " às " + hora(c[0].ent.em) + ". Corrija esse em vez de juntar outro."); }
+      // an unchanged time keeps its exact instant (the form shows minutes only), so only the edited side is marked corrected
+      const igual = (p, iso) => p && iso && diaKey(p.em) === diaKey(iso) && hora(p.em) === hora(iso);
+      if (!novo) { if (igual(t.ent, e1)) e1 = t.ent.em; if (igual(t.sai, e2)) e2 = t.sai.em; }
       save.disabled = true;
-      const base = { pessoa: t.pessoa, nome: t.nome, extra: !!t.extra };
-      const put = async (p, tipo, em) => {
-        const col = S.db.collection("picagens");
-        if (p && em) { if (em !== p.em) await col.doc(p.id).update({ em, dia: diaKey(em), mes: mesKey(em), corrigido: true }); }
-        else if (p && !em) await col.doc(p.id).delete();
-        // a saída added to an open shift takes the automatic exit's id, so it replaces one written meanwhile and blocks a later one
-        else if (!p && em) await col.doc(tipo === "saida" && t.ent && comSaidaAuto(t.ent) ? "auto-" + t.ent.id : newId()).set({ ...base, tipo, em, dia: diaKey(em), mes: mesKey(em), corrigido: true });
-      };
-      try { await put(t.ent, "entrada", e1); await put(t.sai, "saida", e2); toast("Turno corrigido"); ov.remove(); }
-      catch (e) { save.disabled = false; toast("Não foi possível guardar."); }
+      const base = { pessoa: pid, nome: quem.nome, extra: !!quem.extra }, col = S.db.collection("picagens");
+      try {
+        if (novo) {
+          const eid = newId();
+          await col.doc(eid).set({ ...base, tipo: "entrada", em: e1, dia: diaKey(e1), mes: mesKey(e1), corrigido: true, manual: true });
+          // the exit takes the automatic exit's id, so a phone that saw the entrada alone cannot add a second one
+          if (e2) await col.doc(comSaidaAuto({ em: e1 }) ? "auto-" + eid : newId()).set({ ...base, tipo: "saida", em: e2, dia: diaKey(e2), mes: mesKey(e2), corrigido: true, manual: true });
+          toast("Turno de " + quem.nome + " acrescentado"); ov.remove(); return;
+        }
+        const put = async (p, tipo, em) => {
+          if (p && em) { if (em !== p.em) await col.doc(p.id).update({ em, dia: diaKey(em), mes: mesKey(em), corrigido: true }); }
+          else if (p && !em) await col.doc(p.id).delete();
+          // a saída added to an open shift takes the automatic exit's id, so it replaces one written meanwhile and blocks a later one
+          else if (!p && em) await col.doc(tipo === "saida" && t.ent && comSaidaAuto(t.ent) ? "auto-" + t.ent.id : newId()).set({ ...base, tipo, em, dia: diaKey(em), mes: mesKey(em), corrigido: true });
+        };
+        await put(t.ent, "entrada", e1); await put(t.sai, "saida", e2); toast("Turno corrigido"); ov.remove();
+      } catch (e) { save.disabled = false; falha("Não foi possível guardar. Tente de novo."); }
     });
-    const ov = h("div", { class: "overlay", onclick: (e) => { if (e.target === ov) ov.remove(); } }, h("div", { class: "panel", role: "dialog", "aria-modal": "true", "aria-label": "Corrigir turno" }, form));
+    const ov = h("div", { class: "overlay", onclick: (e) => { if (e.target === ov) ov.remove(); } }, h("div", { class: "panel", role: "dialog", "aria-modal": "true", "aria-label": novo ? "Acrescentar turno" : "Corrigir turno" }, form));
     document.body.append(ov);
   }
 

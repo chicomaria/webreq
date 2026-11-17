@@ -5,6 +5,12 @@
 <meta name="robots" content="noindex, nofollow">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#eef1ee">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Chico Maria">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Source+Sans+3:wght@400;600;700&family=IBM+Plex+Mono:wght@500&display=swap">
@@ -15,17 +21,16 @@
 <script src="registos.js"></script>
 <title>Chico Maria · Backoffice</title>
 <style>
-.tiles { display: grid; gap: 10px; margin-top: 6px; }
-h2.grp { font-family: var(--font-display); font-weight: 700; font-size: 15px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 18px 2px 0; }
-@media (min-width: 640px) { .tiles { grid-template-columns: repeat(3, 1fr); } }
-a.tile { display: grid; grid-template-columns: 48px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 16px 14px; background: var(--paper); border: 1px solid var(--line); border-radius: 14px; color: var(--ink); text-decoration: none; }
+/* One screen on the phone: the summary lights, then two small tiles per row; Gestão stays folded */
+.tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 6px; }
+@media (min-width: 640px) { .tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+h2.grp { font-family: var(--font-display); font-weight: 700; font-size: 15px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 16px 2px 0; }
+a.tile { display: grid; grid-template-columns: 32px minmax(0, 1fr); gap: 9px; align-items: center; padding: 9px 10px; min-height: 58px; background: var(--paper); border: 1px solid var(--line); border-radius: 12px; color: var(--ink); text-decoration: none; min-width: 0; }
 a.tile:active { background: var(--accent-soft); }
-a.tile svg { width: 48px; height: 48px; padding: 10px; border-radius: 12px; background: var(--accent-soft); color: var(--accent); }
-a.tile strong { display: block; font-family: var(--font-display); font-size: 22px; letter-spacing: .03em; text-transform: uppercase; }
-a.tile span.s { display: block; color: var(--muted); font-size: 13px; margin-top: 2px; }
-a.tile .go { color: var(--muted); font-size: 22px; }
-.badge { display: inline-block; margin-top: 5px; font-family: var(--font-body); font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 99px; background: var(--amarelo); color: #221a02; white-space: nowrap; }
-/* quick summary at the top: one blip per record, yellow while something is missing, green when done */
+a.tile svg { width: 32px; height: 32px; padding: 6px; border-radius: 9px; background: var(--accent-soft); color: var(--accent); }
+a.tile strong { display: block; font-family: var(--font-display); font-size: 18px; letter-spacing: .02em; text-transform: uppercase; line-height: 1.05; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+a.tile span.s { display: block; color: var(--muted); font-size: 13px; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* quick summary at the top: one blip per record, yellow while something is missing, green when done, grey when there is nothing to do */
 .resumo { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-top: 10px; }
 @media (min-width: 640px) { .resumo { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
 a.blip { display: grid; grid-template-columns: 9px minmax(0, 1fr); column-gap: 6px; align-items: center; padding: 6px 7px; border-radius: 10px; background: var(--paper); border: 1px solid var(--line); color: var(--ink); text-decoration: none; min-width: 0; }
@@ -36,7 +41,30 @@ a.blip b { font-family: var(--font-display); font-size: clamp(12px, 3.6vw, 15px)
 a.blip small { font-size: 11px; color: var(--muted); }
 a.blip.ok i { background: var(--ok); }
 a.blip.pend i { background: var(--amarelo); box-shadow: 0 0 0 3px var(--amarelo-soft); }
-.date { font-family: var(--font-display); font-weight: 600; font-size: 15px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; margin-top: 14px; }
+a.blip.off i { background: transparent; border: 2px solid var(--line); }
+.dia { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 12px; }
+.dia .date { font-family: var(--font-display); font-weight: 600; font-size: 15px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.estado { border: 1px solid var(--line); background: var(--paper); border-radius: 99px; padding: 6px 12px; font-weight: 700; font-size: 13px; color: var(--ink); display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.estado::before { content: ""; width: 8px; height: 8px; border-radius: 99px; background: var(--line); }
+.estado.aberto::before { background: var(--ok); }
+details.gestao { margin-top: 16px; }
+details.gestao > summary { list-style: none; cursor: pointer; font-family: var(--font-display); font-weight: 700; font-size: 15px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); padding: 6px 2px; display: flex; align-items: center; gap: 8px; }
+details.gestao > summary::-webkit-details-marker { display: none; }
+details.gestao > summary::before { content: "▸"; color: var(--accent); transition: transform .15s; }
+details.gestao[open] > summary::before { transform: rotate(90deg); }
+details.gestao > summary small { font-family: var(--font-body); font-weight: 600; font-size: 13px; letter-spacing: 0; text-transform: none; }
+.copia { margin-top: 10px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+/* Dias de abertura */
+.semana7 { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+.semana7 button { border: 1px solid var(--line); background: var(--bg); border-radius: 8px; padding: 10px 0; font-weight: 700; font-size: 14px; color: var(--muted); }
+.semana7 button[aria-pressed="true"] { background: var(--ok); border-color: var(--ok); color: var(--on-fill); }
+.exc { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.exc li { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 4px 0 4px 10px; border: 1px solid var(--line); border-radius: 8px; font-size: 14px; }
+.exc li button { border: 0; background: transparent; color: var(--warn); font-weight: 700; padding: 6px 12px; }
+.nova-exc { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 6px; }
+.nova-exc input { min-width: 0; }
+.panel h3 { margin: 0; font-family: var(--font-display); font-size: 22px; text-transform: uppercase; letter-spacing: .04em; }
+.form .grp-t { font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: -4px; }
 </style>
 </head>
 <body>
@@ -51,117 +79,131 @@ a.blip.pend i { background: var(--amarelo); box-shadow: 0 0 0 3px var(--amarelo-
     <a class="blip" id="b-enc" href="encomendas.html#his"><i></i><b>Encomenda</b><small>…</small></a>
   </nav>
 
-  <div class="date" id="hoje"></div>
+  <div class="dia"><span class="date" id="hoje"></span><button type="button" class="estado" id="estado" hidden></button></div>
   <h2 class="grp">Dia a dia</h2>
   <div class="tiles">
     <a class="tile" href="encomendas.html">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4h6l1 2h3v15H5V6h3z"/><path d="M9 11h6M9 15h6"/></svg>
-      <div><strong>Encomendas</strong><span class="s" id="s-enc">Requisições aos fornecedores</span><span class="badge" id="t-enc" hidden></span></div><span class="go" aria-hidden="true">›</span>
+      <div><strong>Encomendas</strong><span class="s" id="s-enc">Requisições</span></div>
     </a>
     <a class="tile" href="horarios.html">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
-      <div><strong>Horários</strong><span class="s" id="s-hor">Entradas e saídas da equipa</span></div><span class="go" aria-hidden="true">›</span>
+      <div><strong>Horários</strong><span class="s" id="s-hor">Entradas e saídas</span></div>
     </a>
     <a class="tile" href="rececao.html">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 8l-9-5-9 5v8l9 5 9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/><path d="M7.5 5.5l9 5"/></svg>
-      <div><strong>Receção de mercadorias</strong><span class="s" id="s-rec">Lotes dos fornecedores, semana a semana</span></div><span class="go" aria-hidden="true">›</span>
+      <div><strong>Receção</strong><span class="s">de mercadorias</span></div>
     </a>
     <a class="tile" href="temperaturas.html">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 14.8V4a2 2 0 1 0-4 0v10.8a4 4 0 1 0 4 0z"/><path d="M12 9v7"/></svg>
-      <div><strong>Temperaturas</strong><span class="s" id="s-tmp">Registo dos 6 frios</span></div><span class="go" aria-hidden="true">›</span>
+      <div><strong>Temperaturas</strong><span class="s" id="s-tmp">Os 6 frios</span></div>
     </a>
     <a class="tile" href="limpezas.html">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3l-3 8"/><path d="M8 11h8l2 10H6z"/><path d="M10 15v6M14 15v6"/></svg>
-      <div><strong>Limpezas</strong><span class="s" id="s-lmp">Checklist diária: bar, cozinha, arrumos, WC</span></div><span class="go" aria-hidden="true">›</span>
+      <div><strong>Limpezas</strong><span class="s">Bar, cozinha, arrumos, WC</span></div>
     </a>
     <a class="tile" href="oleos.html">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/><path d="M9.5 14.5a2.5 2.5 0 0 0 2.5 2.5"/></svg>
-      <div><strong>Óleos</strong><span class="s" id="s-ole">Substituição e recolha</span></div><span class="go" aria-hidden="true">›</span>
+      <div><strong>Óleos</strong><span class="s" id="s-ole">Substituição e recolha</span></div>
     </a>
   </div>
-  <h2 class="grp">Fichas técnicas e manuais</h2>
+  <h2 class="grp">Fichas e carta</h2>
   <div class="tiles">
     <a class="tile" href="pratos.html">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="14" cy="12" r="7"/><circle cx="14" cy="12" r="3"/><path d="M3 4v5a1.5 1.5 0 0 0 3 0V4M4.5 10.5V20"/></svg>
-      <div><strong>Pratos</strong><span class="s" id="s-pr">Fichas técnicas e manual da sala</span></div><span class="go" aria-hidden="true">›</span>
+      <div><strong>Pratos</strong><span class="s" id="s-pr">Fichas e manual</span></div>
     </a>
     <a class="tile" href="cocktails.html">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16l-8 9z"/><path d="M12 13v7M8 20h8"/><path d="M15 4l3-2"/></svg>
-      <div><strong>Cocktails</strong><span class="s" id="s-ck">Receitas, história e custos</span></div><span class="go" aria-hidden="true">›</span>
+      <div><strong>Cocktails</strong><span class="s" id="s-ck">Receitas e custos</span></div>
     </a>
     <a class="tile" href="vinhos.html">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3h8l-1 7a3 3 0 0 1-6 0z"/><path d="M12 13v8M8 21h8"/></svg>
-      <div><strong>Vinhos</strong><span class="s" id="s-vn">Carta, preços e notas de prova</span></div><span class="go" aria-hidden="true">›</span>
+      <div><strong>Vinhos</strong><span class="s" id="s-vn">Carta e preços</span></div>
     </a>
-  </div>
-  <!-- shown once carta.html is published (customer-facing menu, PR #1) -->
-  <div id="g-carta" hidden>
-  <h2 class="grp">Para os clientes</h2>
-  <div class="tiles">
-    <a class="tile" href="carta.html">
+    <a class="tile" href="formacao-vinhos.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h6a2 2 0 0 1 2 2v13a2 2 0 0 0-2-2H4z"/><path d="M20 5h-6a2 2 0 0 0-2 2v13a2 2 0 0 1 2-2h6z"/></svg>
+      <div><strong>Formação</strong><span class="s">Vinhos: regiões e castas</span></div>
+    </a>
+    <!-- shown once carta.html is published (customer-facing menu) -->
+    <a class="tile" href="carta.html" id="g-carta" hidden>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 3h11l3 3v15H5z"/><path d="M9 8h6M9 12h6M9 16h3"/><path d="M12 3v3"/></svg>
-      <div><strong>Carta</strong><span class="s">A carta para os clientes, sempre atualizada</span></div><span class="go" aria-hidden="true">›</span>
+      <div><strong>Carta</strong><span class="s">Para os clientes</span></div>
     </a>
   </div>
-  </div>
-  <h2 class="grp">Gestão</h2>
-  <div class="tiles">
-    <a class="tile" href="fornecedores.html">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7h11v10H3z"/><path d="M14 10h4l3 3v4h-7"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>
-      <div><strong>Fornecedores e preços</strong><span class="s" id="s-fr">Contactos e preços dos ingredientes</span></div><span class="go" aria-hidden="true">›</span>
-    </a>
-    <a class="tile" href="redes.html">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><path d="M17 7h.01"/></svg>
-      <div><strong>Redes sociais</strong><span class="s" id="s-rs">Ideias e copy</span></div><span class="go" aria-hidden="true">›</span>
-    </a>
-    <a class="tile" href="mercearia.html">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9h16l-1 11H5z"/><path d="M8 9V6a4 4 0 0 1 8 0v3"/></svg>
-      <div><strong>Mercearia</strong><span class="s" id="s-mc">Plano de produtos</span></div><span class="go" aria-hidden="true">›</span>
-    </a>
-  </div>
+  <details class="gestao" id="gestao">
+    <summary>Gestão <small id="s-gestao">fornecedores, redes, mercearia, cópia</small></summary>
+    <div class="tiles">
+      <a class="tile" href="fornecedores.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7h11v10H3z"/><path d="M14 10h4l3 3v4h-7"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>
+        <div><strong>Fornecedores</strong><span class="s" id="s-fr">Contactos e preços</span></div>
+      </a>
+      <a class="tile" href="redes.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><path d="M17 7h.01"/></svg>
+        <div><strong>Redes sociais</strong><span class="s" id="s-rs">Ideias e copy</span></div>
+      </a>
+      <a class="tile" href="mercearia.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9h16l-1 11H5z"/><path d="M8 9V6a4 4 0 0 1 8 0v3"/></svg>
+        <div><strong>Mercearia</strong><span class="s" id="s-mc">Plano de produtos</span></div>
+      </a>
+    </div>
+    <div class="copia">
+      <button type="button" class="btn" id="copia">Descarregar cópia de tudo</button>
+      <span class="note" id="copia-nota">Um ficheiro com todos os registos, para guardar no computador.</span>
+    </div>
+  </details>
 </div>
 <script>
 (async () => {
-  const d = new Date().toLocaleDateString("pt-PT", { weekday: "long", day: "numeric", month: "long" });
-  $("hoje").textContent = d;
+  $("hoje").textContent = new Date().toLocaleDateString("pt-PT", { weekday: "long", day: "numeric", month: "long" });
   fetch("carta.html", { method: "HEAD", cache: "no-store" }).then((r) => { if (r.ok) $("g-carta").hidden = false; }).catch(() => {});
+  const g = $("gestao");
+  try { g.open = localStorage.getItem("home-gestao") === "1"; } catch (e) {}
+  g.addEventListener("toggle", () => { try { localStorage.setItem("home-gestao", g.open ? "1" : "0"); } catch (e) {} });
   const db = await abrirDb();
   if (!db) { $("sub").textContent = "Sem ligação"; return; }
   $("sub").textContent = "Equipa";
   // what each record needs today or this week; collections not read yet stay grey
   const R = {};
-  const blip = (id, ok, txt) => { const el = $(id); el.className = "blip " + (ok ? "ok" : "pend"); el.querySelector("small").textContent = txt; el.title = el.querySelector("b").textContent + ": " + txt; };
+  let cfgAbertura = null, cfgLida = false;
+  const blip = (id, estado, txt) => { const el = $(id); el.className = "blip " + estado; el.querySelector("small").textContent = txt; el.title = el.querySelector("b").textContent + ": " + txt; };
+  const ddmm = (iso) => diaKey(iso).slice(8) + "/" + diaKey(iso).slice(5, 7);
   function resumo() {
     const hoje = hojeKey(), agora = new Date();
+    // open or closed today: a closed day turns the daily lights grey (someone clocking in opens the day)
+    const pics = R.picagens || [], aberto = diaAberto(hoje, cfgAbertura, pics);
+    if (cfgLida && R.picagens) { const b = $("estado"); b.hidden = false; b.className = "estado" + (aberto ? " aberto" : ""); b.textContent = aberto ? "Aberto hoje" : "Fechado hoje"; }
     if (R.temperaturas) {
       const n = new Set(R.temperaturas.filter((t) => t.em && diaKey(t.em) === hoje).map((t) => t.frio)).size;
-      blip("b-tmp", n >= 6, n + " de 6 hoje"); $("s-tmp").textContent = n + " de 6 frios registados hoje";
+      blip("b-tmp", n >= 6 ? "ok" : aberto ? "pend" : "off", !aberto && !n ? "fechado" : n + " de 6 hoje");
+      const u = R.temperaturas.filter((t) => t.em).sort((a, b) => b.em.localeCompare(a.em))[0];
+      $("s-tmp").textContent = u ? "Última ronda " + (diaKey(u.em) === hoje ? "às " + hora(u.em) : ddmm(u.em)) : "Os 6 frios";
     }
     if (R.limpezas) {
-      const as = limpezasDoDia(R.limpezas, hoje), n = as.filter((a) => a.registo).length;
-      blip("b-lmp", n === as.length, n + " de " + as.length + " hoje"); $("s-lmp").textContent = n === as.length ? "Checklist de hoje feita" : n + " de " + as.length + " áreas limpas hoje";
+      const as = limpezasDoDia(R.limpezas, hoje, aberto), n = as.filter((a) => a.registo).length;
+      blip("b-lmp", n === as.length ? "ok" : aberto ? "pend" : "off", !aberto && !n ? "fechado" : n + " de " + as.length + " hoje");
     }
     if (R.picagens) {
+      // information only: nobody in the house is not something to fix
       const dentro = naCasa(R.picagens, agora).map((p) => p.nome);
-      blip("b-hor", dentro.length > 0, dentro.length ? dentro.length + " na casa" : "ninguém na casa");
-      $("s-hor").textContent = dentro.length ? "Na casa: " + dentro.join(", ") : "Ninguém registado na casa";
+      blip("b-hor", dentro.length ? "ok" : "off", dentro.length ? dentro.length + " na casa" : "ninguém");
+      $("s-hor").textContent = dentro.length ? "Na casa: " + dentro.join(", ") : "Entradas e saídas";
     }
     if (R.encomendas && R.rececoes) {
       const lotes = semanasComEncomendas(R.encomendas).filter((seg) => agora < prazoSemana(seg)).flatMap((seg) => rececaoDaSemana(R.encomendas, R.rececoes, seg, agora));
-      const p = lotes.filter((g) => g.estado === "pendente").length;
-      blip("b-rec", !p, p ? p + " por validar" : lotes.length ? "tudo validado" : "sem entregas");
-      $("s-rec").textContent = p ? p + (p === 1 ? " fornecedor por validar" : " fornecedores por validar") + " até sábado" : lotes.length ? "Lotes desta semana validados" : "Lotes dos fornecedores, semana a semana";
+      const p = lotes.filter((x) => x.estado === "pendente").length;
+      blip("b-rec", p ? "pend" : "ok", p ? p + " por validar" : lotes.length ? "tudo validado" : "sem entregas");
     }
     if (R.oleos) {
+      // the weekly change is due once the week has had an open day
       const ok = oleoNaSemana(R.oleos), u = ultimoOleo(R.oleos, "substituicao");
-      const txt = u ? (diaKey(u.em) === hoje ? "hoje" : fmtDia(diaKey(u.em))) : "";
-      blip("b-ole", ok, ok ? "trocado " + (diaKey(u.em) === hoje ? "hoje" : new Date(u.em).toLocaleDateString("pt-PT", { weekday: "long" }).split("-")[0]) : u ? "último " + diaKey(u.em).slice(8) + "/" + diaKey(u.em).slice(5, 7) : "sem registos");
-      $("s-ole").textContent = u ? "Última substituição: " + txt + " às " + hora(u.em) : "Substituição e recolha";
+      const devido = diasAbertosAte(segundaDe(hoje), hoje, cfgAbertura, pics).length > 0;
+      blip("b-ole", ok ? "ok" : devido ? "pend" : "off", ok ? "trocado " + (diaKey(u.em) === hoje ? "hoje" : new Date(u.em).toLocaleDateString("pt-PT", { weekday: "long" }).split("-")[0]) : u ? "último " + ddmm(u.em) : "sem registos");
+      $("s-ole").textContent = u ? "Última troca " + (diaKey(u.em) === hoje ? "hoje" : ddmm(u.em)) : "Substituição e recolha";
     }
     if (R.encomendas) {
       const n = artigosPorEntregar(R.encomendas, agora);
-      blip("b-enc", !n, n ? n + " por entregar" : "tudo entregue");
-      const b = $("t-enc"); b.hidden = !n; b.textContent = n + " por entregar";
+      blip("b-enc", n ? "pend" : "ok", n ? n + " por entregar" : "tudo entregue");
     }
   }
   let t; const soon = () => { clearTimeout(t); t = setTimeout(resumo, 50); };
@@ -170,16 +212,78 @@ a.blip.pend i { background: var(--amarelo); box-shadow: 0 0 0 3px var(--amarelo-
     if (col === "picagens") { R.picagens = R.picagens.filter((p) => p.em && p.pessoa); fecharTurnosAbertos(db, R.picagens); }
     soon();
   });
+  db.doc("config/abertura").onSnapshot((s) => { cfgAbertura = s.exists ? s.data() : null; cfgLida = true; soon(); if (document.querySelector(".overlay.abertura")) desenharAbertura(); });
   // the day, the week and 01:00 change while the page stays open
   setInterval(() => { if (R.picagens) fecharTurnosAbertos(db, R.picagens); resumo(); }, 60000);
-  db.collection("rascunho").onSnapshot((s) => { const n = s.docs.length; $("s-enc").textContent = n ? n + (n === 1 ? " artigo" : " artigos") + " na encomenda em curso" : "Requisições aos fornecedores"; });
-  const conta = (col, id, fn) => db.collection(col).onSnapshot((s) => { const t = fn(s.docs.map((x) => x.data())); if (t) $(id).textContent = t; });
-  conta("fichas", "s-pr", (d) => { const p = d.filter((f) => f.tipo !== "cocktail"), v = p.filter((f) => !(f.ingredientes || []).length).length; return p.length ? p.filter((f) => f.atual).length + " pratos atuais" + (v ? " · " + v + " fichas por preencher" : "") : ""; });
-  conta("fichas", "s-ck", (d) => { const n = d.filter((f) => f.tipo === "cocktail").length; return n ? n + (n === 1 ? " cocktail" : " cocktails") + " com receita e história" : ""; });
-  conta("vinhos", "s-vn", (d) => d.length ? d.filter((v) => v.naCarta).length + " vinhos na carta, " + d.filter((v) => !v.naCarta).length + " de reserva" : "");
-  conta("fornecedores", "s-fr", (d) => d.length ? d.length + " fornecedores e os preços das fichas" : "");
-  conta("redes", "s-rs", (d) => d.length ? d.filter((p) => p.estado !== "publicado").length + " ideias por publicar" : "");
-  conta("mercearia", "s-mc", (d) => d.length ? d.filter((i) => i.estado === "venda").length + " à venda, " + d.filter((i) => i.estado !== "venda" && i.estado !== "descartado").length + " em estudo" : "");
+  db.collection("rascunho").onSnapshot((s) => { const n = s.docs.length; $("s-enc").textContent = n ? n + (n === 1 ? " artigo" : " artigos") + " na encomenda" : "Requisições"; });
+  const conta = (col, id, fn) => db.collection(col).onSnapshot((s) => { const x = fn(s.docs.map((d) => d.data())); if (x) $(id).textContent = x; });
+  conta("fichas", "s-pr", (d) => { const p = d.filter((f) => f.tipo !== "cocktail" && f.atual), v = p.filter((f) => !(f.ingredientes || []).length).length; return p.length ? p.length + " na carta" + (v ? ", " + v + " sem ficha" : "") : ""; });
+  conta("fichas", "s-ck", (d) => { const n = d.filter((f) => f.tipo === "cocktail").length; return n ? n + (n === 1 ? " receita" : " receitas") : ""; });
+  conta("vinhos", "s-vn", (d) => d.length ? d.filter((v) => v.naCarta).length + " na carta" : "");
+  conta("fornecedores", "s-fr", (d) => d.length ? d.length + " e os preços" : "");
+  conta("redes", "s-rs", (d) => d.length ? d.filter((p) => p.estado !== "publicado").length + " por publicar" : "");
+  conta("mercearia", "s-mc", (d) => d.length ? d.filter((i) => i.estado === "venda").length + " à venda" : "");
+
+  // ---------- Dias de abertura ----------
+  $("estado").addEventListener("click", abrirAbertura);
+  let ovA = null;
+  function abrirAbertura() {
+    ovA = h("div", { class: "overlay abertura", onclick: (e) => { if (e.target === ovA) fecharA(); } });
+    document.body.append(ovA); document.addEventListener("keydown", escA);
+    desenharAbertura();
+  }
+  const fecharA = () => { if (ovA) ovA.remove(); ovA = null; document.removeEventListener("keydown", escA); };
+  const escA = (e) => { if (e.key === "Escape") fecharA(); };
+  async function gravarA(patch, msg) {
+    try { await db.doc("config/abertura").set({ ...abertura(cfgAbertura), ...patch }); if (msg) toast(msg); }
+    catch (e) { toast("Não foi possível guardar. Tente de novo."); }
+  }
+  function desenharAbertura() {
+    if (!ovA) return;
+    const a = abertura(cfgAbertura), hoje = hojeKey(), pics = R.picagens || [];
+    const abertoHoje = diaAberto(hoje, cfgAbertura, pics), picou = pics.some((p) => p.tipo === "entrada" && diaKey(p.em) === hoje);
+    const semExc = (d) => ({ abertos: a.abertos.filter((x) => x !== d), fechados: a.fechados.filter((x) => x !== d) });
+    const semana = h("div", { class: "semana7", role: "group", "aria-label": "Dias da semana em que abre" }, DIAS_SEMANA.map(([n, nome]) => h("button", { type: "button", "aria-pressed": String(a.dias.includes(n)),
+      onclick: () => gravarA({ dias: a.dias.includes(n) ? a.dias.filter((x) => x !== n) : [...a.dias, n].sort() }) }, nome)));
+    // today in one tap: an exception for today, or back to the weekly rule
+    const regraHoje = a.dias.includes(new Date(hoje + "T12:00").getDay());
+    const hojeBtn = picou ? h("p", { class: "note", text: "Hoje já houve entradas nos Horários, por isso conta como aberto." })
+      : h("button", { type: "button", class: "btn " + (abertoHoje ? "" : "primary"), onclick: () => {
+        const ex = semExc(hoje);
+        if (abertoHoje) gravarA(regraHoje ? { ...ex, fechados: [...ex.fechados, hoje] } : ex, "Hoje fica fechado");
+        else gravarA(regraHoje ? ex : { ...ex, abertos: [...ex.abertos, hoje] }, "Hoje fica aberto");
+      } }, abertoHoje ? "Fechar hoje" : "Abrir hoje");
+    const data = h("input", { type: "date", "aria-label": "Dia", value: somaDias(hoje, 1) });
+    const juntar = (tipo) => { const d = data.value; if (!d) return; const ex = semExc(d); gravarA({ ...ex, [tipo]: [...ex[tipo], d].sort() }, fmtDia(d) + (tipo === "abertos" ? ": aberto" : ": fechado")); };
+    const lista = [...a.abertos.map((d) => [d, "aberto"]), ...a.fechados.map((d) => [d, "fechado"])].filter(([d]) => d >= somaDias(hoje, -14)).sort((x, y) => x[0].localeCompare(y[0]));
+    const form = h("div", { class: "form" },
+      h("h3", { text: "Dias de abertura" }),
+      h("p", { class: "note", style: "margin:0", text: "Hoje: " + (abertoHoje ? "aberto" : "fechado") + ". Nos dias fechados as luzes de temperaturas e limpezas ficam cinzentas e as limpezas não se dão como feitas." }),
+      hojeBtn,
+      h("div", { class: "grp-t", text: "Todas as semanas" }), semana,
+      h("div", { class: "grp-t", text: "Exceções (eventos, férias, feriados)" }),
+      h("div", { class: "nova-exc" }, data, h("button", { type: "button", class: "btn", onclick: () => juntar("abertos") }, "Aberto"), h("button", { type: "button", class: "btn", onclick: () => juntar("fechados") }, "Fechado")),
+      lista.length ? h("ul", { class: "exc" }, lista.map(([d, tipo]) => h("li", {}, h("span", {}, fmtDia(d) + " · " + tipo), h("button", { type: "button", "aria-label": "Tirar " + fmtDia(d), onclick: () => gravarA(semExc(d)) }, "Tirar")))) : null,
+      h("div", { class: "row-actions" }, h("button", { type: "button", class: "btn primary", onclick: fecharA }, "Fechar")));
+    ovA.replaceChildren(h("div", { class: "panel", role: "dialog", "aria-modal": "true", "aria-label": "Dias de abertura" }, form));
+  }
+
+  // ---------- Cópia de segurança ----------
+  const COLECOES = ["produtos", "rascunho", "encomendas", "envios", "rececoes", "temperaturas", "limpezas", "oleos", "equipa", "picagens",
+    "fichas", "ingredientes", "pratos", "bebidas", "vinhos", "fornecedores", "redes", "mercearia", "config"];
+  $("copia").addEventListener("click", async () => {
+    const b = $("copia"); b.disabled = true; b.textContent = "A juntar…";
+    try {
+      const out = { feita: new Date().toISOString(), colecoes: {} };
+      for (const c of COLECOES) out.colecoes[c] = Object.fromEntries(await db.carregar(c));
+      const url = URL.createObjectURL(new Blob([JSON.stringify(out, null, 1)], { type: "application/json" }));
+      const a = document.createElement("a"); a.href = url; a.download = "chico-maria-copia-" + hojeKey() + ".json"; document.body.append(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 30000);
+      const n = Object.values(out.colecoes).reduce((s, x) => s + Object.keys(x).length, 0);
+      $("copia-nota").textContent = "Cópia descarregada: " + n + " registos.";
+    } catch (e) { toast("Não foi possível fazer a cópia: " + motivoErro(e) + "."); }
+    b.disabled = false; b.textContent = "Descarregar cópia de tudo";
+  });
 })();
 </script>
 </body>

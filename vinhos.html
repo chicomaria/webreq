@@ -5,6 +5,12 @@
 <meta name="robots" content="noindex, nofollow">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#eef1ee">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Chico Maria">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Source+Sans+3:wght@400;600;700&family=IBM+Plex+Mono:wght@500&display=swap">
@@ -14,6 +20,7 @@
 <script src="ui.js"></script>
 <script src="dados.js"></script>
 <script src="painel.js"></script>
+<script src="precos.js"></script>
 <title>Mapa de vinhos · Chico Maria</title>
 <style>
 .precos { padding: 10px 12px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-top: 10px; }
@@ -71,12 +78,20 @@ h3.niv { font-family: var(--font-display); font-weight: 600; font-size: 14px; co
   const NIVEIS = [["leve", "Leves e entusiásticos"], ["medio", "Versáteis e curiosos"], ["serio", "Sérios e complexos"]];
   const COM_NIVEL = new Set(["branco", "tinto"]);
   const DEF = { overhead: 7, markup: 1.4, copoMarkup: 1.8, coposGarrafa: 5, limites: { espumante: 10, branco: 12, tinto: 12, rose: 3, sobremesa: 10 } };
-  const S = { db: null, loaded: false, vinhos: [], cfg: DEF, forn: [], tab: "espumante" };
+  const S = { db: null, loaded: false, vinhos: [], cfg: DEF, forn: [], prod: new Map(), tab: "espumante" };
   try { S.tab = localStorage.getItem("vn-tab") || "espumante"; } catch (e) {}
   document.querySelectorAll("nav.tabs button").forEach((b) => b.addEventListener("click", () => { S.tab = b.dataset.tab; try { localStorage.setItem("vn-tab", S.tab); } catch (e) {} render(); }));
 
-  const calc = (w) => w.custo == null ? null : Math.round(w.custo * S.cfg.markup + S.cfg.overhead);
-  const calcCopo = (w) => w.custo == null ? null : Math.round((w.custo * S.cfg.copoMarkup + S.cfg.overhead) / S.cfg.coposGarrafa * 10) / 10;
+  // one price per article: a wine linked to an order article (artigo) costs what the article costs, by the bottle
+  const art = (w) => w && w.artigo ? S.prod.get(w.artigo) || null : null;
+  const precoGarrafa = (a) => { if (!a || a.preco == null || a.preco === "" || isNaN(Number(a.preco))) return null; const b = baseDe(unidadePreco(a)); return !b || b[0] === "un" ? Number(a.preco) : null; };
+  const custoDe = (w) => { const v = precoGarrafa(art(w)); return v != null ? v : w.custo ?? null; };
+  const fornDe = (w) => { const a = art(w); return a ? a.fornecedor || "" : w.fornecedor || ""; };
+  const artigosVinho = () => { const todos = [...S.prod.values()], v = todos.filter((p) => /^vinho/.test(normP(p.categoria))); return v.length ? v : todos; };
+  const catVinhos = () => ([...S.prod.values()].find((p) => /^vinho/.test(normP(p.categoria))) || {}).categoria || null;
+  const sugestaoVinho = (w) => artigosParecidos(w.nome, w.id, artigosVinho(), { preco: w.custo, n: 1 })[0] || null;
+  const calc = (w) => custoDe(w) == null ? null : Math.round(custoDe(w) * S.cfg.markup + S.cfg.overhead);
+  const calcCopo = (w) => custoDe(w) == null ? null : Math.round((custoDe(w) * S.cfg.copoMarkup + S.cfg.overhead) / S.cfg.coposGarrafa * 10) / 10;
   const pvp = (w) => w.pvp ?? calc(w);
   const copo = (w) => w.pvpCopo ?? calcCopo(w);
   const preco = (v, c) => v == null ? "—" : Number(v).toLocaleString("pt-PT", { maximumFractionDigits: c ?? 1 });
@@ -90,6 +105,12 @@ h3.niv { font-family: var(--font-display); font-weight: 600; font-size: 14px; co
     if (!S.loaded) { m.append(h("div", { class: "empty" }, h("strong", { text: "A carregar…" }))); return; }
     $("forn-v").replaceChildren(...S.forn.map((n) => h("option", { value: n })));
     m.append(painelPrecos());
+    const soltos = S.prod.size ? S.vinhos.filter((w) => !art(w)) : [], comSug = soltos.filter((w) => sugestaoVinho(w));
+    if (comSug.length) m.append(h("div", { class: "alerta", style: "display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px" },
+      h("span", { text: comSug.length + (comSug.length === 1 ? " vinho tem" : " vinhos têm") + " custo próprio e " + (comSug.length === 1 ? "parece" : "parecem") + " estar nas Encomendas. Ligados, passam a ter um só preço." }),
+      h("button", { class: "btn primary", onclick: () => abrirRevisaoLigacoes({ db: S.db, col: "vinhos",
+        itens: comSug.map((w) => ({ id: w.id, nome: w.nome, un: "un", proprio: w.custo ?? null, sug: sugestaoVinho(w) })).sort((a, b) => b.sug.s - a.sug.s || a.nome.localeCompare(b.nome, "pt")),
+        nota: "Um vinho ligado passa a usar o preço do artigo das Encomendas como custo da garrafa. Os marcados têm o mesmo nome ou o mesmo preço; confirme antes de ligar." }) }, "Rever e ligar")));
     m.append(S.tab === "carta" ? viewCarta() : viewTipo(S.tab));
   }
 
@@ -127,7 +148,7 @@ h3.niv { font-family: var(--font-display); font-weight: 600; font-size: 14px; co
       h("b", { text: principal == null ? "—" : preco(principal) + " €" + (sobremesa && w.pvpCopo != null ? " copo" : "") }),
       h("small", { class: dif ? "dif" : "", text: "calc. " + (calcP == null ? "—" : preco(calcP) + " €") }),
       !sobremesa ? h("small", { text: "copo " + (copo(w) == null ? "—" : preco(copo(w)) + " €") }) : null,
-      h("small", { text: "custo " + (w.custo == null ? "—" : preco(w.custo, 2) + " €") }));
+      h("small", { title: art(w) ? "Preço do artigo das Encomendas" : "", text: "custo " + (custoDe(w) == null ? "—" : preco(custoDe(w), 2) + " €") + (art(w) ? " ✓" : "") }));
     return h("div", { class: "card vinho" + (fora ? " fora" : "") }, tg, meio, pr);
   }
 
@@ -177,27 +198,51 @@ h3.niv { font-family: var(--font-display); font-weight: 600; font-size: 14px; co
 
   function editar(w) {
     const t = w ? w.tipo : (S.tab === "carta" ? "espumante" : S.tab);
-    const d = w || { tipo: t, nivel: COM_NIVEL.has(t) ? "medio" : "", naCarta: false };
+    const a = art(w), cat = catVinhos();
+    const d = w ? { ...w, precoArtigo: a ? a.preco ?? null : null } : { tipo: t, nivel: COM_NIVEL.has(t) ? "medio" : "", naCarta: false, criarArtigo: !!cat };
     const extra = w ? h("p", { class: "note", text: "Calculado agora: garrafa " + (calc(w) == null ? "—" : preco(calc(w)) + " €") + " · copo " + (calcCopo(w) == null ? "—" : preco(calcCopo(w)) + " €") + ". Deixe o PVP vazio para usar o calculado." }) : null;
-    abrirEditor({ titulo: w ? w.nome : "Novo vinho", dados: d, extra,
+    let ed;
+    const reabrir = () => editar(S.vinhos.find((x) => x.id === w.id) || w);
+    const escolher = () => { ed.fechar(); abrirEscolhaArtigo({ db: S.db, produtos: artigosVinho(), col: "vinhos", id: w.id, nome: w.nome, un: "un", preco: w.custo, depois: reabrir }); };
+    const guardarLig = async (artigo, msg) => { try { await S.db.collection("vinhos").doc(w.id).update({ artigo }); ed.fechar(); toast(msg); reabrir(); } catch (e) { toast("Não foi possível guardar."); } };
+    const sug = w && !a && S.prod.size ? sugestaoVinho(w) : null;
+    const topo = !w ? null : a
+      ? h("div", { class: "alerta", style: "border-color:var(--ok);background:var(--ok-soft);margin:0 0 10px;display:grid;gap:6px" },
+          h("span", {}, "Custo do artigo das Encomendas ", h("b", { text: a.nome }), (a.fornecedor ? " (" + a.fornecedor + ")" : "") + ": " + (a.preco == null || a.preco === "" ? "sem preço" : preco(a.preco, 2) + " € por " + unidadePreco(a)) +
+            (precoGarrafa(a) == null ? ". O artigo não é vendido à unidade; até lá conta o custo próprio." : ". Mudar o custo aqui muda também nas Encomendas.")),
+          h("div", { class: "row-actions", style: "justify-content:flex-start" }, h("button", { type: "button", class: "btn", onclick: escolher }, "Mudar artigo"),
+            h("button", { type: "button", class: "btn danger", onclick: () => guardarLig(null, "Desligado: volta ao custo próprio") }, "Desligar")))
+      : S.prod.size ? h("div", { class: "row-actions", style: "justify-content:flex-start;margin:0 0 10px" },
+          sug ? h("button", { type: "button", class: "btn primary", onclick: () => guardarLig(sug.p.id, "Ligado a " + sug.p.nome) }, "Usar o preço de «" + sug.p.nome + "»") : null,
+          h("button", { type: "button", class: "btn", onclick: escolher }, sug ? "Outro artigo…" : "Ligar a um artigo das Encomendas")) : null;
+    ed = abrirEditor({ titulo: w ? w.nome : "Novo vinho", dados: d, extra, topo,
       campos: [{ k: "nome", label: "Vinho" },
         { k: "tipo", label: "Tipo", tipo: "select", opcoes: Object.entries(TIPOS) },
         { k: "nivel", label: "Categoria (brancos e tintos)", tipo: "select", opcoes: [["", "—"], ...NIVEIS] },
-        { k: "custo", label: "Custo da garrafa sem IVA (€)", tipo: "number" },
+        a ? { k: "precoArtigo", label: "Custo da garrafa sem IVA (€)", tipo: "number", dica: "Muda também nas Encomendas." } : { k: "custo", label: "Custo da garrafa sem IVA (€)", tipo: "number" },
         { k: "pvp", label: "PVP garrafa na carta (€)", tipo: "number", dica: "Vazio = usa o calculado" },
         { k: "pvpCopo", label: "PVP copo (€)", tipo: "number", dica: "Vazio = usa o calculado" },
         { k: "regiao", label: "Região" }, { k: "castas", label: "Castas" },
         { k: "notas", label: "Notas de prova / para vender", tipo: "textarea", rows: 3 },
         { k: "formato", label: "Formato", dica: "Ex.: Magnum 1,5 L, 0,5 L" },
-        { k: "fornecedor", label: "Fornecedor", lista: "forn-v" }, { k: "obs", label: "Observações internas", tipo: "textarea", rows: 2 },
-        { k: "ordem", label: "Ordem na carta", tipo: "number" }, { k: "naCarta", label: "Na carta", tipo: "check" }],
+        a ? null : { k: "fornecedor", label: "Fornecedor", lista: "forn-v" }, { k: "obs", label: "Observações internas", tipo: "textarea", rows: 2 },
+        { k: "ordem", label: "Ordem na carta", tipo: "number" }, { k: "naCarta", label: "Na carta", tipo: "check" },
+        !w && cat ? { k: "criarArtigo", label: "Criar também o artigo nas Encomendas, com este custo", tipo: "check" } : null].filter(Boolean),
       apagar: w ? () => S.db.collection("vinhos").doc(w.id).delete() : null,
-      guardar: async (x) => {
+      guardar: async (dados) => {
+        const { precoArtigo, criarArtigo, ...x } = dados;
         const lim = S.cfg.limites[x.tipo] || 99;
         if (x.naCarta && !(w && w.naCarta && w.tipo === x.tipo) && naCarta(x.tipo).length >= lim) { x.naCarta = false; toast("A carta de " + TIPOS[x.tipo].toLowerCase() + " já está cheia; ficou fora da carta."); }
         if (!COM_NIVEL.has(x.tipo)) x.nivel = "";
+        if (a) { x.custo = precoArtigo; if (precoArtigo !== (a.preco ?? null)) await S.db.collection("produtos").doc(a.id).update({ preco: precoArtigo }); }
         if (w) { const { id, ...old } = w; return S.db.collection("vinhos").doc(id).set({ ...old, ...x }); }
         let id = slugId(x.tipo + " " + x.nome); while (S.vinhos.some((y) => y.id === id)) id += "-2";
+        if (criarArtigo && cat) {
+          let pid = "vinho-" + slugId(x.nome); while (S.prod.has(pid)) pid += "-2";
+          const ordem = [...S.prod.values()].filter((p) => p.categoria === cat).reduce((m, p) => Math.max(m, p.ordem || 0), 0) + 5;
+          await S.db.collection("produtos").doc(pid).set({ nome: x.nome, categoria: cat, unidade: "un", habitual: null, fornecedor: x.fornecedor || "", preco: x.custo ?? null, precoUnidade: "un", obs: "", semanal: false, ordem });
+          x.artigo = pid;
+        }
         return S.db.collection("vinhos").doc(id).set(x);
       } });
   }
@@ -205,7 +250,7 @@ h3.niv { font-family: var(--font-display); font-weight: 600; font-size: 14px; co
     const rows = S.vinhos.slice().sort((a, b) => Object.keys(TIPOS).indexOf(a.tipo) - Object.keys(TIPOS).indexOf(b.tipo) || ord(a, b));
     const n = (v) => v == null ? "" : String(v).replace(".", ",");
     downloadCsv("mapa-de-vinhos.csv", [["Tipo", "Categoria", "Na carta", "Vinho", "Região", "Castas", "Custo", "PVP calculado", "PVP carta", "Copo calculado", "Copo carta", "Fornecedor", "Notas", "Observações"],
-      ...rows.map((w) => [TIPOS[w.tipo] || w.tipo, (NIVEIS.find(([k]) => k === w.nivel) || ["", ""])[1], w.naCarta ? "sim" : "", w.nome, w.regiao, w.castas, n(w.custo), n(calc(w)), n(w.pvp), n(calcCopo(w)), n(w.pvpCopo), w.fornecedor, w.notas, w.obs])]);
+      ...rows.map((w) => [TIPOS[w.tipo] || w.tipo, (NIVEIS.find(([k]) => k === w.nivel) || ["", ""])[1], w.naCarta ? "sim" : "", w.nome, w.regiao, w.castas, n(custoDe(w)), n(calc(w)), n(w.pvp), n(calcCopo(w)), n(w.pvpCopo), fornDe(w), w.notas, w.obs])]);
   }
 
   render();
@@ -215,6 +260,7 @@ h3.niv { font-family: var(--font-display); font-weight: 600; font-size: 14px; co
   const re = agendar(render);
   db.collection("vinhos").onSnapshot((s) => { S.vinhos = s.docs.map((d) => ({ id: d.id, ...d.data() })); S.loaded = true; re(); });
   db.doc("config/vinhos").onSnapshot((s) => { S.cfg = { ...DEF, ...(s.exists ? s.data() : {}) }; S.cfg.limites = { ...DEF.limites, ...(S.cfg.limites || {}) }; re(); });
+  db.collection("produtos").onSnapshot((s) => { S.prod = new Map(s.docs.map((d) => [d.id, { id: d.id, ...d.data() }])); re(); });
   db.collection("fornecedores").onSnapshot((s) => { S.forn = s.docs.map((d) => d.data().nome).sort((a, b) => a.localeCompare(b, "pt")); });
 })();
 </script>

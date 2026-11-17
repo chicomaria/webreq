@@ -5,6 +5,12 @@
 <meta name="robots" content="noindex, nofollow">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#eef1ee">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Chico Maria">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Source+Sans+3:wght@400;600;700&family=IBM+Plex+Mono:wght@500&display=swap">
@@ -36,6 +42,16 @@ ul.his li:first-child { border-top: 0; }
 ul.his li small { display: block; color: var(--muted); font-size: 12px; }
 ul.his li .tag { flex: none; white-space: nowrap; }
 .panel h3 { margin: 0; font-family: var(--font-display); font-size: 22px; text-transform: uppercase; letter-spacing: .04em; }
+.todos { display: flex; justify-content: flex-end; margin: 2px 0 4px; }
+.todos button { border: 1px solid var(--ok); background: var(--ok-soft); color: var(--ok); border-radius: 10px; padding: 11px 14px; font-family: var(--font-display); font-weight: 700; font-size: 16px; letter-spacing: .04em; text-transform: uppercase; }
+.todos button.armed { background: var(--ok); color: var(--on-fill); }
+.todos button:disabled { opacity: .6; }
+ul.veio { list-style: none; margin: 0; padding: 0; border: 1px solid var(--line); border-radius: 10px; max-height: 40vh; overflow-y: auto; }
+ul.veio li { border-top: 1px solid var(--line); }
+ul.veio li:first-child { border-top: 0; }
+ul.veio label { display: flex; align-items: center; gap: 10px; padding: 9px 10px; font-size: 15px; color: var(--ink); font-weight: 400; }
+ul.veio input { width: 22px; height: 22px; flex: none; accent-color: var(--ok); }
+ul.veio label.faltou span { text-decoration: line-through; color: var(--warn); }
 </style>
 </head>
 <body>
@@ -86,9 +102,22 @@ ul.his li .tag { flex: none; white-space: nowrap; }
       const falta = lista.filter((g) => g.estado === "pendente").length;
       frag.append(h("h2", { class: "sec semana" }, "Semana de " + fmtSemana(seg),
         h("small", { text: falta ? falta + " por validar até sábado " + fmtDia(somaDias(seg, 5)).replace(/^[^,]*, ?/, "") : "Tudo validado" })));
+      if (falta >= 2) frag.append(h("div", { class: "todos" }, tudoConforme(seg, lista.filter((g) => g.estado === "pendente"))));
       for (const g of lista) frag.append(cartao(seg, g));
     }
     return frag;
+  }
+  // every lot still to validate this week as conforme, after a second tap
+  function tudoConforme(seg, pend) {
+    const armado = S.armado && S.armado.id === "todos-" + seg, ocupado = pend.some((g) => S.busy.has(g.id)) || S.emLote;
+    return h("button", { type: "button", class: armado ? "armed" : "", disabled: ocupado, onclick: async () => {
+      if (!armado) { armar("todos-" + seg); return; }
+      armar(null); S.emLote = true;
+      let n = 0;
+      for (const g of pend) if (await validar(seg, g, "conforme", { silencioso: true }) === true) n++;
+      S.emLote = false; render();
+      toast(n === pend.length ? "Tudo conforme: " + n + " fornecedores" : n + " de " + pend.length + " validados. Os outros mudaram ou falharam; veja os cartões.");
+    } }, armado ? "Tocar de novo: " + pend.length + " conformes" : "Tudo conforme (" + pend.length + ")");
   }
   // earlier lots of the same supplier this week (a later order is a new lot with its own validation)
   const lotesAnteriores = (r) => ((r && r.anteriores) || []).filter((a) => !a.mesmoLote);
@@ -118,7 +147,9 @@ ul.his li .tag { flex: none; white-space: nowrap; }
   }
   // saves the validation and ticks the lot's articles as received; true when saved, "mudou" when another phone validated
   // a lot this card does not show. The record it replaces is read fresh and goes to anteriores: an earlier lot, or the same lot changed.
-  async function validar(seg, g, estado, nota, dialogoAberto) {
+  // opts: nota, dialogoAberto (the sheet is still open, so it shows the error), recebidos ({ "enc|pid": true/false }, what came), silencioso (no toast)
+  async function validar(seg, g, estado, opts = {}) {
+    const { nota, dialogoAberto, recebidos, silencioso } = opts;
     if (S.busy.has(g.id) || (estado === "conforme" && g.estado === "conforme")) return false;
     S.busy.add(g.id); render();
     let ok = false;
@@ -136,30 +167,46 @@ ul.his li .tag { flex: none; white-space: nowrap; }
       const em = new Date().toISOString();
       await S.db.collection("rececoes").doc(g.id).set({ semana: seg, fornecedor: g.fornecedor, estado, nota: nota || "", em, encs: [...new Set([...((r && r.encs) || []), ...g.encs])], artigos: lote, anteriores });
       ok = true;
-      // a lot's articles are ticked when it is first validated (changing that validation later leaves the ticks alone)
+      // a lot's articles are ticked when it is first validated (changing that validation later leaves the ticks alone),
+      // except the ones the Não conforme sheet says did not come; that sheet sets every article of the lot it showed
       let falhou = false;
-      for (const enc of !r ? g.encs : novoLote ? novas : []) {
-        const rec = {}; for (const l of g.itens) if (l.enc === enc) rec[l.pid] = true;
-        await S.db.collection("encomendas").doc(enc).update({ recebidos: rec }).catch(() => { falhou = true; });
+      const encs = recebidos ? [...new Set(g.itens.map((l) => l.enc))] : !r ? g.encs : novoLote ? novas : [];
+      for (const enc of encs) {
+        const rec = {}; for (const l of g.itens) if (l.enc === enc) { const k = enc + "|" + l.pid; if (!recebidos) rec[l.pid] = true; else if (k in recebidos) rec[l.pid] = recebidos[k]; }
+        if (Object.keys(rec).length) await S.db.collection("encomendas").doc(enc).update({ recebidos: rec }).catch(() => { falhou = true; });
       }
-      toast(g.fornecedor + ": " + (estado === "conforme" ? "conforme" : "não conforme") + (falhou ? ". Os artigos não ficaram marcados como recebidos nas Encomendas." : ""));
-    } catch (e) { if (!dialogoAberto || !dialogoAberto()) toast("Não foi possível guardar. Tente de novo."); }
+      if (!silencioso || falhou) toast(g.fornecedor + ": " + (estado === "conforme" ? "conforme" : "não conforme") + (falhou ? ". Os artigos não ficaram marcados como recebidos nas Encomendas." : ""));
+    } catch (e) { if ((!dialogoAberto || !dialogoAberto()) && !silencioso) toast("Não foi possível guardar. Tente de novo."); }
     S.busy.delete(g.id); render();
     return ok;
   }
   function naoConforme(seg, g) {
     const r = g.registo;
     const ta = h("textarea", { id: "nc-nota", rows: 3, placeholder: "Ex.: peixe acima de 4 °C, caixa danificada, faltou 1 kg de alho" });
-    ta.value = r && r.estado === "nao_conforme" && g.estado === "nao_conforme" ? r.nota || "" : "";
+    // the "Faltou: …" part is rebuilt from the ticks below
+    ta.value = r && r.estado === "nao_conforme" && g.estado === "nao_conforme" ? (r.nota || "").replace(/(^|\. )Faltou: .*$/s, "") : "";
     const err = h("p", { class: "note", style: "color:var(--warn)" }); err.hidden = true;
     const save = h("button", { type: "submit", class: "btn primary" }, "Guardar");
+    // the lot's articles, ticked as they stand (all ticked the first time): untick what did not come
+    const novoLote = !!r && g.estado === "pendente", doLote = novoLote ? g.itens.filter((l) => g.novas.includes(l.enc)) : g.itens;
+    const primeira = !r || novoLote, encDe = new Map(S.encs.map((e) => [e.id, e]));
+    const caixas = doLote.map((l) => {
+      const cb = h("input", { type: "checkbox", checked: primeira ? true : !!((encDe.get(l.enc) || {}).recebidos || {})[l.pid] });
+      const lab = h("label", {}, cb, h("span", { text: l.nome + (l.qtd ? " · " + fmtQtd(l.qtd) + (l.unidade ? " " + l.unidade : "") : "") }));
+      const pinta = () => lab.classList.toggle("faltou", !cb.checked); cb.addEventListener("change", pinta); pinta();
+      return { l, cb, li: h("li", {}, lab) };
+    });
     const form = h("form", { class: "form" }, h("h3", { text: g.fornecedor + ": não conforme" }),
+      caixas.length ? [h("div", { style: "font-size:12px;font-weight:600;color:var(--muted);margin-bottom:-6px", text: "O que veio (tire o visto ao que faltou)" }), h("ul", { class: "veio" }, caixas.map((c) => c.li))] : null,
       h("label", { for: "nc-nota" }, "O que não estava conforme? (opcional)", ta), err,
       h("div", { class: "row-actions" }, h("button", { type: "button", class: "btn", onclick: () => { ov.remove(); render(); } }, "Cancelar"), save));
     // the dialog stays open until the record is saved, so the note is not lost on a failed write
     form.addEventListener("submit", async (ev) => {
       ev.preventDefault(); save.disabled = true; save.textContent = "A guardar…"; err.hidden = true;
-      const res = await validar(seg, g, "nao_conforme", ta.value.trim(), () => ov.isConnected);
+      const recebidos = {}; for (const c of caixas) recebidos[c.l.enc + "|" + c.l.pid] = c.cb.checked;
+      // a missing article goes in the note too, so the history says it in words
+      const faltou = caixas.filter((c) => !c.cb.checked).map((c) => c.l.nome), nota = [ta.value.trim(), faltou.length ? "Faltou: " + faltou.join(", ") : ""].filter(Boolean).join(". ");
+      const res = await validar(seg, g, "nao_conforme", { nota, dialogoAberto: () => ov.isConnected, recebidos: caixas.length ? recebidos : null });
       if (res === true) { ov.remove(); render(); return; }
       save.disabled = false; save.textContent = "Guardar"; err.hidden = false;
       err.textContent = res === "mudou" ? "Outro telemóvel validou entretanto um lote novo deste fornecedor. Copie a nota, feche e confirme no cartão." : "Não foi possível guardar. Verifique a internet e tente de novo.";

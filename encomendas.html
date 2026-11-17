@@ -5,6 +5,12 @@
 <meta name="robots" content="noindex, nofollow">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#eef1ee">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Chico Maria">
 <title>Encomendas · Chico Maria</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -126,6 +132,13 @@ button.cat .on-n { color: var(--accent); }
 .overlay { position: fixed; inset: 0; z-index: 30; background: rgba(10, 14, 12, .45); display: flex; align-items: flex-end; justify-content: center; padding-top: env(safe-area-inset-top, 0px); }
 .overlay .panel { background: var(--paper); width: 100%; max-width: 640px; max-height: 92%; overflow-y: auto; border-radius: 14px 14px 0 0; padding-bottom: env(safe-area-inset-bottom, 0px); }
 @media (min-width: 700px) { .overlay { align-items: center; } .overlay .panel { border-radius: 14px; } }
+.repetir { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; margin: 8px 0 4px; }
+.repetir strong { display: block; font-size: 15px; }
+.repetir small { display: block; color: var(--muted); font-size: 13px; }
+.btn.env[aria-pressed="true"] { background: var(--ok-soft); color: var(--ok); border-color: var(--ok); }
+.envio-aviso { margin: 0 10px 4px; color: var(--warn); font-size: 13px; font-weight: 600; }
+.form small.dica { font-weight: 400; color: var(--muted); font-size: 12px; }
+.form .usa { margin: 0; padding: 8px 10px; border-radius: 8px; background: var(--accent-soft); color: var(--ink); font-size: 13px; }
 .ro-banner { margin-top: 6px; padding: 10px 14px; border-radius: var(--radius); background: var(--warn-soft); color: var(--warn); font-weight: 600; font-size: 14px; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
@@ -134,6 +147,7 @@ button.cat .on-n { color: var(--accent); }
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="db.js"></script>
 <script src="migracoes.js"></script>
+<script src="precos.js"></script>
 </head>
 <body>
 <div class="wrap">
@@ -160,7 +174,7 @@ button.cat .on-n { color: var(--accent); }
 (() => {
   const S = {
     db: null, user: null, uid: null, canWrite: true,
-    produtos: new Map(), rasc: new Map(), encomendas: [], cats: [],
+    produtos: new Map(), rasc: new Map(), encomendas: [], cats: [], forn: [], mapaF: new Map(), envios: new Map(), usam: new Map(),
     loaded: { produtos: false, rasc: false, enc: false },
     tab: "enc", filtro: "semanal", q: "", qa: "", open: new Set(), names: {}, abertas: new Set(),
   };
@@ -200,6 +214,21 @@ button.cat .on-n { color: var(--accent); }
     for (const e of S.encomendas) for (const pid of new Set((e.itens || []).map((l) => l.pid))) n.set(pid, (n.get(pid) || 0) + 1);
     const vezes = (p) => Math.max(p.vezes || 0, n.get(p.id) || 0);
     return (a, b) => (S.cats.indexOf(a.categoria) - S.cats.indexOf(b.categoria)) || (vezes(b) - vezes(a)) || sortProd(a, b);
+  }
+  // "Frequentes": what went in the last 4 closed orders, articles pinned with "Sempre nos frequentes" (fixo),
+  // and categories set to always show (the data updates' "frequentes", e.g. Vinhos). With no order yet, the old flag.
+  const FREQ_CATS = new Set((window.MIGRACOES || []).flatMap((m) => m.frequentes || []));
+  function frequentes() {
+    const set = new Set();
+    for (const e of S.encomendas.slice(0, 4)) for (const l of e.itens || []) set.add(l.pid);
+    for (const p of S.produtos.values()) if (p.fixo || FREQ_CATS.has(p.categoria) || (!S.encomendas.length && p.semanal)) set.add(p.id);
+    return set;
+  }
+  // puts the articles of an order back on the list (those still in the app)
+  function repetir(e) {
+    const ls = (e.itens || []).filter((l) => S.produtos.has(l.pid));
+    for (const l of ls) setQty(l.pid, l.qtd);
+    return ls.length;
   }
   function catsOf(list) {
     const known = [...S.cats];
@@ -291,18 +320,25 @@ button.cat .on-n { color: var(--accent); }
     search.addEventListener("input", () => { S.q = search.value; drawList(); });
     const chip = (key, label) => h("button", { class: "chip", "aria-pressed": String(S.filtro === key), onclick: () => { S.filtro = key; try { localStorage.setItem("filtro", key); } catch (e) {} render(); } }, label);
     frag.append(h("div", { class: "tools" }, search, h("div", { class: "chips" }, chip("semanal", "Frequentes"), chip("todos", "Todos"), chip("fornecedor", "Por fornecedor"), chip("pedidos", "Na encomenda"))));
+    // an empty list can start from the last order
+    const ult = S.encomendas[0];
+    if (ult && S.canWrite && !cartIds().length) {
+      const n = (ult.itens || []).filter((l) => S.produtos.has(l.pid)).length;
+      if (n) frag.append(h("div", { class: "card repetir" }, h("div", {}, h("strong", { text: "Repetir a última encomenda" }), h("small", { text: fmtD(ult.criada) + " · " + n + (n === 1 ? " artigo" : " artigos") })),
+        h("button", { class: "btn primary", onclick: () => { const k = repetir(ult); S.filtro = "pedidos"; try { localStorage.setItem("filtro", "pedidos"); } catch (e) {} toast(k + (k === 1 ? " artigo na lista. Ajuste as quantidades." : " artigos na lista. Ajuste as quantidades.")); render(); } }, "Repetir")));
+    }
     const list = h("div", { id: "enc-list" });
     frag.append(list);
     function drawList() {
       list.replaceChildren();
       if (!S.loaded.produtos) { list.append(emptyBox("A carregar artigos…", "")); return; }
-      const q = norm(S.q.trim());
+      const q = norm(S.q.trim()), freq = frequentes();
       let ps = [...S.produtos.values()].filter((p) => {
         if (q) return norm(p.nome).includes(q) || norm(p.fornecedor).includes(q);
-        if (S.filtro === "semanal") return p.semanal || qtyOf(p.id) > 0;
+        if (S.filtro === "semanal") return freq.has(p.id) || qtyOf(p.id) > 0;
         if (S.filtro === "pedidos") return qtyOf(p.id) > 0;
         return true;
-      }).sort(S.filtro === "todos" && !q ? maisPedidos() : sortProd);
+      }).sort((S.filtro === "todos" || S.filtro === "semanal") && !q ? maisPedidos() : sortProd);
       if (!ps.length) {
         list.append(S.produtos.size ? emptyBox("Nenhum artigo encontrado", q ? "Experimente outro nome, ou crie o artigo no separador Artigos." : "Ainda não escolheu nenhum artigo.") : emptyBox("Ainda não há artigos", "Adicione o primeiro no separador Artigos."));
         return;
@@ -363,6 +399,17 @@ button.cat .on-n { color: var(--accent); }
     return cartIds().map((id) => { const p = S.produtos.get(id) || { nome: "(artigo apagado)", unidade: "" }; return { pid: id, nome: p.nome, unidade: p.unidade, qtd: qtyOf(id), fornecedor: p.fornecedor, categoria: p.categoria, preco: p.preco ?? null, precoUnidade: p.precoUnidade || "", ordem: p.ordem || 0 }; })
       .sort(sortProd);
   }
+  // ---------- sending to suppliers ----------
+  // the supplier sheet behind a name used in the articles (name or one of its "nomes na app")
+  const fichaDe = (nome) => S.mapaF.get(normP(nome)) || null;
+  // what was sent: envios/{supplier} holds the list as it was then, so a later change shows
+  const idEnvio = (forn) => slug(forn);
+  const assinatura = (lines) => lines.map((l) => l.pid + ":" + l.qtd).sort().join("|");
+  function estadoEnvio(forn, lines) { const e = S.envios.get(idEnvio(forn)); return !e ? null : e.assin === assinatura(lines) ? "ok" : "mudou"; }
+  function marcarEnvio(forn, lines, on) {
+    const ref = S.db.collection("envios").doc(idEnvio(forn));
+    return serial("v:" + forn, () => on ? ref.set({ fornecedor: forn, em: new Date().toISOString(), por: S.uid || "", assin: assinatura(lines) }) : ref.delete()).catch(writeErr);
+  }
   function supplierCard(forn, lines, opts) {
     let tot = 0, nT = 0;
     const lis = lines.map((l) => {
@@ -378,10 +425,20 @@ button.cat .on-n { color: var(--accent); }
     });
     const head = h("div", { class: "card-h" }, h("h3", { text: forn }), h("span", { class: "tot", text: lines.length + (lines.length === 1 ? " artigo" : " artigos") + (nT ? " · ≈ " + fmtE(tot) : "") }));
     const txt = textFor(forn, lines, opts.titulo);
+    const ficha = fichaDe(forn), tm = telemovelDe(ficha), fixo = !tm && telefonesDe(ficha)[0], email = ficha && String(ficha.email || "").trim();
+    const env = opts.envio ? estadoEnvio(forn, lines) : null;
+    // opening WhatsApp or the e-mail marks the supplier as sent; the button undoes it
+    const enviou = () => { if (opts.envio && S.canWrite && env !== "ok") marcarEnvio(forn, lines, true); };
     const acts = h("div", { class: "actions" },
       h("button", { class: "btn", onclick: () => copy(txt) }, "Copiar"),
-      h("a", { class: "btn", href: "https://wa.me/?text=" + encodeURIComponent(txt), target: "_blank", rel: "noopener" }, "WhatsApp"));
-    return { el: h("div", { class: "card" }, head, h("ul", { class: "lines" }, lis), acts), tot, nT };
+      h("a", { class: "btn", href: "https://wa.me/" + (tm ? "351" + tm : "") + "?text=" + encodeURIComponent(txt), target: "_blank", rel: "noopener", title: tm ? "WhatsApp para " + tm : "Sem telemóvel na ficha: o WhatsApp pede o contacto", onclick: enviou }, tm ? "WhatsApp" : "WhatsApp…"),
+      email ? h("a", { class: "btn", href: "mailto:" + email + "?subject=" + encodeURIComponent(opts.titulo || "Encomenda Chico Maria") + "&body=" + encodeURIComponent(txt), onclick: enviou }, "Email") : null,
+      fixo ? h("a", { class: "btn", href: "tel:+351" + fixo }, "Ligar") : null,
+      opts.envio ? h("button", { class: "btn env", "aria-pressed": String(env === "ok"), disabled: !S.canWrite, onclick: () => marcarEnvio(forn, lines, env !== "ok") },
+        env === "ok" ? "✓ Enviado " + new Date(S.envios.get(idEnvio(forn)).em).toLocaleTimeString("pt-PT", { hour: "2-digit", minute: "2-digit" }) : "Marcar enviado") : null);
+    const aviso = env === "mudou" ? h("p", { class: "envio-aviso", text: "Mudou depois de enviado: envie de novo ou marque outra vez." }) : null;
+    if (opts.enviadoEm) head.append(h("span", { class: "pill ok", text: "enviado" }));
+    return { el: h("div", { class: "card" }, head, h("ul", { class: "lines" }, lis), aviso, acts), tot, nT };
   }
   function costBox(lines) {
     let tot = 0; const semPreco = [];
@@ -399,9 +456,11 @@ button.cat .on-n { color: var(--accent); }
     const titulo = "Encomenda Chico Maria · " + new Date().toLocaleDateString("pt-PT");
     let total = 0;
     const groups = groupBySupplier(lines);
-    const cards = groups.map(([f, ls]) => { const r = supplierCard(f, ls, { titulo }); total += r.tot; return r.el; });
+    const cards = groups.map(([f, ls]) => { const r = supplierCard(f, ls, { titulo, envio: true }); total += r.tot; return r.el; });
+    const porEnviar = () => groupBySupplier(draftLines()).filter(([f, ls]) => estadoEnvio(f, ls) !== "ok").map(([f]) => f);
+    const nEnv = groups.length - porEnviar().length;
     frag.append(h("div", { class: "tools" },
-      h("span", { class: "sub", text: lines.length + " artigos · " + groups.length + " fornecedores" + (total ? " · ≈ " + fmtE(total) + " estimado" : "") }),
+      h("span", { class: "sub", text: lines.length + " artigos · " + groups.length + " fornecedores" + (total ? " · ≈ " + fmtE(total) + " estimado" : "") + " · " + nEnv + " de " + groups.length + " enviados" }),
       h("button", { class: "btn", onclick: () => copy(titulo + "\n\n" + groups.map(([f, ls]) => textFor(f, ls)).join("\n\n")) }, "Copiar tudo"),
       pdfButton(() => ({ titulo, data: new Date().toISOString(), entrega: "", nota: (($("f-nota") || {}).value || "").trim(), groups }))));
     frag.append(...cards);
@@ -411,17 +470,23 @@ button.cat .on-n { color: var(--accent); }
     const btn = h("button", { class: "btn primary", disabled: !S.canWrite }, "Fechar encomenda");
     let armed = false, tm;
     btn.addEventListener("click", async () => {
-      if (!armed) { armed = true; btn.textContent = "Confirmar: guardar no histórico e limpar a lista"; tm = setTimeout(() => { armed = false; btn.textContent = "Fechar encomenda"; }, 5000); return; }
+      if (!armed) {
+        const falta = porEnviar();
+        armed = true; btn.textContent = falta.length ? "Falta enviar a " + falta.slice(0, 3).join(", ") + (falta.length > 3 ? " e mais " + (falta.length - 3) : "") + ". Tocar de novo para fechar" : "Confirmar: guardar no histórico e limpar a lista";
+        tm = setTimeout(() => { armed = false; btn.textContent = "Fechar encomenda"; }, falta.length ? 7000 : 5000); return;
+      }
       clearTimeout(tm); btn.disabled = true; btn.textContent = "A guardar…";
       try {
-        const ls = draftLines();
-        await S.db.collection("encomendas").add({ criada: new Date().toISOString(), por: S.uid || "", entrega: "", nota: nota.value.trim(), itens: ls.map(({ ordem, ...l }) => l), recebidos: {} });
+        const ls = draftLines(), enviados = {};
+        for (const [f, g] of groupBySupplier(ls)) if (estadoEnvio(f, g)) enviados[f] = S.envios.get(idEnvio(f)).em;
+        await S.db.collection("encomendas").add({ criada: new Date().toISOString(), por: S.uid || "", entrega: "", nota: nota.value.trim(), itens: ls.map(({ ordem, ...l }) => l), recebidos: {}, enviados });
         for (const l of ls) { pend.delete(l.pid); await serial("r:" + l.pid, () => S.db.collection("rascunho").doc(l.pid).delete()); }
-        // each closed order marks its articles as frequent and counts how often they were ordered
+        for (const id of [...S.envios.keys()]) await S.db.collection("envios").doc(id).delete().catch(() => {});
+        // each closed order counts how often its articles were ordered (Frequentes come from the last orders themselves)
         const agora = new Date().toISOString();
         for (const l of ls) {
           const p = S.produtos.get(l.pid); if (!p) continue;
-          await serial("p:" + l.pid, () => S.db.collection("produtos").doc(l.pid).update({ semanal: true, vezes: (p.vezes || 0) + 1, ultima: agora })).catch(() => {});
+          await serial("p:" + l.pid, () => S.db.collection("produtos").doc(l.pid).update({ vezes: (p.vezes || 0) + 1, ultima: agora })).catch(() => {});
         }
         toast("Encomenda guardada no histórico"); setTab("his");
       } catch (e) { btn.disabled = false; btn.textContent = "Fechar encomenda"; armed = false; writeErr(e); }
@@ -510,7 +575,7 @@ button.cat .on-n { color: var(--accent); }
         const titulo = "Encomenda Chico Maria · " + new Date(e.criada).toLocaleDateString("pt-PT");
         const body = h("div", { style: "padding:0 10px 4px" });
         for (const [f, ls] of groupBySupplier(itens)) {
-          body.append(supplierCard(f, ls, { titulo, key: e.id, recebidos: rec, onToggle: (pid, v) => serial("e:" + e.id, () => S.db.collection("encomendas").doc(e.id).update({ recebidos: { [pid]: v } })).catch(writeErr) }).el);
+          body.append(supplierCard(f, ls, { titulo, key: e.id, recebidos: rec, enviadoEm: (e.enviados || {})[f], onToggle: (pid, v) => serial("e:" + e.id, () => S.db.collection("encomendas").doc(e.id).update({ recebidos: { [pid]: v } })).catch(writeErr) }).el);
         }
         card.append(body);
         const pdfH = pdfButton(() => ({ titulo, data: e.criada, entrega: e.entrega, nota: e.nota, groups: groupBySupplier(itens) }));
@@ -547,11 +612,12 @@ button.cat .on-n { color: var(--accent); }
       const q = norm(S.qa.trim());
       const ps = [...S.produtos.values()].filter((p) => !q || norm(p.nome + " " + p.fornecedor + " " + p.categoria).includes(q)).sort(sortProd);
       if (!ps.length) { list.append(emptyBox(S.produtos.size ? "Nenhum artigo encontrado" : "Ainda não há artigos", "Use o botão \"+ Novo artigo\" para acrescentar.")); return; }
-      list.append(h("p", { class: "note", style: "padding:0", text: ps.length + " artigos · " + ps.filter((p) => p.semanal).length + " frequentes" }));
+      const freq = frequentes();
+      list.append(h("p", { class: "note", style: "padding:0", text: ps.length + " artigos · " + ps.filter((p) => freq.has(p.id)).length + " nos frequentes (das últimas 4 encomendas ou marcados para estar sempre)" }));
       for (const c of catsOf(ps)) {
         const items = ps.filter((p) => p.categoria === c); if (!items.length) continue;
         list.append(groupEl("a:" + c, c, h("small", { text: items.length + "" }), h("div", { class: "sheet" }, items.map((p) => h("button", { class: "row", style: "width:100%;border-left:0;border-right:0;border-bottom:0;background:transparent;text-align:left", onclick: () => editor(p) },
-          h("div", {}, h("div", { class: "name", text: p.nome + (p.semanal ? "" : "") }), h("div", { class: "meta", text: [p.fornecedor || "sem fornecedor", p.unidade, p.semanal ? "frequente" + (p.vezes ? " (" + p.vezes + "x)" : "") : ""].filter(Boolean).join(" · ") })),
+          h("div", {}, h("div", { class: "name", text: p.nome + (p.semanal ? "" : "") }), h("div", { class: "meta", text: [p.fornecedor || "sem fornecedor", p.unidade, p.fixo ? "sempre nos frequentes" : "", p.vezes ? "pedido " + p.vezes + "x" : ""].filter(Boolean).join(" · ") })),
           h("span", { class: "meta", style: "white-space:nowrap", text: p.preco != null && p.preco !== "" ? fmtE(Number(p.preco)) + "/" + (p.precoUnidade || p.unidade) : "sem preço" })))), !!q));
       }
     }
@@ -559,20 +625,29 @@ button.cat .on-n { color: var(--accent); }
     return frag;
   }
   function editor(p) {
-    const isNew = !p; p = p || { nome: "", categoria: S.cats[0] || "", unidade: "kg", habitual: null, fornecedor: "", preco: null, precoUnidade: "kg", obs: "", semanal: true };
+    const isNew = !p; p = p || { nome: "", categoria: S.cats[0] || "", unidade: "kg", habitual: null, fornecedor: "", preco: null, precoUnidade: "kg", obs: "", fixo: false };
     const f = {
       nome: h("input", { id: "e-nome", required: true, value: p.nome }),
       cat: h("select", { id: "e-cat" }, S.cats.map((c) => h("option", { value: c, selected: c === p.categoria }, c)), h("option", { value: "__nova" }, "Nova categoria…")),
       catNova: h("input", { id: "e-catnova", placeholder: "Nome da nova categoria" }),
       unidade: h("input", { id: "e-un", value: p.unidade || "", list: "dl-un" }),
       habitual: h("input", { id: "e-hab", inputmode: "decimal", value: p.habitual == null ? "" : fmtN(p.habitual) }),
-      forn: h("input", { id: "e-forn", value: p.fornecedor || "", list: "dl-forn" }),
+      forn: h("input", { id: "e-forn", value: p.fornecedor || "", list: "dl-forn", placeholder: "Nome do fornecedor" }),
+      cont: h("input", { id: "e-cont", value: p.conteudo || "", placeholder: "Ex.: 70 cl, 2 kg" }),
       preco: h("input", { id: "e-preco", inputmode: "decimal", value: p.preco == null || p.preco === "" ? "" : String(p.preco).replace(".", ",") }),
       precoUn: h("input", { id: "e-precoun", value: p.precoUnidade || "", list: "dl-un" }),
       obs: h("textarea", { id: "e-obs", rows: 2 }),
       sem: h("input", { id: "e-sem", type: "checkbox" }),
     };
-    f.obs.value = p.obs || ""; f.sem.checked = !!p.semanal;
+    f.obs.value = p.obs || ""; f.sem.checked = !!p.fixo;
+    // the supplier comes from the Fornecedores list; the stored text stays the name the team uses ("nome na app")
+    const fichaAtual = fichaDe(p.fornecedor);
+    const fsel = S.forn.length ? h("select", { id: "e-forn-s" }, h("option", { value: "" }, "Sem fornecedor"),
+      [...S.forn].sort((a, b) => a.nome.localeCompare(b.nome, "pt")).map((x) => { const v = x === fichaAtual ? p.fornecedor : nomeNaApp(x); return h("option", { value: v, selected: x === fichaAtual }, x.nome + (normP(v) !== normP(x.nome) ? " (" + v + ")" : "")); }),
+      h("option", { value: "__outro", selected: !!p.fornecedor && !fichaAtual }, "Outro…")) : null;
+    const outroWrap = h("label", { for: "e-forn" }, fsel ? "Outro fornecedor" : "Fornecedor", f.forn);
+    if (fsel) { outroWrap.hidden = fsel.value !== "__outro"; fsel.addEventListener("change", () => { outroWrap.hidden = fsel.value !== "__outro"; if (!outroWrap.hidden) f.forn.focus(); }); }
+    const usam = isNew ? [] : S.usam.get(p.id) || [];
     const catWrap = h("label", { for: "e-catnova" }, "Nova categoria", f.catNova); catWrap.hidden = true;
     f.cat.addEventListener("change", () => { catWrap.hidden = f.cat.value !== "__nova"; });
     const forns = [...new Set([...S.produtos.values()].map((x) => x.fornecedor).filter(Boolean))].sort((a, b) => a.localeCompare(b, "pt"));
@@ -585,10 +660,12 @@ button.cat .on-n { color: var(--accent); }
       h("label", { for: "e-nome" }, "Nome", f.nome),
       h("label", { for: "e-cat" }, "Categoria", f.cat), catWrap,
       h("div", { class: "two" }, h("label", { for: "e-un" }, "Unidade de encomenda", f.unidade), h("label", { for: "e-hab" }, "Quantidade habitual", f.habitual)),
-      h("label", { for: "e-forn" }, "Fornecedor", f.forn),
+      fsel ? h("label", { for: "e-forn-s" }, "Fornecedor", fsel) : null, outroWrap,
+      usam.length ? h("p", { class: "usa", text: "Este preço é o mesmo de: " + usam.join(", ") + "." }) : null,
       h("div", { class: "two" }, h("label", { for: "e-preco" }, "Preço sem IVA (€)", f.preco), h("label", { for: "e-precoun" }, "Preço por (unidade)", f.precoUn)),
+      h("label", { for: "e-cont" }, "Cada unidade tem", f.cont, h("small", { class: "dica", text: "Opcional: 70 cl, 2 kg… Serve para as fichas técnicas converterem o preço." })),
       h("label", { for: "e-obs" }, "Observações", f.obs),
-      h("label", { class: "check", for: "e-sem" }, f.sem, "Aparece nos frequentes"),
+      h("label", { class: "check", for: "e-sem" }, f.sem, "Sempre nos frequentes"),
       err, h("div", { class: "actions", style: "padding:0" }, save, del),
       h("datalist", { id: "dl-forn" }, forns.map((x) => h("option", { value: x }))),
       h("datalist", { id: "dl-un" }, ["kg", "g", "L", "ml", "un", "caixa", "emb.", "saco", "peça", "lata", "rolo"].map((x) => h("option", { value: x }))));
@@ -604,9 +681,14 @@ button.cat .on-n { color: var(--accent); }
         const sameCat = [...S.produtos.values()].filter((x) => x.categoria === cat && x.id !== p.id);
         const ordem = !isNew && p.categoria === cat ? p.ordem : (sameCat.reduce((m, x) => Math.max(m, x.ordem || 0), 0) + 5);
         const id = isNew ? slug(nome) + "-" + Math.random().toString(36).slice(2, 6) : p.id;
-        const data = { nome, categoria: cat, unidade: f.unidade.value.trim(), habitual: hab, fornecedor: f.forn.value.trim(), preco: pr, precoUnidade: f.precoUn.value.trim() || f.unidade.value.trim(), obs: f.obs.value.trim(), semanal: f.sem.checked, ordem };
+        const fornecedor = fsel && fsel.value !== "__outro" ? fsel.value : f.forn.value.trim();
+        // keeps what the form does not show (order counts, last order)
+        const { id: _id, ...antes } = isNew ? {} : p;
+        const data = { ...antes, nome, categoria: cat, unidade: f.unidade.value.trim(), habitual: hab, fornecedor, preco: pr, precoUnidade: f.precoUn.value.trim() || f.unidade.value.trim(), conteudo: f.cont.value.trim(), obs: f.obs.value.trim(), fixo: f.sem.checked, ordem };
         await serial("p:" + id, () => S.db.collection("produtos").doc(id).set(data));
         toast(isNew ? "Artigo criado e disponível para todos" : "Alterações guardadas"); ov.remove();
+        // a new article is not in the last orders yet: show it by name so it can be ordered now
+        if (isNew && S.tab === "enc") { S.q = nome; render(); }
       } catch (e) { save.disabled = false; writeErr(e); }
     });
     let armed = false;
@@ -683,6 +765,13 @@ button.cat .on-n { color: var(--accent); }
     db.collection("produtos").onSnapshot((snap) => { S.produtos = new Map(snap.docs.filter((d) => d.data() && d.data().nome).map((d) => [d.id, { id: d.id, ...d.data() }])); S.loaded.produtos = true; soon(); migrar(); }, onErr);
     db.collection("rascunho").onSnapshot((snap) => { S.rasc = new Map(snap.docs.map((d) => [d.id, d.data()])); S.loaded.rasc = true; soon(); }, onErr);
     db.collection("encomendas").orderBy("criada", "desc").limit(60).onSnapshot((snap) => { S.encomendas = snap.docs.map((d) => ({ id: d.id, ...d.data() })); S.loaded.enc = true; soon(); }, onErr);
+    db.collection("fornecedores").onSnapshot((snap) => { S.forn = snap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((x) => x.nome); S.mapaF = mapaFornecedores(S.forn); soon(); }, onErr);
+    db.collection("envios").onSnapshot((snap) => { S.envios = new Map(snap.docs.map((d) => [d.id, d.data()])); soon(); }, onErr);
+    // recipe ingredients and wines that take their price from an article (one price for both)
+    let ingU = [], vinU = [];
+    const usos = () => { const m = new Map(); for (const [lista, tipo] of [[ingU, "ingrediente"], [vinU, "vinho"]]) for (const x of lista) if (x.artigo) { if (!m.has(x.artigo)) m.set(x.artigo, []); m.get(x.artigo).push(x.nome + " (" + tipo + ")"); } S.usam = m; };
+    db.collection("ingredientes").onSnapshot((snap) => { ingU = snap.docs.map((d) => d.data()); usos(); }, onErr);
+    db.collection("vinhos").onSnapshot((snap) => { vinU = snap.docs.map((d) => d.data()); usos(); }, onErr);
     render();
   })();
 })();

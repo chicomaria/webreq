@@ -1,6 +1,7 @@
 // Recipe sheets (collection `fichas`) and the ingredient price list (`ingredientes`), shared by
 // pratos.html, cocktails.html and the Preços tab of fornecedores.html.
-// fichasComuns(S, render): S holds { db, fichas: [], ing: Map, sel }, render() redraws the page.
+// fichasComuns(S, render): S holds { db, fichas: [], ing: Map, prod: Map (order articles), sel }, render() redraws the page.
+// An ingredient linked to an order article (field artigo) takes that article's price (precos.js): one price for both.
 
 const pctTxt = (p) => p == null ? "" : Math.round(p * 100) + "%";
 const UNIDADES = [["Kg", "Kg"], ["L", "L"], ["un", "un"]];
@@ -20,14 +21,23 @@ function medidaTxt(r, i) {
 const passos = (t) => String(t || "").split("\n").map((x) => x.replace(/^\s*\d+[.)]\s*/, "").trim()).filter(Boolean);
 
 function fichasComuns(S, render) {
+  if (!S.prod) S.prod = new Map();
+  // an ingredient's price: its article's, converted to the ingredient's unit, else its own
+  // (semConversao: linked, but the article is sold in a unit that does not convert, e.g. by the piece and counted by the kg)
+  function precoIng(i) {
+    const a = i && i.artigo ? S.prod.get(i.artigo) : null;
+    if (a) { const v = precoArtigoPor(a, i.unidade); return v != null ? { preco: v, artigo: a } : { preco: i.preco ?? null, artigo: a, semConversao: true }; }
+    return { preco: i ? i.preco ?? null : null, artigo: null };
+  }
+  const fornIng = (i) => { const x = precoIng(i); return x.artigo ? x.artigo.fornecedor || "" : i.fornecedor || ""; };
   // cost of a sheet; a line with a written measure and no number ("q.b.") is not missing
   function custo(f) {
     let total = 0, falta = 0;
     for (const r of f.ingredientes || []) {
-      const i = S.ing.get(r.ing);
+      const i = S.ing.get(r.ing), pr = i ? precoIng(i).preco : null;
       if (r.qtd == null && r.medida) continue;
-      if (!i || i.preco == null || r.qtd == null) { falta++; continue; }
-      total += r.qtd * i.preco;
+      if (!i || pr == null || r.qtd == null) { falta++; continue; }
+      total += r.qtd * pr;
     }
     const dose = f.doses ? total / f.doses : total;
     return { total, dose, falta, pct: f.pvp ? dose / f.pvp : null, sugerido: Math.ceil(dose * 3) };
@@ -53,18 +63,18 @@ function fichasComuns(S, render) {
     frag.append(h("h2", { class: "sec" }, "Ingredientes", h("small", { text: "toque numa linha para mudar" })));
     const tb = h("tbody");
     (f.ingredientes || []).forEach((r, idx) => {
-      const i = S.ing.get(r.ing) || { nome: r.ing + " (apagado)", unidade: "" };
-      const tot = i.preco != null && r.qtd != null ? r.qtd * i.preco : null;
+      const i = S.ing.get(r.ing) || { nome: r.ing + " (apagado)", unidade: "" }, pr = precoIng(i).preco;
+      const tot = pr != null && r.qtd != null ? r.qtd * pr : null;
       tb.append(h("tr", { class: "tap", onclick: () => editarLinha(f, idx) },
         h("td", {}, i.nome, r.nota ? h("small", { class: "nt", text: " " + r.nota }) : null),
         h("td", { class: "n" }, r.qtd == null ? (r.medida ? r.medida : h("span", { class: "falta", text: "?" })) : fmtNum(r.qtd)), h("td", { text: i.unidade || "" }),
-        h("td", { class: "n" }, i.preco == null ? h("span", { class: "falta", text: "sem preço" }) : eur(i.preco)), h("td", { class: "n", text: tot == null ? "—" : eur(tot) })));
+        h("td", { class: "n" }, pr == null ? h("span", { class: "falta", text: "sem preço" }) : eur(pr)), h("td", { class: "n", text: tot == null ? "—" : eur(tot) })));
     });
     const tbl = h("table", { class: "data" }, h("thead", {}, h("tr", {}, h("th", { text: "Ingrediente" }), h("th", { class: "n", text: "Qtd" }), h("th", { text: "Un" }), h("th", { class: "n", text: "Preço" }), h("th", { class: "n", text: "Total" }))),
       tb, h("tfoot", {}, h("tr", {}, h("td", { colspan: 4, text: "Total" + (k.falta ? " (" + k.falta + " sem preço ou quantidade)" : "") }), h("td", { class: "n", text: eur(k.total) }))));
     frag.append(h("div", { class: "card scroll" }, (f.ingredientes || []).length ? tbl : h("div", { class: "empty", text: "Ainda sem ingredientes." })));
     frag.append(h("div", { class: "tools" }, h("button", { class: "btn", onclick: () => editarLinha(f, -1) }, "+ Ingrediente"),
-      h("a", { class: "note", href: "fornecedores.html#precos" }, "Os preços mudam-se em Fornecedores e preços ›")));
+      h("a", { class: "note", href: "fornecedores.html#precos" }, "Os preços mudam-se em Fornecedores › Preços, ou nos artigos das Encomendas ›")));
     frag.append(h("h2", { class: "sec" }, cocktail ? "Método" : "Preparação", h("button", { class: "btn", onclick: () => editarPrep(f) }, "Editar")));
     frag.append(h("div", { class: "card" }, f.preparacao ? h("pre", { class: "prep", text: f.preparacao }) : h("div", { class: "empty", text: "Sem preparação escrita." })));
     return frag;
@@ -121,7 +131,9 @@ function fichasComuns(S, render) {
         id = id ? id[0] : null;
         if (!id) {
           id = slugId(d.nome); while (S.ing.has(id)) id += "-2";
-          await S.db.collection("ingredientes").doc(id).set({ nome: d.nome, grupo: f.tipo === "cocktail" ? "Bar" : "Outros", unidade: d.unidade, preco: d.preco, fornecedor: "" });
+          // an order article with the same name gives the new ingredient its price
+          const igual = [...S.prod.values()].find((p) => normP(p.nome) === normP(d.nome));
+          await S.db.collection("ingredientes").doc(id).set({ nome: d.nome, grupo: f.tipo === "cocktail" ? "Bar" : "Outros", unidade: d.unidade, preco: d.preco, fornecedor: "", ...(igual ? { artigo: igual.id } : {}) });
         }
         const lin = [...(f.ingredientes || [])], nova = { ing: id, qtd: d.qtd };
         if (d.medida) nova.medida = d.medida;
@@ -132,6 +144,8 @@ function fichasComuns(S, render) {
   }
 
   // price list by group; changing a price here updates every sheet that uses it
+  const ligado = (i) => !!(i.artigo && S.prod.get(i.artigo));
+  const sugestao = (id) => { const i = S.ing.get(id); return artigosParecidos(i.nome, id, [...S.prod.values()], { n: 1 })[0] || null; };
   function viewIng() {
     const frag = document.createDocumentFragment();
     const uso = new Map();
@@ -140,18 +154,23 @@ function fichasComuns(S, render) {
     const busca = h("input", { type: "search", placeholder: "Procurar ingrediente ou fornecedor", value: S.qi || "", "aria-label": "Procurar ingrediente" });
     busca.addEventListener("input", () => { S.qi = busca.value; const p = busca.selectionStart; render(); const b = document.querySelector("input[type=search]"); b.focus(); b.setSelectionRange(p, p); });
     frag.append(h("div", { class: "tools" }, busca, h("button", { class: "btn primary", onclick: () => editarIng(null) }, "+ Ingrediente"),
-      h("button", { class: "btn", onclick: () => downloadCsv("precos-ingredientes.csv", [["Ingrediente", "Grupo", "Unidade", "Preço (€)", "Fornecedor", "Fichas"], ...[...S.ing].map(([id, i]) => [i.nome, i.grupo, i.unidade, i.preco == null ? "" : String(i.preco).replace(".", ","), i.fornecedor, uso.get(id) || 0])]) }, "Excel")));
-    const semPreco = [...S.ing.keys()].filter((id) => S.ing.get(id).preco == null && uso.get(id)).length;
-    frag.append(h("p", { class: "note", text: "Preços sem IVA dos ingredientes das fichas técnicas. Mudar um preço aqui atualiza o custo de todos os pratos e cocktails que o usam." +
+      h("button", { class: "btn", onclick: () => downloadCsv("precos-ingredientes.csv", [["Ingrediente", "Grupo", "Unidade", "Preço (€)", "Vem do artigo das encomendas", "Fornecedor", "Fichas"],
+        ...[...S.ing].map(([id, i]) => { const x = precoIng(i); return [i.nome, i.grupo, i.unidade, x.preco == null ? "" : String(Math.round(x.preco * 10000) / 10000).replace(".", ","), x.artigo ? x.artigo.nome : "", fornIng(i), uso.get(id) || 0]; })]) }, "Excel")));
+    const semPreco = [...S.ing.keys()].filter((id) => precoIng(S.ing.get(id)).preco == null && uso.get(id)).length;
+    const soltos = [...S.ing.keys()].filter((id) => !ligado(S.ing.get(id))), comSug = S.prod.size ? soltos.filter((id) => sugestao(id)).length : 0;
+    frag.append(h("p", { class: "note", text: "Preços sem IVA dos ingredientes das fichas técnicas. Um ingrediente ligado a um artigo das encomendas usa o preço desse artigo, por isso há um só preço para os dois." +
       (semPreco ? " " + semPreco + (semPreco === 1 ? " ingrediente usado está" : " ingredientes usados estão") + " sem preço." : "") }));
-    const ids = [...S.ing.keys()].filter((id) => !q || norm([S.ing.get(id).nome, S.ing.get(id).fornecedor].join(" ")).includes(q));
+    if (comSug) frag.append(h("div", { class: "alerta", style: "display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap" },
+      h("span", { text: soltos.length + (soltos.length === 1 ? " ingrediente ainda tem" : " ingredientes ainda têm") + " preço próprio; " + comSug + (comSug === 1 ? " parece-se" : " parecem-se") + " com artigos das encomendas." }),
+      h("button", { class: "btn primary", onclick: reverLigacoes }, "Rever e ligar")));
+    const ids = [...S.ing.keys()].filter((id) => !q || norm([S.ing.get(id).nome, fornIng(S.ing.get(id))].join(" ")).includes(q));
     const grupos = [...new Set(ids.map((id) => S.ing.get(id).grupo || "Outros"))].sort((a, b) => a.localeCompare(b, "pt"));
     for (const g of grupos) {
       const tb = h("tbody");
       ids.filter((id) => (S.ing.get(id).grupo || "Outros") === g).sort((a, b) => S.ing.get(a).nome.localeCompare(S.ing.get(b).nome, "pt")).forEach((id) => {
-        const i = S.ing.get(id);
-        tb.append(h("tr", { class: "tap", onclick: () => editarIng(id) }, h("td", {}, i.nome, i.fornecedor ? h("small", { text: " · " + i.fornecedor }) : null),
-          h("td", { class: "n" }, i.preco == null ? h("span", { class: "falta", text: "sem preço" }) : eur(i.preco)), h("td", { text: "/" + (i.unidade || "?") }), h("td", { class: "n", text: uso.get(id) || "" })));
+        const i = S.ing.get(id), x = precoIng(i), fo = fornIng(i);
+        tb.append(h("tr", { class: "tap", onclick: () => editarIng(id) }, h("td", {}, i.nome, fo ? h("small", { text: " · " + fo }) : null, x.artigo ? h("span", { class: "tag " + (x.semConversao ? "warn" : "ok"), style: "margin-left:6px", title: x.artigo.nome, text: x.semConversao ? "unidade diferente" : "encomendas" }) : null),
+          h("td", { class: "n" }, x.preco == null ? h("span", { class: "falta", text: "sem preço" }) : eur(x.preco)), h("td", { text: "/" + (i.unidade || "?") }), h("td", { class: "n", text: uso.get(id) || "" })));
       });
       frag.append(h("h2", { class: "sec", text: g }), h("div", { class: "card scroll" }, h("table", { class: "data" },
         h("thead", {}, h("tr", {}, h("th", { text: "Ingrediente" }), h("th", { class: "n", text: "Preço" }), h("th", { text: "Un" }), h("th", { class: "n", text: "Fichas" }))), tb)));
@@ -159,20 +178,44 @@ function fichasComuns(S, render) {
     if (!ids.length) frag.append(h("div", { class: "card empty" }, h("strong", { text: "Nenhum ingrediente encontrado" })));
     return frag;
   }
+  // one sheet with every ingredient that has a likely article
+  const reverLigacoes = () => abrirRevisaoLigacoes({ db: S.db, col: "ingredientes",
+    itens: [...S.ing].filter(([, i]) => !ligado(i)).map(([id, i]) => ({ id, nome: i.nome, un: i.unidade, proprio: i.preco ?? null, sug: sugestao(id) })).filter((x) => x.sug)
+      .sort((a, b) => b.sug.s - a.sug.s || a.nome.localeCompare(b.nome, "pt")),
+    nota: "Um ingrediente ligado passa a usar o preço do artigo. Os marcados parecem o mesmo produto; confirme antes de ligar. A laranja: o artigo é vendido noutra unidade e o preço não se converte." });
+  const escolherArtigo = (o) => abrirEscolhaArtigo({ db: S.db, produtos: [...S.prod.values()], ...o });
   function editarIng(id) {
     const i = id ? S.ing.get(id) : { unidade: "Kg", grupo: "" };
     const usam = id ? S.fichas.filter((f) => (f.ingredientes || []).some((r) => r.ing === id)).sort((a, b) => a.nome.localeCompare(b.nome, "pt")) : [];
-    const topo = usam.length ? h("p", { class: "note", style: "margin:0 0 10px" }, "Usado em: ",
-      usam.map((f, n) => [n ? ", " : "", h("a", { href: paginaFicha(f) }, f.nome)])) : null;
-    abrirEditor({ titulo: id ? i.nome : "Novo ingrediente", dados: i, topo,
-      campos: [{ k: "nome", label: "Nome" }, { k: "preco", label: "Preço sem IVA (€)", tipo: "number" }, { k: "unidade", label: "Por", tipo: "select", opcoes: UNIDADES },
-        { k: "grupo", label: "Grupo", lista: "grupos-ing", dica: "Proteínas, Legumes, Bar…" }, { k: "fornecedor", label: "Fornecedor", lista: "forn-nomes" }, { k: "obs", label: "Notas", tipo: "textarea" }],
+    const x = id ? precoIng(i) : { artigo: null }, a = x.artigo;
+    const reabrir = () => editarIng(id);
+    let ed;
+    const sug = id && !a ? sugestao(id) : null;
+    const ligacao = !id ? null : a
+      ? h("div", { class: "alerta", style: "border-color:var(--ok);background:var(--ok-soft);margin:0 0 10px;display:grid;gap:6px" },
+          h("span", {}, "Preço do artigo das encomendas ", h("b", { text: a.nome }), (a.fornecedor ? " (" + a.fornecedor + ")" : "") + ": " + (a.preco == null || a.preco === "" ? "sem preço" : eur(a.preco) + " por " + unidadePreco(a)) +
+            (x.semConversao ? ". O artigo é vendido noutra unidade e o preço não se converte para " + i.unidade + "; até lá conta o preço próprio." : precoArtigoPor(a, i.unidade) != null && baseDe(unidadePreco(a)) && baseDe(unidadePreco(a))[1] === 1 && normP(unidadePreco(a)) === normP(i.unidade) ? "." : ", ou " + eur(precoArtigoPor(a, i.unidade)) + "/" + i.unidade + " nas fichas.")),
+          h("div", { class: "row-actions", style: "justify-content:flex-start" },
+            h("button", { type: "button", class: "btn", onclick: () => { ed.fechar(); escolherArtigo({ col: "ingredientes", id, nome: i.nome, un: i.unidade, depois: reabrir }); } }, "Mudar artigo"),
+            h("button", { type: "button", class: "btn danger", onclick: async () => { try { await S.db.collection("ingredientes").doc(id).update({ artigo: null }); ed.fechar(); toast("Desligado: volta ao preço próprio"); reabrir(); } catch (e) { toast("Não foi possível guardar."); } } }, "Desligar")))
+      : h("div", { class: "row-actions", style: "justify-content:flex-start;margin:0 0 10px" },
+          sug ? h("button", { type: "button", class: "btn primary", onclick: async () => { try { await S.db.collection("ingredientes").doc(id).update({ artigo: sug.p.id }); ed.fechar(); toast("Ligado a " + sug.p.nome); reabrir(); } catch (e) { toast("Não foi possível guardar."); } } }, "Usar o preço de «" + sug.p.nome + "»") : null,
+          h("button", { type: "button", class: "btn", onclick: () => { ed.fechar(); escolherArtigo({ col: "ingredientes", id, nome: i.nome, un: i.unidade, depois: reabrir }); } }, sug ? "Outro artigo…" : "Ligar a um artigo das encomendas"));
+    const topo = usam.length || ligacao ? h("div", {}, ligacao, usam.length ? h("p", { class: "note", style: "margin:0 0 10px" }, "Usado em: ", usam.map((f, n) => [n ? ", " : "", h("a", { href: paginaFicha(f) }, f.nome)])) : null) : null;
+    const campos = [{ k: "nome", label: "Nome" },
+      a ? { k: "precoArtigo", label: "Preço do artigo sem IVA (€ por " + unidadePreco(a) + ")", tipo: "number", dica: "Muda também nas Encomendas." } : { k: "preco", label: "Preço sem IVA (€)", tipo: "number" },
+      { k: "unidade", label: "Por", tipo: "select", opcoes: UNIDADES },
+      { k: "grupo", label: "Grupo", lista: "grupos-ing", dica: "Proteínas, Legumes, Bar…" },
+      a ? null : { k: "fornecedor", label: "Fornecedor", lista: "forn-nomes" }, { k: "obs", label: "Notas", tipo: "textarea" }].filter(Boolean);
+    ed = abrirEditor({ titulo: id ? i.nome : "Novo ingrediente", dados: { ...i, precoArtigo: a ? a.preco : null }, topo, campos,
       apagar: id && !usam.length ? () => S.db.collection("ingredientes").doc(id).delete() : null,
-      guardar: (d) => {
+      guardar: async (d) => {
+        const { precoArtigo, ...dados } = d;
         let nid = id; if (!nid) { nid = slugId(d.nome); while (S.ing.has(nid)) nid += "-2"; }
-        return S.db.collection("ingredientes").doc(nid).set({ ...i, ...d });
+        if (a && precoArtigo !== (a.preco ?? null)) await S.db.collection("produtos").doc(a.id).update({ preco: precoArtigo });
+        return S.db.collection("ingredientes").doc(nid).set({ ...i, ...dados });
       } });
   }
 
-  return { custo, abrir, viewFicha, editarFicha, novaFicha, editarPrep, editarLinha, viewIng, editarIng };
+  return { custo, precoIng, abrir, viewFicha, editarFicha, novaFicha, editarPrep, editarLinha, viewIng, editarIng, escolherArtigo };
 }

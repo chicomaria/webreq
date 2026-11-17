@@ -5,6 +5,12 @@
 <meta name="robots" content="noindex, nofollow">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#eef1ee">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Chico Maria">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Source+Sans+3:wght@400;600;700&family=IBM+Plex+Mono:wght@500&display=swap">
@@ -26,7 +32,8 @@
 .marcar { border: 0; border-radius: 10px; padding: 14px; min-width: 120px; background: var(--ok); color: var(--on-fill); font-family: var(--font-display); font-weight: 700; font-size: 18px; letter-spacing: .04em; text-transform: uppercase; }
 .marcar:disabled { opacity: .6; }
 table.mat td.n small { display: block; color: var(--muted); font-size: 10px; font-family: var(--font-body); }
-table.mat td.assumida { color: var(--muted); }
+table.mat td.assumida, table.mat td.fechado { color: var(--muted); }
+table.mat td.fechado { font-family: var(--font-body); font-size: 12px; text-align: center; }
 </style>
 </head>
 <body>
@@ -42,7 +49,9 @@ table.mat td.assumida { color: var(--muted); }
 </div>
 <script>
 (async () => {
-  const S = { db: null, loaded: false, regs: [], tab: "hoje", mes: mesKey(new Date().toISOString()), busy: new Set() };
+  const S = { db: null, loaded: false, regs: [], pics: [], cfg: null, tab: "hoje", mes: mesKey(new Date().toISOString()), busy: new Set() };
+  // closed days are not taken as cleaned (Dias de abertura, on the home page)
+  const aberto = (d) => diaAberto(d, S.cfg, S.pics);
   try { const t = localStorage.getItem("lp-tab"); if (t) S.tab = t; } catch (e) {}
   document.querySelectorAll("nav.tabs button").forEach((b) => b.addEventListener("click", () => { S.tab = b.dataset.tab; try { localStorage.setItem("lp-tab", S.tab); } catch (e) {} render(); }));
 
@@ -68,10 +77,10 @@ table.mat td.assumida { color: var(--muted); }
     })));
     const falta = areas.filter((a) => !a.registo);
     if (falta.length > 1) frag.append(h("div", { class: "tools" }, h("button", { type: "button", class: "btn primary", disabled: falta.some((a) => S.busy.has(a.id)), onclick: () => marcar(dia, falta) }, "Marcar todas como feitas")));
-    frag.append(h("p", { class: "note", text: "O que não for marcado até à meia-noite fica registado como feito às " + HORA_LIMPEZA_ASSUMIDA + "." }));
+    frag.append(h("p", { class: "note", text: aberto(dia) ? "O que não for marcado até à meia-noite fica registado como feito às " + HORA_LIMPEZA_ASSUMIDA + "." : "Hoje a casa está fechada: o que não for marcado fica em branco." }));
     // yesterday at a glance, so a forgotten area is seen the next day
-    const ontem = somaDias(dia, -1), ao = limpezasDoDia(S.regs, ontem);
-    if (ontem >= LIMPEZAS_DESDE) frag.append(h("h2", { class: "sec" }, "Ontem", h("small", { text: ao.map((a) => a.nome + " " + (a.registo ? hora(a.registo.em) : a.assumida ? HORA_LIMPEZA_ASSUMIDA + "*" : "—")).join(" · ") })));
+    const ontem = somaDias(dia, -1), ao = limpezasDoDia(S.regs, ontem, aberto(ontem));
+    if (ontem >= LIMPEZAS_DESDE) frag.append(h("h2", { class: "sec" }, "Ontem", h("small", { text: !aberto(ontem) && !ao.some((a) => a.registo) ? "fechado" : ao.map((a) => a.nome + " " + (a.registo ? hora(a.registo.em) : a.assumida ? HORA_LIMPEZA_ASSUMIDA + "*" : "—")).join(" · ") })));
     return frag;
   }
   async function marcar(dia, areas) {
@@ -100,17 +109,18 @@ table.mat td.assumida { color: var(--muted); }
     if (!meses.includes(S.mes)) S.mes = meses[0];
     const sel = h("select", { "aria-label": "Mês" }, meses.map((k) => h("option", { value: k, selected: k === S.mes }, fmtMes(k))));
     sel.addEventListener("change", () => { S.mes = sel.value; render(); });
-    const dias = diasDoMes(S.mes), linhas = dias.map((d) => [d, limpezasDoDia(S.regs, d)]);
-    const cel = (a) => a.registo ? hora(a.registo.em) : a.assumida ? HORA_LIMPEZA_ASSUMIDA + " (assumida)" : "";
+    const dias = diasDoMes(S.mes), linhas = dias.map((d) => [d, limpezasDoDia(S.regs, d, aberto(d)), !aberto(d)]);
+    const cel = (a, fechado) => a.registo ? hora(a.registo.em) : a.assumida ? HORA_LIMPEZA_ASSUMIDA + " (assumida)" : fechado ? "fechado" : "";
     const csv = h("button", { class: "btn", disabled: !dias.length, onclick: () => downloadCsv("limpezas-" + S.mes + ".csv",
-      [["Data", ...AREAS_LIMPEZA.map(([, n]) => n)], ...[...linhas].reverse().map(([d, as]) => [d, ...as.map(cel)])]) }, "Descarregar (Excel)");
+      [["Data", ...AREAS_LIMPEZA.map(([, n]) => n)], ...[...linhas].reverse().map(([d, as, f]) => [d, ...as.map((a) => cel(a, f))])]) }, "Descarregar (Excel)");
     frag.append(h("div", { class: "tools" }, sel, csv));
     if (!dias.length) { frag.append(h("div", { class: "card empty" }, h("strong", { text: "Sem registos neste mês" }))); return frag; }
     const tb = h("tbody");
-    for (const [d, as] of linhas) tb.append(h("tr", {}, h("td", { text: fmtDia(d) }), as.map((a) => h("td", { class: "n" + (a.assumida ? " assumida" : "") },
-      a.registo ? hora(a.registo.em) : a.assumida ? [HORA_LIMPEZA_ASSUMIDA + "*"] : "—"))));
+    for (const [d, as, fechado] of linhas) tb.append(h("tr", {}, h("td", { text: fmtDia(d) }),
+      fechado && !as.some((a) => a.registo) ? h("td", { class: "fechado", colspan: String(as.length), text: "fechado" })
+        : as.map((a) => h("td", { class: "n" + (a.assumida ? " assumida" : "") }, a.registo ? hora(a.registo.em) : a.assumida ? [HORA_LIMPEZA_ASSUMIDA + "*"] : "—"))));
     frag.append(h("div", { class: "card scroll" }, h("table", { class: "data mat" }, h("thead", {}, h("tr", {}, h("th", { text: "Dia" }), AREAS_LIMPEZA.map(([, n]) => h("th", { class: "n", text: n })))), tb)));
-    frag.append(h("p", { class: "note", text: "* Sem registo até à meia-noite: assumida às " + HORA_LIMPEZA_ASSUMIDA + "." }));
+    frag.append(h("p", { class: "note", text: "* Dia aberto sem registo até à meia-noite: assumida às " + HORA_LIMPEZA_ASSUMIDA + ". Os dias de abertura mudam-se na página inicial." }));
     return frag;
   }
 
@@ -120,6 +130,8 @@ table.mat td.assumida { color: var(--muted); }
   S.db = db; $("sub").textContent = "Bar, cozinha, arrumos e WC";
   let t; const soon = () => { clearTimeout(t); t = setTimeout(render, 50); };
   db.collection("limpezas").onSnapshot((s) => { S.regs = s.docs.map((d) => ({ id: d.id, ...d.data() })).filter((r) => r.dia && r.area); S.loaded = true; soon(); });
+  db.doc("config/abertura").onSnapshot((s) => { S.cfg = s.exists ? s.data() : null; soon(); });
+  db.collection("picagens").onSnapshot((s) => { S.pics = s.docs.map((d) => d.data()).filter((p) => p.em && p.pessoa); soon(); });
   // the page left open past midnight moves on to the new day
   let dia = hojeKey(); setInterval(() => { if (hojeKey() !== dia) { dia = hojeKey(); soon(); } }, 60000);
 })();

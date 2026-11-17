@@ -5,6 +5,12 @@
 <meta name="robots" content="noindex, nofollow">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#eef1ee">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Chico Maria">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Source+Sans+3:wght@400;600;700&family=IBM+Plex+Mono:wght@500&display=swap">
@@ -14,6 +20,7 @@
 <script src="ui.js"></script>
 <script src="dados.js"></script>
 <script src="painel.js"></script>
+<script src="precos.js"></script>
 <script src="fichas.js"></script>
 <title>Fornecedores e preços · Chico Maria</title>
 <style>
@@ -66,7 +73,7 @@
   function precosPorForn() {
     const mapa = new Map(), n = new Map();
     for (const f of S.forn) for (const x of [f.nome, ...(f.nomesApp || [])]) mapa.set(norm(x), f.id);
-    for (const i of S.ing.values()) { const id = mapa.get(norm(i.fornecedor)); if (id) n.set(id, (n.get(id) || 0) + 1); }
+    for (const i of S.ing.values()) { const x = F.precoIng(i), id = mapa.get(norm(x.artigo ? x.artigo.fornecedor : i.fornecedor)); if (id) n.set(id, (n.get(id) || 0) + 1); }
     return n;
   }
 
@@ -161,7 +168,7 @@
   S.db = db; $("sub").textContent = "Contactos e preços dos ingredientes";
   const re = agendar(render);
   db.collection("fornecedores").onSnapshot((s) => { S.forn = s.docs.map((d) => ({ id: d.id, ...d.data() })); S.loaded.f = true; re(); });
-  db.collection("produtos").onSnapshot((s) => { S.produtos = s.docs.map((d) => d.data()); S.loaded.p = true; re(); });
+  db.collection("produtos").onSnapshot((s) => { S.produtos = s.docs.map((d) => d.data()); S.prod = new Map(s.docs.map((d) => [d.id, { id: d.id, ...d.data() }])); S.loaded.p = true; re(); });
   db.collection("fichas").onSnapshot((s) => { S.fichas = s.docs.map((d) => ({ id: d.id, ...d.data() })); S.loaded.fi = true; re(); });
   db.collection("ingredientes").onSnapshot((s) => { S.ing = new Map(s.docs.map((d) => [d.id, d.data()])); S.loaded.i = true; re(); });
 })();

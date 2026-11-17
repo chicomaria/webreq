@@ -76,13 +76,30 @@ function artigosPorEntregar(encomendas, agora) {
   return n;
 }
 
+// ---------- Dias de abertura ----------
+// config/abertura: { dias: weekdays the house opens (0 = Sunday), abertos: extra open days, fechados: days closed }
+// A day someone clocked in counts as open whatever the list says: people worked, so the records apply.
+const DIAS_SEMANA = [[1, "Seg"], [2, "Ter"], [3, "Qua"], [4, "Qui"], [5, "Sex"], [6, "Sáb"], [0, "Dom"]];
+const ABERTURA_PADRAO = { dias: [4, 5, 6], abertos: [], fechados: [] };
+const abertura = (cfg) => ({ ...ABERTURA_PADRAO, ...(cfg || {}) });
+function diaAberto(dia, cfg, pics) {
+  if ((pics || []).some((p) => p.tipo === "entrada" && p.em && diaKey(p.em) === dia)) return true;
+  const a = abertura(cfg);
+  if ((a.fechados || []).includes(dia)) return false;
+  if ((a.abertos || []).includes(dia)) return true;
+  return (a.dias || []).includes(new Date(dia + "T12:00").getDay());
+}
+// the open days of a week (Monday key) up to a given day
+const diasAbertosAte = (seg, ate, cfg, pics) => { const out = []; for (let d = seg; d <= ate; d = somaDias(d, 1)) if (diaAberto(d, cfg, pics)) out.push(d); return out; };
+
 // ---------- Limpezas ----------
-// the four areas of one day: registo (done by hand), or assumida (no record by midnight: taken as done at 18:00)
-function limpezasDoDia(regs, dia) {
+// the four areas of one day: registo (done by hand), or assumida (no record by midnight on an open day: taken as done at 18:00).
+// aberto: whether the house opened that day (closed days are not assumed); left out, the day counts as open.
+function limpezasDoDia(regs, dia, aberto) {
   const hoje = hojeKey();
   return AREAS_LIMPEZA.map(([id, nome]) => {
     const r = regs.find((x) => x.dia === dia && x.area === id) || null;
-    return { id, nome, registo: r, assumida: !r && dia < hoje && dia >= LIMPEZAS_DESDE };
+    return { id, nome, registo: r, assumida: !r && aberto !== false && dia < hoje && dia >= LIMPEZAS_DESDE };
   });
 }
 

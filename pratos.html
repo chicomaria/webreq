@@ -5,6 +5,12 @@
 <meta name="robots" content="noindex, nofollow">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#eef1ee">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Chico Maria">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Source+Sans+3:wght@400;600;700&family=IBM+Plex+Mono:wght@500&display=swap">
@@ -14,6 +20,7 @@
 <script src="ui.js"></script>
 <script src="dados.js"></script>
 <script src="painel.js"></script>
+<script src="precos.js"></script>
 <script src="fichas.js"></script>
 <title>Pratos · Chico Maria</title>
 <style>
@@ -193,6 +200,7 @@ details.prato .acts { display: flex; gap: 8px; justify-content: flex-end; flex-w
     re();
   });
   db.collection("ingredientes").onSnapshot((s) => { S.ing = new Map(s.docs.map((d) => [d.id, d.data()])); S.loaded.i = true; re(); });
+  db.collection("produtos").onSnapshot((s) => { S.prod = new Map(s.docs.map((d) => [d.id, { id: d.id, ...d.data() }])); re(); });
   db.collection("pratos").onSnapshot((s) => { S.pratos = s.docs.map((d) => ({ id: d.id, ...d.data() })); S.loaded.p = true; re(); });
 })();
 </script>
