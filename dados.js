@@ -8234,5 +8234,162 @@ window.DADOS = [
     }
    }
   }
+ },
+ {
+  "id": "2026-11-18-porcoes",
+  "atualizar": {
+   "fichas": {
+    "arroz-de-mar": {
+     "ingredientes": [
+      {
+       "ing": "corvina",
+       "qtd": 1.28,
+       "nota": "peixe do dia, inteiro: 640 g limpos"
+      },
+      {
+       "ing": "ameijoa-branca",
+       "qtd": 2
+      },
+      {
+       "ing": "berbigao",
+       "qtd": 0.05
+      },
+      {
+       "ing": "arroz-carolino",
+       "qtd": 0.24
+      },
+      {
+       "ing": "azeite",
+       "qtd": 0.025
+      },
+      {
+       "ing": "pimento",
+       "qtd": 0.15
+      },
+      {
+       "ing": "cebola",
+       "qtd": 0.15
+      },
+      {
+       "ing": "alho",
+       "qtd": 0.02
+      },
+      {
+       "ing": "polpa-tomate",
+       "qtd": 0.2
+      },
+      {
+       "ing": "vinho-branco",
+       "qtd": 0.05
+      },
+      {
+       "ing": "coentros",
+       "qtd": 0.05
+      },
+      {
+       "ing": "colorau",
+       "qtd": 0.01
+      },
+      {
+       "ing": "piri-piri",
+       "qtd": 0.005
+      },
+      {
+       "ing": "louro",
+       "qtd": 0.01
+      },
+      {
+       "ing": "sal",
+       "qtd": 0.01
+      },
+      {
+       "ing": "pimenta",
+       "qtd": 0.002
+      }
+     ],
+     "obs": "Do Excel de outono, folha «Arroz de Robalo ameijoa», agora com corvina (a folha tinha sargo). Peixe a 160 g limpos por pessoa e 50% de rendimento: 1,28 kg inteiro para 4 doses (a folha tinha 2 kg). Algas, cabelo de velha, esferas de limão, rebentos de coentros e o caldo de peixe não estão na lista."
+    },
+    "bife-a-chico-maria": {
+     "ingredientes": [
+      {
+       "ing": "entrecote",
+       "qtd": 2.2,
+       "nota": "200 g por pessoa"
+      },
+      {
+       "ing": "batata-branca",
+       "qtd": 3,
+       "nota": "batata palito"
+      },
+      {
+       "ing": "oleo-fritar",
+       "qtd": null,
+       "medida": "q.b.",
+       "nota": "batata palito"
+      },
+      {
+       "ing": "sal",
+       "qtd": 0.03
+      },
+      {
+       "ing": "azeite",
+       "qtd": 0.1
+      },
+      {
+       "ing": "ossos",
+       "qtd": 1.5,
+       "nota": "jus"
+      },
+      {
+       "ing": "cebola",
+       "qtd": 1,
+       "nota": "jus"
+      },
+      {
+       "ing": "alho",
+       "qtd": 0.1,
+       "nota": "jus"
+      },
+      {
+       "ing": "alho-frances",
+       "qtd": 0.3,
+       "nota": "jus"
+      },
+      {
+       "ing": "cenoura",
+       "qtd": 0.3,
+       "nota": "jus"
+      },
+      {
+       "ing": "aipo",
+       "qtd": 0.3,
+       "nota": "jus"
+      },
+      {
+       "ing": "tomate",
+       "qtd": 0.3,
+       "nota": "jus"
+      },
+      {
+       "ing": "chalotas",
+       "qtd": 0.15,
+       "nota": "jus"
+      },
+      {
+       "ing": "cogumelos-paris",
+       "qtd": 0.2,
+       "nota": "jus"
+      },
+      {
+       "ing": "manteiga",
+       "qtd": null,
+       "medida": "q.b.",
+       "nota": "jus, se necessário"
+      }
+     ],
+     "obs": "Versão do Excel de outono. A folha usa entrecote; a carta diz coração de alcatra. O entrecote está ligado ao artigo das Encomendas (23 €/kg); a folha dizia 33,50 €/kg. Carne a 200 g por pessoa: 2,2 kg para 11 doses (a folha tinha 4,5 kg)."
+    }
+   }
+  }
  }
 ];
