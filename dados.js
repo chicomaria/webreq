@@ -7345,5 +7345,894 @@ window.DADOS = [
     }
    }
   }
+ },
+ {
+  "id": "2026-11-18-fichas-outono-resto",
+  "novos": {
+   "fichas": {
+    "milhos-fritos-com-salada-de-bacalhau": {
+     "tipo": "prato",
+     "categoria": "Paparicos",
+     "nome": "Milhos fritos com salada de bacalhau",
+     "atual": false,
+     "doses": 10,
+     "pvp": null,
+     "ingredientes": [
+      {
+       "ing": "semola-de-milho",
+       "qtd": 0.25,
+       "nota": "milhos fritos"
+      },
+      {
+       "ing": "caldo-de-bacalhau",
+       "qtd": 1,
+       "nota": "milhos fritos"
+      },
+      {
+       "ing": "bochechas-de-bacalhau",
+       "qtd": 0.5,
+       "nota": "salada de bacalhau"
+      },
+      {
+       "ing": "azeite",
+       "qtd": 0.05
+      },
+      {
+       "ing": "vinagre",
+       "qtd": 0.3
+      },
+      {
+       "ing": "piri-piri",
+       "qtd": 0.05
+      },
+      {
+       "ing": "coentros",
+       "qtd": 0.05,
+       "nota": "pil pil de coentros"
+      },
+      {
+       "ing": "azeitona",
+       "qtd": 0.07,
+       "nota": "pó de azeitona"
+      },
+      {
+       "ing": "cebola-roxa",
+       "qtd": 0.4,
+       "nota": "pickle"
+      },
+      {
+       "ing": "acucar",
+       "qtd": null,
+       "medida": "q.b.",
+       "nota": "pickle"
+      },
+      {
+       "ing": "salicornia",
+       "qtd": 0.05
+      },
+      {
+       "ing": "tomate-baby",
+       "qtd": 0.05
+      },
+      {
+       "ing": "pimenta",
+       "qtd": 0.05
+      },
+      {
+       "ing": "sal",
+       "qtd": 0.2
+      },
+      {
+       "ing": "oleo-fritar",
+       "qtd": null,
+       "medida": "q.b.",
+       "nota": "milhos fritos"
+      }
+     ],
+     "preparacao": "milhos fritos\ncaldo de bacalhau com parte das aparas\njuntar sêmola de milho\n(para abrir previamente se necessário, sem ferver deixar em caldo)\njuntar caldo aos poucos e ferver sempre a mexer até chegar ao ponto\nretificar sal\npor fim meter num tabuleiro até arrefecer\ndepois de frio cortar em retângulos e fritar\n\nsalada de bacalhau\ndesfiar o bacalhau em cru, temperar com sal, pimenta, azeite, vinagre e piri-piri\n\npil pil de coentros\ncom a pele e as espinhas do bacalhau fazer o molho e por fim incorporar o azeite de coentros\n\npó de azeitona\ndesidratar a azeitona no forno e triturar por fim\n\npickle de cebola roxa\nnum tacho aquecer o vinagre, açúcar e água\nno fim de fervido deitar sobre a cebola previamente cortada em juliana",
+     "obs": "Do Excel de outono (na folha: polenta com salada de bacalhau)."
+    },
+    "caldo-verde": {
+     "tipo": "prato",
+     "categoria": "Paparicos",
+     "nome": "Caldo verde",
+     "atual": false,
+     "doses": 1,
+     "pvp": null,
+     "ingredientes": [
+      {
+       "ing": "couve-portuguesa",
+       "qtd": 0.6
+      },
+      {
+       "ing": "batata",
+       "qtd": 0.1
+      },
+      {
+       "ing": "cebola",
+       "qtd": 0.1
+      },
+      {
+       "ing": "alho",
+       "qtd": 0.1
+      },
+      {
+       "ing": "alho-frances",
+       "qtd": 0.1
+      },
+      {
+       "ing": "azeite",
+       "qtd": 0.05
+      },
+      {
+       "ing": "sal",
+       "qtd": 0.02
+      },
+      {
+       "ing": "chourico",
+       "qtd": 0.2
+      },
+      {
+       "ing": "broa",
+       "qtd": 0.05,
+       "nota": "pó de broa e chouriço"
+      }
+     ],
+     "preparacao": "num tacho refogar a cebola, o alho, a batata, o alho francês e parte da couve\njuntar caldo de legumes e deixar cozer\ntriturar tudo até obter um creme fino e leve\ncortar a couve em juliana e fritar\nfritar o chouriço e guardar a gordura para o empratamento\ncom o restante chouriço triturar com a broa e levar ao forno a secar",
+     "obs": "Do Excel de outono. A folha conta 1 dose com 600 g de couve; confirmar o rendimento."
+    },
+    "peixinhos-da-horta": {
+     "tipo": "prato",
+     "categoria": "Paparicos",
+     "nome": "Peixinhos da horta",
+     "atual": false,
+     "doses": 1,
+     "pvp": null,
+     "ingredientes": [
+      {
+       "ing": "cenoura",
+       "qtd": 0.05
+      },
+      {
+       "ing": "curgete",
+       "qtd": 0.05
+      },
+      {
+       "ing": "pimento",
+       "qtd": 0.05
+      },
+      {
+       "ing": "feijao-verde",
+       "qtd": 0.05
+      },
+      {
+       "ing": "farinha",
+       "qtd": 0.1,
+       "nota": "polme"
+      },
+      {
+       "ing": "agua-com-gas",
+       "qtd": 0.25,
+       "nota": "polme"
+      },
+      {
+       "ing": "panko",
+       "qtd": 0.05
+      },
+      {
+       "ing": "oleo-fritar",
+       "qtd": null,
+       "medida": "q.b."
+      },
+      {
+       "ing": "tofu",
+       "qtd": 0.03,
+       "nota": "molho de miso e tofu"
+      },
+      {
+       "ing": "miso",
+       "qtd": 0.04,
+       "nota": "molho de miso e tofu"
+      },
+      {
+       "ing": "alho",
+       "qtd": 0.02,
+       "nota": "molho de miso e tofu"
+      },
+      {
+       "ing": "azeite",
+       "qtd": 0.05,
+       "nota": "molho de miso e tofu"
+      },
+      {
+       "ing": "sal",
+       "qtd": 0.08
+      },
+      {
+       "ing": "pimenta",
+       "qtd": 0.04
+      },
+      {
+       "ing": "pimentao-doce",
+       "qtd": 0.03
+      },
+      {
+       "ing": "piri-piri",
+       "qtd": 0.03
+      }
+     ],
+     "preparacao": "para os peixinhos da horta, cortar os legumes todos uniformemente e passar pelo polme feito com a água com gás, a farinha e os temperos respetivos\npor fim envolver em panko e fritar\npara o molho de miso e tofu, misturar o tofu, o alho, o azeite e a pasta de miso e triturar tudo até obter uma pasta",
+     "obs": "Do Excel de outono."
+    },
+    "coracao-gratinado": {
+     "tipo": "prato",
+     "categoria": "Fora da carta",
+     "nome": "Coração gratinado",
+     "atual": false,
+     "doses": 1,
+     "pvp": null,
+     "ingredientes": [
+      {
+       "ing": "tempeh-de-tremoco",
+       "qtd": 0.15,
+       "nota": "creme de tempeh"
+      },
+      {
+       "ing": "cebola",
+       "qtd": 0.05,
+       "nota": "creme de tempeh"
+      },
+      {
+       "ing": "couve-coracao",
+       "qtd": 0.1
+      },
+      {
+       "ing": "planteiga",
+       "qtd": 0.05,
+       "nota": "pasta de especiarias"
+      },
+      {
+       "ing": "pimentao-doce",
+       "qtd": 0.03,
+       "nota": "pasta de especiarias"
+      },
+      {
+       "ing": "acafrao",
+       "qtd": 0.02,
+       "nota": "pasta de especiarias"
+      },
+      {
+       "ing": "cominhos",
+       "qtd": 0.02,
+       "nota": "pasta de especiarias"
+      },
+      {
+       "ing": "shiitake",
+       "qtd": 0.08
+      },
+      {
+       "ing": "azeite",
+       "qtd": 0.08
+      },
+      {
+       "ing": "lima",
+       "qtd": 0.12,
+       "nota": "1 lima"
+      },
+      {
+       "ing": "rebentos-de-ervilha",
+       "qtd": 0.01
+      },
+      {
+       "ing": "sal",
+       "qtd": 0.02
+      },
+      {
+       "ing": "pimenta",
+       "qtd": 0.02
+      }
+     ],
+     "preparacao": "refogar uma cebola juntamente com o tempeh e triturar até obter um puré/creme\nfazer uma pasta com as especiarias e a planteiga, barrar na couve e levar a gratinar no forno\nsaltear os cogumelos em azeite e temperar",
+     "obs": "Do Excel de outono, folha «Creme de tempeh com couve gratinada e cogumelos»."
+    },
+    "leite-creme": {
+     "tipo": "prato",
+     "categoria": "Lambarices",
+     "nome": "Leite creme",
+     "atual": false,
+     "doses": 10,
+     "pvp": null,
+     "ingredientes": [
+      {
+       "ing": "gelado-cosi",
+       "qtd": 0.3,
+       "nota": "gelado de leite creme"
+      },
+      {
+       "ing": "azeite",
+       "qtd": 0.24,
+       "nota": "bolo de azeite e citrinos"
+      },
+      {
+       "ing": "farinha",
+       "qtd": 0.15,
+       "nota": "bolo de azeite e citrinos"
+      },
+      {
+       "ing": "ovo",
+       "qtd": 7
+      },
+      {
+       "ing": "acucar",
+       "qtd": 0.2
+      },
+      {
+       "ing": "limao",
+       "qtd": 1
+      },
+      {
+       "ing": "laranja",
+       "qtd": 1
+      },
+      {
+       "ing": "lima",
+       "qtd": 0.4,
+       "nota": "4 limas"
+      },
+      {
+       "ing": "amido",
+       "qtd": 0.3,
+       "nota": "curd de limão"
+      },
+      {
+       "ing": "chocolate-branco",
+       "qtd": 0.1,
+       "nota": "areia de chocolate branco"
+      },
+      {
+       "ing": "flor-comestivel",
+       "qtd": 0.01
+      }
+     ],
+     "preparacao": "bolo de azeite e citrinos\nmisturar a farinha com as gemas até triplicar\nem seguida juntar a farinha com as raspas dos citrinos e misturar até ficar uniforme\nverter o azeite em fio e continuar a bater até ficar uma pasta\npor fim bater as claras com o restante açúcar e juntar ao preparado anterior\nlevar ao forno a cozer durante 20min a 65º\n\nareia de chocolate branco\nlevar a tablete de chocolate ao forno até tostar, deixar arrefecer e triturar\n\ncurd de limão\ncafé, manteiga e água, levar ao lume até ferver\nnuma taça separar gemas, juntar ovo, amido e açúcar\nverter sumo de limão para as gemas em fio e mexer\nlevar de novo ao lume até ponto estrada\nrefrigerar e saco pasteleiro",
+     "obs": "Do Excel de outono: bolo de azeite e citrinos, areia de chocolate branco, curd de limão e gelado de leite creme (COSI). O bolo diz 65º no forno; confirmar."
+    },
+    "pudim-de-diospiro": {
+     "tipo": "prato",
+     "categoria": "Lambarices",
+     "nome": "Pudim de dióspiro",
+     "atual": false,
+     "doses": 10,
+     "pvp": null,
+     "ingredientes": [
+      {
+       "ing": "leite-vegetal",
+       "qtd": 0.5,
+       "nota": "pudim"
+      },
+      {
+       "ing": "agar-agar",
+       "qtd": 0.015,
+       "nota": "pudim"
+      },
+      {
+       "ing": "amido",
+       "qtd": 0.3,
+       "nota": "pudim"
+      },
+      {
+       "ing": "acucar",
+       "qtd": 0.25
+      },
+      {
+       "ing": "limao",
+       "qtd": 1
+      },
+      {
+       "ing": "diospiro",
+       "qtd": 0.25,
+       "nota": "compota e brunesa"
+      },
+      {
+       "ing": "gelado-cosi",
+       "qtd": 0.3,
+       "nota": "gelado de canela"
+      },
+      {
+       "ing": "noz",
+       "qtd": 0.05,
+       "nota": "areia"
+      },
+      {
+       "ing": "farinha",
+       "qtd": 0.5,
+       "nota": "areia"
+      },
+      {
+       "ing": "planteiga",
+       "qtd": 0.5,
+       "nota": "areia"
+      }
+     ],
+     "preparacao": "começar por dissolver o amido e o agar num pouco de bebida vegetal\nde seguida ferver a bebida vegetal, o amido, o agar, o açúcar e os aromáticos, deixar ferver por volta de 5 a 8 min e deixar ficar frio em formas. levar ao frio durante no mínimo 8 horas\npara a compota de dióspiro, tirar a casca do dióspiro, levar ao lume com açúcar e um pouco de água, por fim triturar tudo\nbrunesa de dióspiro: cortar o dióspiro em cubos pequenos e conservar numa calda de açúcar fraca\n\nareia\nplanteiga, açúcar, farinha e noz\nemulsionar a frio até ficar consistente\nassar no forno 180º até dourar\npartir até areia",
+     "obs": "Do Excel de outono (separador «Pudim de Baunilha», ficha «pudim de diospiro»), com gelado de canela (COSI). Vegano."
+    },
+    "rabanada": {
+     "tipo": "prato",
+     "categoria": "Lambarices",
+     "nome": "Rabanada",
+     "atual": false,
+     "doses": 10,
+     "pvp": null,
+     "ingredientes": [
+      {
+       "ing": "pao-brioche",
+       "qtd": 0.5
+      },
+      {
+       "ing": "leite",
+       "qtd": 0.1
+      },
+      {
+       "ing": "ovo",
+       "qtd": 1
+      },
+      {
+       "ing": "pau-de-canela",
+       "qtd": 2
+      },
+      {
+       "ing": "limao",
+       "qtd": 1
+      },
+      {
+       "ing": "acucar",
+       "qtd": 0.6
+      },
+      {
+       "ing": "natas",
+       "qtd": 0.4,
+       "nota": "toffee de miso"
+      },
+      {
+       "ing": "manteiga",
+       "qtd": 0.025,
+       "nota": "toffee de miso"
+      },
+      {
+       "ing": "miso",
+       "qtd": 0.1,
+       "nota": "toffee de miso"
+      },
+      {
+       "ing": "farinha-t55",
+       "qtd": 0.1,
+       "nota": "areia"
+      },
+      {
+       "ing": "gelado-cosi",
+       "qtd": 0.3,
+       "nota": "gelado de requeijão"
+      },
+      {
+       "ing": "acucar-amarelo",
+       "qtd": null,
+       "medida": "q.b.",
+       "nota": "para caramelizar"
+      }
+     ],
+     "preparacao": "areia\nmanteiga, açúcar, farinha, ovo e amêndoa\nemulsionar a frio até ficar consistente\nassar no forno 180º até dourar\npartir até areia\n\ntoffee de miso\nfazer um caramelo normal, antes do ponto escuro juntar a nata aos poucos e por fim a manteiga em cubos e a pasta de miso\n\nrabanada\ncortar o pão em retângulo, embeber em leite e as especiarias e por fim levar ao forno a tostar\nao empratar, caramelizar com açúcar amarelo",
+     "obs": "Do Excel de outono, com gelado de requeijão (COSI). A areia leva amêndoa, que não está na lista."
+    }
+   },
+   "ingredientes": {
+    "lombelo": {
+     "nome": "Lombelo",
+     "grupo": "Outros",
+     "unidade": "Kg",
+     "preco": 22,
+     "fornecedor": "",
+     "obs": "",
+     "artigo": "lombelos"
+    },
+    "cornichons": {
+     "nome": "Cornichons",
+     "grupo": "Bases",
+     "unidade": "Kg",
+     "preco": 7.59,
+     "fornecedor": "",
+     "obs": ""
+    },
+    "alcaparras": {
+     "nome": "Alcaparras",
+     "grupo": "Bases",
+     "unidade": "Kg",
+     "preco": 6.5,
+     "fornecedor": "",
+     "obs": ""
+    },
+    "gemas": {
+     "nome": "Gemas",
+     "grupo": "Outros",
+     "unidade": "Kg",
+     "preco": 11.59,
+     "fornecedor": "",
+     "obs": ""
+    },
+    "anchova": {
+     "nome": "Anchova",
+     "grupo": "Outros",
+     "unidade": "Kg",
+     "preco": 26.67,
+     "fornecedor": "",
+     "obs": ""
+    },
+    "rebentos-de-salsa": {
+     "nome": "Rebentos de salsa",
+     "grupo": "Microverdes",
+     "unidade": "Kg",
+     "preco": 90,
+     "fornecedor": "",
+     "obs": ""
+    },
+    "bochechas-de-bacalhau": {
+     "nome": "Bochechas de bacalhau",
+     "grupo": "Outros",
+     "unidade": "Kg",
+     "preco": 12.19,
+     "fornecedor": "",
+     "obs": ""
+    },
+    "caldo-de-bacalhau": {
+     "nome": "Caldo de bacalhau",
+     "grupo": "Bases",
+     "unidade": "L",
+     "preco": 0,
+     "fornecedor": "Casa",
+     "obs": ""
+    },
+    "cebola-roxa": {
+     "nome": "Cebola roxa",
+     "grupo": "Legumes",
+     "unidade": "Kg",
+     "preco": 2.29,
+     "fornecedor": "",
+     "obs": "",
+     "artigo": "cebola-roxa"
+    },
+    "tomate-baby": {
+     "nome": "Tomate baby",
+     "grupo": "Legumes",
+     "unidade": "Kg",
+     "preco": 6.78,
+     "fornecedor": "",
+     "obs": ""
+    },
+    "chourico": {
+     "nome": "Chouriço",
+     "grupo": "Outros",
+     "unidade": "Kg",
+     "preco": 1.45,
+     "fornecedor": "",
+     "obs": ""
+    },
+    "couve-portuguesa": {
+     "nome": "Couve portuguesa",
+     "grupo": "Legumes",
+     "unidade": "Kg",
+     "preco": 1.89,
+     "fornecedor": "",
+     "obs": ""
+    },
+    "curgete": {
+     "nome": "Curgete",
+     "grupo": "Legumes",
+     "unidade": "Kg",
+     "preco": 1.99,
+     "fornecedor": "",
+     "obs": ""
+    },
+    "feijao-verde": {
+     "nome": "Feijão verde",
+     "grupo": "Legumes",
+     "unidade": "Kg",
+     "preco": 4.99,
+     "fornecedor": "",
+     "obs": "",
+     "artigo": "feijao-verde"
+    },
+    "tofu": {
+     "nome": "Tofu",
+     "grupo": "Outros",
+     "unidade": "Kg",
+     "preco": 9.97,
+     "fornecedor": "",
+     "obs": ""
+    },
+    "panko": {
+     "nome": "Panko",
+     "grupo": "Pastelaria",
+     "unidade": "Kg",
+     "preco": 13.95,
+     "fornecedor": "",
+     "obs": ""
+    },
+    "agua-com-gas": {
+     "nome": "Água com gás",
+     "grupo": "Bar",
+     "unidade": "L",
+     "preco": 0.83,
+     "fornecedor": "",
+     "obs": ""
+    },
+    "ameijoa-branca": {
+     "nome": "Amêijoa branca",
+     "grupo": "Outros",
+     "unidade": "Kg",
+     "preco": 3,
+     "fornecedor": "",
+     "obs": ""
+    },
+    "berbigao": {
+     "nome": "Berbigão",
+     "grupo": "Outros",
+     "unidade": "Kg",
+     "preco": 15,
+     "fornecedor": "",
+     "obs": "",
+     "artigo": "berbigao"
+    },
+    "tempeh-de-tremoco": {
+     "nome": "Tempeh de tremoço",
+     "grupo": "Outros",
+     "unidade": "Kg",
+     "preco": 27.95,
+     "fornecedor": "",
+     "obs": ""
+    },
+    "couve-coracao": {
+     "nome": "Couve coração",
+     "grupo": "Legumes",
+     "unidade": "Kg",
+     "preco": 1.49,
+     "fornecedor": "",
+     "obs": ""
+    },
+    "rebentos-de-ervilha": {
+     "nome": "Rebentos de ervilha",
+     "grupo": "Microverdes",
+     "unidade": "Kg",
+     "preco": 90,
+     "fornecedor": "",
+     "obs": ""
+    },
+    "planteiga": {
+     "nome": "Planteiga",
+     "grupo": "Gorduras",
+     "unidade": "Kg",
+     "preco": 7.16,
+     "fornecedor": "",
+     "obs": ""
+    },
+    "acafrao": {
+     "nome": "Açafrão",
+     "grupo": "Especiarias",
+     "unidade": "Kg",
+     "preco": 11,
+     "fornecedor": "",
+     "obs": ""
+    },
+    "chocolate-branco": {
+     "nome": "Chocolate branco",
+     "grupo": "Pastelaria",
+     "unidade": "Kg",
+     "preco": 25,
+     "fornecedor": "",
+     "obs": ""
+    },
+    "flor-comestivel": {
+     "nome": "Flor comestível",
+     "grupo": "Microverdes",
+     "unidade": "Kg",
+     "preco": 65,
+     "fornecedor": "",
+     "obs": ""
+    },
+    "leite-vegetal": {
+     "nome": "Leite vegetal",
+     "grupo": "Lacticínios",
+     "unidade": "L",
+     "preco": 0.98,
+     "fornecedor": "",
+     "obs": ""
+    },
+    "diospiro": {
+     "nome": "Dióspiro",
+     "grupo": "Frutos",
+     "unidade": "Kg",
+     "preco": 4.99,
+     "fornecedor": "",
+     "obs": ""
+    },
+    "noz": {
+     "nome": "Noz",
+     "grupo": "Frutos",
+     "unidade": "Kg",
+     "preco": 17,
+     "fornecedor": "",
+     "obs": ""
+    },
+    "pau-de-canela": {
+     "nome": "Pau de canela",
+     "grupo": "Especiarias",
+     "unidade": "un",
+     "preco": 0.3,
+     "fornecedor": "",
+     "obs": ""
+    }
+   }
+  },
+  "atualizar": {
+   "fichas": {
+    "tartaro-de-novilho": {
+     "doses": 10,
+     "ingredientes": [
+      {
+       "ing": "lombelo",
+       "qtd": 1
+      },
+      {
+       "ing": "chalotas",
+       "qtd": 0.5
+      },
+      {
+       "ing": "cornichons",
+       "qtd": 0.05
+      },
+      {
+       "ing": "alcaparras",
+       "qtd": 0.05
+      },
+      {
+       "ing": "gemas",
+       "qtd": 0.5,
+       "nota": "gema curada"
+      },
+      {
+       "ing": "ovo",
+       "qtd": 1,
+       "nota": "maionese"
+      },
+      {
+       "ing": "anchova",
+       "qtd": 0.04,
+       "nota": "maionese"
+      },
+      {
+       "ing": "oleo",
+       "qtd": 0.1,
+       "nota": "maionese"
+      },
+      {
+       "ing": "mostarda",
+       "qtd": 0.3
+      },
+      {
+       "ing": "azeite",
+       "qtd": 0.05
+      },
+      {
+       "ing": "rebentos-de-salsa",
+       "qtd": 0.01
+      },
+      {
+       "ing": "pimenta",
+       "qtd": 0.03
+      },
+      {
+       "ing": "piri-piri",
+       "qtd": 0.03
+      },
+      {
+       "ing": "sal",
+       "qtd": 0.5
+      }
+     ],
+     "preparacao": "picar a carne, a chalota, os cornichons e as alcaparras\nmisturar tudo numa taça, temperar com sal, pimenta, mostarda, piri-piri e azeite\npara a maionese, numa taça juntar um ovo, a mostarda, as anchovas, verter o óleo em fio e temperar com sal e pimenta\npara a gema curada, cozer a vácuo na roner durante 2 horas a 66º",
+     "obs": "Do Excel de outono, folha «Tartaro de lombelo». O lombelo está ligado ao artigo das Encomendas (Lombelos, 14 €/kg); a folha dizia 22 €/kg."
+    },
+    "arroz-de-mar": {
+     "doses": 4,
+     "ingredientes": [
+      {
+       "ing": "corvina",
+       "qtd": 2,
+       "nota": "peixe do dia"
+      },
+      {
+       "ing": "ameijoa-branca",
+       "qtd": 2
+      },
+      {
+       "ing": "berbigao",
+       "qtd": 0.05
+      },
+      {
+       "ing": "arroz-carolino",
+       "qtd": 0.24
+      },
+      {
+       "ing": "azeite",
+       "qtd": 0.025
+      },
+      {
+       "ing": "pimento",
+       "qtd": 0.15
+      },
+      {
+       "ing": "cebola",
+       "qtd": 0.15
+      },
+      {
+       "ing": "alho",
+       "qtd": 0.02
+      },
+      {
+       "ing": "polpa-tomate",
+       "qtd": 0.2
+      },
+      {
+       "ing": "vinho-branco",
+       "qtd": 0.05
+      },
+      {
+       "ing": "coentros",
+       "qtd": 0.05
+      },
+      {
+       "ing": "colorau",
+       "qtd": 0.01
+      },
+      {
+       "ing": "piri-piri",
+       "qtd": 0.005
+      },
+      {
+       "ing": "louro",
+       "qtd": 0.01
+      },
+      {
+       "ing": "sal",
+       "qtd": 0.01
+      },
+      {
+       "ing": "pimenta",
+       "qtd": 0.002
+      }
+     ],
+     "preparacao": "filetar o peixe em doses e corar em azeite\npara o arroz, num tacho refogar a cebola, o arroz e ir juntando caldo de peixe até o mesmo ficar cozido\npor fim juntar a amêijoa previamente cozida com algas variadas\nao empratar, finalizar o arroz com o peixe, berbigão, cabelo de velha, esferas de limão e rebentos de coentros",
+     "obs": "Do Excel de outono, folha «Arroz de Robalo ameijoa», agora com corvina (a folha tinha sargo). Algas, cabelo de velha, esferas de limão, rebentos de coentros e o caldo de peixe não estão na lista."
+    }
+   },
+   "ingredientes": {
+    "agar-agar": {
+     "preco": 81.1
+    },
+    "miso": {
+     "preco": 7.98
+    },
+    "pao-brioche": {
+     "preco": 2.98
+    },
+    "corvina": {
+     "preco": 16
+    }
+   },
+   "pratos": {
+    "coracao-gratinado": {
+     "ficha": "coracao-gratinado"
+    }
+   }
+  }
  }
 ];
