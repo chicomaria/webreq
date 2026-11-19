@@ -209,7 +209,7 @@ main { display: grid; gap: 22px; padding-bottom: 40px; }
 
     <section class="fv" id="vinhos-temp">
       <h2>Os nossos vinhos por temperatura</h2>
-      <p class="lead" style="margin:0 0 10px">Pelos cinco níveis do frigorífico de vinhos, do mais quente para o mais frio.</p>
+      <p class="lead" style="margin:0 0 10px">Pelos níveis do frigorífico de vinhos, do mais quente para o mais frio.</p>
       <div class="vt-tools"><button class="btn" type="button" id="vt-imprimir">Imprimir esta tabela</button><span class="note" id="vt-sub">A ler a lista de vinhos…</span></div>
       <div class="vt" id="vt"></div>
       <p class="nota">Temperatura de serviço sugerida, pelo tipo e estilo de cada vinho. Tirar do frio uns minutos antes quando o vinho é mais sério.</p>
@@ -247,21 +247,22 @@ main { display: grid; gap: 22px; padding-bottom: 40px; }
 <script>
 (async () => {
   // Every wine in the list, grouped by the guide's serving temperatures. A wine's own `temperatura` (e.g. "10–12 °C") wins.
-  // the five levels of the wine fridge, warmest first (Francisco, 19 Nov); espumantes and vinhos verdes together in the coldest
-  const FAIXAS = [["14 °C ou mais", "tintos encorpados, Porto, Madeira e generosos"], ["12–14 °C", "tintos leves"],
+  // the levels of the wine fridge, warmest first (Francisco, 19 Nov: tintos 16–18, fortificados 16); espumantes and vinhos verdes together in the coldest
+  const FAIXAS = [["16–18 °C", "tintos encorpados"], ["16 °C", "fortificados: Porto, Madeira e generosos"], ["12–14 °C", "tintos leves"],
     ["10–12 °C", "brancos estruturados e velhos"], ["8–10 °C", "brancos médios, rosés, Porto branco e colheita tardia"],
     ["Abaixo de 8 °C", "espumantes, vinhos verdes e brancos leves"]];
+  const [T_TINTO, T_FORT, T_LEVE, T_BRANCO, T_MEDIO, T_FRIO] = FAIXAS.map(([f]) => f);
   const TIPO = { espumante: "Espumante", branco: "Branco", rose: "Rosé", tinto: "Tinto", sobremesa: "Fortificados e doces" };
   const TIPOS = { espumante: "Espumantes", branco: "Brancos", rose: "Rosés", tinto: "Tintos", sobremesa: "Fortificados e doces" };
   function faixa(v) {
     if (v.temperatura) return v.temperatura;
     const c = norm(v.castas), verde = norm(v.regiao).includes("vinho verde");
-    if (v.tipo === "espumante" || verde) return FAIXAS[4][0];
-    if (v.tipo === "rose") return FAIXAS[3][0];
-    if (v.tipo === "branco") return v.nivel === "leve" ? FAIXAS[4][0] : v.nivel === "serio" ? FAIXAS[2][0] : FAIXAS[3][0];
-    if (v.tipo === "tinto") return v.nivel === "leve" || c.includes("pinot") ? FAIXAS[1][0] : FAIXAS[0][0];
-    if (v.tipo === "sobremesa") return c.includes("branco seco") || c.includes("colheita tardia") ? FAIXAS[3][0] : FAIXAS[0][0];
-    return FAIXAS[0][0];
+    if (v.tipo === "espumante" || verde) return T_FRIO;
+    if (v.tipo === "rose") return T_MEDIO;
+    if (v.tipo === "branco") return v.nivel === "leve" ? T_FRIO : v.nivel === "serio" ? T_BRANCO : T_MEDIO;
+    if (v.tipo === "tinto") return v.nivel === "leve" || c.includes("pinot") ? T_LEVE : T_TINTO;
+    if (v.tipo === "sobremesa") return c.includes("branco seco") || c.includes("colheita tardia") ? T_MEDIO : T_FORT;
+    return T_TINTO;
   }
   document.getElementById("vt-imprimir").onclick = () => { document.body.classList.add("so-temp"); window.print(); };
   window.addEventListener("afterprint", () => document.body.classList.remove("so-temp"));
