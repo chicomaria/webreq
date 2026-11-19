@@ -82,7 +82,8 @@ function fichasComuns(S, render) {
 
   function camposFicha(tipo) {
     const comuns = [{ k: "nome", label: "Nome" }, { k: "tipo", label: "Tipo", tipo: "select", opcoes: TIPOS_FICHA }];
-    if (tipo === "cocktail") return [...comuns, { k: "pvp", label: "PVP (€)", tipo: "number" }, { k: "copo", label: "Copo" }, { k: "guarnicao", label: "Guarnição" },
+    if (tipo === "cocktail") return [...comuns, { k: "autor", label: "Cocktail de autor (desmarcado é clássico)", tipo: "check" },
+      { k: "pvp", label: "PVP (€)", tipo: "number" }, { k: "copo", label: "Copo" }, { k: "guarnicao", label: "Guarnição" },
       { k: "historia", label: "História", tipo: "textarea", rows: 3 }, { k: "dicas", label: "Dicas (uma por linha)", tipo: "textarea", rows: 3 },
       { k: "obs", label: "Observações", tipo: "textarea" }];
     return [...comuns, { k: "categoria", label: "Secção da carta", lista: "cats", dica: "Sustento, Paparicos, Comedeirices ou Lambarices" },

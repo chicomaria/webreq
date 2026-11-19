@@ -80,7 +80,11 @@
     frag.append(h("div", { class: "tools" }, busca, h("button", { class: "btn primary", onclick: () => F.novaFicha("cocktail") }, "+ Cocktail")));
     frag.append(h("p", { class: "note", text: todos.length + (todos.length === 1 ? " cocktail" : " cocktails") + ". Ingredientes e método à vista; Expandir mostra copo, guarnição, história, dicas e custo." }));
     if (!lista.length) frag.append(h("div", { class: "card empty" }, h("strong", { text: todos.length ? "Nenhum cocktail encontrado" : "Ainda sem cocktails" }), todos.length ? null : "Use + Cocktail."));
-    else frag.append(h("div", { class: "list" }, lista.map(cartao)));
+    // two parts: classics and the house's own (fichas.autor true)
+    else for (const [t, autor] of [["Cocktails de autor", true], ["Cocktails clássicos", false]]) {
+      const xs = lista.filter((f) => !!f.autor === autor); if (!xs.length) continue;
+      frag.append(h("h2", { class: "sec" }, t), h("div", { class: "list" }, xs.map(cartao)));
+    }
     return frag;
   }
   // what the bar prepares before service, at the top of the list (config/bar, one note per line)

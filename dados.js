@@ -8391,5 +8391,28 @@ window.DADOS = [
     }
    }
   }
+ },
+ {
+  "id": "2026-11-19-cocktails-autor",
+  "novos": {
+   "ingredientes": {
+    "tonica": { "nome": "Água tónica", "grupo": "Bar", "unidade": "L", "preco": null, "fornecedor": "" },
+    "xarope-manjericao": { "nome": "Xarope de manjericão (casa)", "grupo": "Bar", "unidade": "L", "preco": null, "fornecedor": "" }
+   },
+   "fichas": {
+    "chico-maria-spritz": {
+     "tipo": "cocktail", "categoria": "Coquetéis", "autor": true, "nome": "Chico Maria Spritz", "doses": 1, "pvp": null,
+     "ingredientes": [
+      { "ing": "per-se", "qtd": 0.1 },
+      { "ing": "espumante", "qtd": 0.1 },
+      { "ing": "tonica", "qtd": 0.05 },
+      { "ing": "xarope-manjericao", "qtd": 0.025 },
+      { "ing": "gelo", "qtd": null, "nota": "em cubo", "medida": "q.b." }
+     ],
+     "preparacao": "Encher o copo de gelo.\nJuntar o Per Se e o xarope de manjericão.\nCompletar com o espumante e a tónica e mexer com cuidado.",
+     "copo": "Copo de vinho grande", "guarnicao": "", "historia": "", "dicas": "", "obs": "Receita do Francisco, 2026-11-19. Método e copo propostos por Claude; confirmar."
+    }
+   }
+  }
  }
 ];
