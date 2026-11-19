@@ -61,6 +61,7 @@ main { display: grid; gap: 22px; padding-bottom: 40px; }
 .vt tr:first-child td { border-top: 0; }
 .vt td.r { color: var(--muted); width: 38%; }
 .vt small { color: var(--muted); }
+.vt tr.sub td { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--accent); padding-top: 9px; }
 .fv .vt td strong { display: inline; font-size: 15px; margin: 0; }
 .vt .fora { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin-left: 4px; }
 @media print {
@@ -76,6 +77,8 @@ main { display: grid; gap: 22px; padding-bottom: 40px; }
   body.so-temp .vt table { font-size: 10.5px; }
   body.so-temp .vt td { padding: 2.5px 8px; }
   body.so-temp .vt tr { break-inside: avoid; }
+  body.so-temp .vt tr.sub td { font-size: 9px; padding-top: 5px; }
+  body.so-temp .vt tr.sub { break-after: avoid; }
   body.so-temp .fv .vt td strong { font-size: 11px; }
   body.so-temp .vt td br { display: none; }
   body.so-temp .vt td small::before { content: " · "; }
@@ -248,7 +251,8 @@ main { display: grid; gap: 22px; padding-bottom: 40px; }
   const FAIXAS = [["14 °C ou mais", "tintos encorpados, Porto, Madeira e generosos"], ["12–14 °C", "tintos leves"],
     ["10–12 °C", "brancos estruturados e velhos"], ["8–10 °C", "brancos médios, rosés, Porto branco e colheita tardia"],
     ["Abaixo de 8 °C", "espumantes, vinhos verdes e brancos leves"]];
-  const TIPO = { espumante: "Espumante", branco: "Branco", rose: "Rosé", tinto: "Tinto", sobremesa: "Sobremesa e generoso" };
+  const TIPO = { espumante: "Espumante", branco: "Branco", rose: "Rosé", tinto: "Tinto", sobremesa: "Fortificados e doces" };
+  const TIPOS = { espumante: "Espumantes", branco: "Brancos", rose: "Rosés", tinto: "Tintos", sobremesa: "Fortificados e doces" };
   function faixa(v) {
     if (v.temperatura) return v.temperatura;
     const c = norm(v.castas), verde = norm(v.regiao).includes("vinho verde");
@@ -272,9 +276,12 @@ main { display: grid; gap: 22px; padding-bottom: 40px; }
       const xs = vs.filter((v) => faixa(v) === f); if (!xs.length) return "";
       const d = (FAIXAS.find(([k]) => k === f) || [])[1];
       return h("div", { class: "card" }, h("div", { class: "vt-h" }, h("b", { text: f }), d ? h("span", { text: d }) : null),
-        h("table", {}, h("tbody", {}, xs.map((v) => h("tr", {},
-          h("td", {}, h("strong", { text: v.nome }), v.naCarta === false ? h("span", { class: "fora", text: "fora da carta" }) : null, h("br"), h("small", { text: TIPO[v.tipo] || v.tipo || "" })),
-          h("td", { class: "r", text: [v.regiao, v.castas].filter(Boolean).join(" · ") }))))));
+        h("table", {}, h("tbody", {}, xs.map((v, i) => [
+          // each kind of wine under its own heading inside the level (tintos apart from fortificados, and so on)
+          i === 0 || xs[i - 1].tipo !== v.tipo ? h("tr", { class: "sub" }, h("td", { colspan: 2, text: TIPOS[v.tipo] || v.tipo || "" })) : null,
+          h("tr", {},
+            h("td", {}, h("strong", { text: v.nome }), v.naCarta === false ? h("span", { class: "fora", text: "fora da carta" }) : null),
+            h("td", { class: "r", text: [v.regiao, v.castas].filter(Boolean).join(" · ") }))]))));
     }));
     $("vt-sub").textContent = vs.length + " vinhos";
   });
