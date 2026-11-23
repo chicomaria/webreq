@@ -8414,5 +8414,26 @@ window.DADOS = [
     }
    }
   }
+ },
+ {
+  "id": "2026-11-23-margarita-rum",
+  "novos": {
+   "ingredientes": {
+    "william-hinton-smoked-rum": { "nome": "William Hinton Smoked Rum", "grupo": "Bar", "unidade": "L", "preco": 61.43, "fornecedor": "", "obs": "43 € a garrafa de 0,7 L" }
+   }
+  },
+  "atualizar": {
+   "fichas": {
+    "margarita": {
+     "ingredientes": [
+      { "ing": "william-hinton-smoked-rum", "qtd": 0.05 },
+      { "ing": "triple-sec", "qtd": 0.025, "nota": "ou Cointreau" },
+      { "ing": "sumo-de-lima", "qtd": 0.02, "nota": "fresco" },
+      { "ing": "sal", "qtd": null, "nota": "grosso, para o aro (opcional)", "medida": "q.b." }
+     ],
+     "obs": "Na casa leva William Hinton Smoked Rum em vez de tequila (Francisco, 2026-11-23). Na carta de outono aparece como Margarida, com rum da Madeira, triple sec, amarguinha e cordial de flor de laranjeira."
+    }
+   }
+  }
  }
 ];
