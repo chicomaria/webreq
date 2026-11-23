@@ -8435,5 +8435,408 @@ window.DADOS = [
     }
    }
   }
+ },
+ {
+  "id": "2026-11-23-receitas-carta",
+  "novos": {
+   "ingredientes": {
+    "maca": {
+     "nome": "Maçã",
+     "grupo": "Frutos",
+     "unidade": "Kg",
+     "preco": null,
+     "fornecedor": "",
+     "artigo": "maca"
+    },
+    "pepino": {
+     "nome": "Pepino",
+     "grupo": "Legumes",
+     "unidade": "Kg",
+     "preco": null,
+     "fornecedor": "",
+     "artigo": "pepino"
+    },
+    "pera": {
+     "nome": "Pera",
+     "grupo": "Frutos",
+     "unidade": "Kg",
+     "preco": null,
+     "fornecedor": "",
+     "artigo": "pera"
+    },
+    "roma": {
+     "nome": "Romã (bagos)",
+     "grupo": "Frutos",
+     "unidade": "Kg",
+     "preco": 6.5,
+     "fornecedor": "",
+     "obs": "Estimado: romã a 0,97 € a unidade, cerca de 150 g de bagos."
+    },
+    "brioche": {
+     "nome": "Brioche",
+     "grupo": "Padaria",
+     "unidade": "un",
+     "preco": 0.7,
+     "fornecedor": "",
+     "obs": "0,70 € cada (Francisco, 2026-11-23)."
+    },
+    "brocolo": {
+     "nome": "Brócolo",
+     "grupo": "Legumes",
+     "unidade": "un",
+     "preco": null,
+     "fornecedor": "",
+     "artigo": "brocolos",
+     "obs": "Cerca de 300 g cada."
+    },
+    "pa-de-porco": {
+     "nome": "Pá de porco",
+     "grupo": "Proteínas",
+     "unidade": "Kg",
+     "preco": 6,
+     "fornecedor": "",
+     "obs": "Preço estimado; confirmar."
+    },
+    "amendoa-descascada": {
+     "nome": "Amêndoa descascada",
+     "grupo": "Frutos secos",
+     "unidade": "Kg",
+     "preco": null,
+     "fornecedor": "",
+     "artigo": "amendoa-descascada",
+     "obs": "Da Beira Interior."
+    },
+    "amendoa-laminada": {
+     "nome": "Amêndoa laminada",
+     "grupo": "Frutos secos",
+     "unidade": "Kg",
+     "preco": 14,
+     "fornecedor": "",
+     "obs": "Preço estimado; confirmar."
+    },
+    "vinagre-balsamico": {
+     "nome": "Vinagre balsâmico",
+     "grupo": "Mercearia",
+     "unidade": "L",
+     "preco": 7,
+     "fornecedor": "",
+     "obs": "Estimado: garrafa de 3,50 €, assumida de 0,5 L."
+    },
+    "creme-queijo-fresco": {
+     "nome": "Creme de queijo fresco",
+     "grupo": "Lacticínios",
+     "unidade": "Kg",
+     "preco": 7.56,
+     "fornecedor": "",
+     "obs": "Preço do artigo Queijo fresco das encomendas, lido como €/kg."
+    },
+    "hortela": {
+     "nome": "Hortelã",
+     "grupo": "Especiarias",
+     "unidade": "Kg",
+     "preco": 14,
+     "fornecedor": "",
+     "obs": "Preço estimado; confirmar."
+    },
+    "cebolinho": {
+     "nome": "Cebolinho",
+     "grupo": "Especiarias",
+     "unidade": "Kg",
+     "preco": 28.4,
+     "fornecedor": "",
+     "obs": "Preço do artigo Cebolinho das encomendas, lido como €/kg."
+    },
+    "acucar": {
+     "nome": "Açúcar",
+     "grupo": "Mercearia",
+     "unidade": "Kg",
+     "preco": 1,
+     "fornecedor": "",
+     "obs": "Preço estimado; confirmar."
+    }
+   }
+  },
+  "atualizar": {
+   "fichas": {
+    "berbigao-a-bulhao-pato": {
+     "doses": 1,
+     "ingredientes": [
+      {
+       "ing": "berbigao",
+       "qtd": 0.25
+      },
+      {
+       "ing": "manteiga",
+       "qtd": 0.03
+      },
+      {
+       "ing": "alho",
+       "qtd": 0.008,
+       "nota": "2 dentes picados"
+      },
+      {
+       "ing": "coentros",
+       "qtd": 0.01,
+       "nota": "picados"
+      },
+      {
+       "ing": "sumo-de-limao",
+       "qtd": 0.01,
+       "nota": "estimado"
+      },
+      {
+       "ing": "sal",
+       "qtd": null,
+       "medida": "q.b."
+      },
+      {
+       "ing": "pimenta",
+       "qtd": null,
+       "medida": "q.b."
+      }
+     ],
+     "preparacao": "Purgar o berbigão em água fria com sal e lavar bem.\nAlourar o alho picado na manteiga, sem queimar.\nJuntar o berbigão, tapar e deixar abrir em lume forte, abanando o tacho.\nRetirar do lume, juntar os coentros picados, um fio de sumo de limão e acertar a pimenta.\nServir logo, com o molho.",
+     "obs": "250 g de berbigão por dose, a 14 €/kg. Receita do Francisco, 2026-11-23; quantidades e preços que faltavam estimados por Claude: confirmar."
+    },
+    "brioche-desfiado": {
+     "doses": 1,
+     "ingredientes": [
+      {
+       "ing": "brioche",
+       "qtd": 1
+      },
+      {
+       "ing": "pa-de-porco",
+       "qtd": 0.12,
+       "nota": "crua; dá 70 g desfiada"
+      },
+      {
+       "ing": "pimentao-doce",
+       "qtd": 0.002
+      },
+      {
+       "ing": "alho",
+       "qtd": 0.003
+      },
+      {
+       "ing": "ovo",
+       "qtd": 0.1,
+       "nota": "maionese"
+      },
+      {
+       "ing": "oleo",
+       "qtd": 0.02,
+       "nota": "maionese"
+      },
+      {
+       "ing": "mostarda",
+       "qtd": 0.001,
+       "nota": "maionese"
+      },
+      {
+       "ing": "vinagre",
+       "qtd": 0.001,
+       "nota": "maionese"
+      },
+      {
+       "ing": "pimenta",
+       "qtd": null,
+       "medida": "q.b.",
+       "nota": "maionese picante"
+      },
+      {
+       "ing": "maca",
+       "qtd": 0.02,
+       "nota": "coleslaw, em palitos"
+      },
+      {
+       "ing": "aipo",
+       "qtd": 0.02,
+       "nota": "coleslaw, em palitos"
+      },
+      {
+       "ing": "sumo-de-lima",
+       "qtd": 0.002,
+       "nota": "maionese de lima do coleslaw"
+      },
+      {
+       "ing": "pepino",
+       "qtd": 0.01,
+       "nota": "picle, 3 rodelas"
+      },
+      {
+       "ing": "vinagre",
+       "qtd": 0.005,
+       "nota": "picle"
+      },
+      {
+       "ing": "acucar",
+       "qtd": 0.002,
+       "nota": "picle"
+      },
+      {
+       "ing": "sal",
+       "qtd": null,
+       "medida": "q.b."
+      }
+     ],
+     "preparacao": "Pá de porco: temperar com pimentão, alho e sal. Cozinhar 4 h a baixa temperatura e desfiar.\nMaionese picante: emulsionar o ovo com o óleo, a mostarda, o vinagre e sal; picar com pimenta. Reservar uma parte e juntar-lhe sumo de lima para o coleslaw.\nColeslaw: maçã e aipo em palitos, envolvidos na maionese de lima.\nPicle de pepino: rodelas finas em vinagre com açúcar e sal, pelo menos 1 h.\nEmpratar: tostar o brioche, barrar com maionese, picles (3 rodelas), 70 g de porco desfiado e coleslaw por cima.",
+     "obs": "Maionese: 1 ovo dá cerca de 10 doses, por isso 0,1 ovo e 20 ml de óleo por dose. Pá de porco a render cerca de 60% depois de cozinhada e desfiada. Receita do Francisco, 2026-11-23; quantidades e preços que faltavam estimados por Claude: confirmar."
+    },
+    "salada-de-frutas": {
+     "doses": 1,
+     "ingredientes": [
+      {
+       "ing": "pera",
+       "qtd": 0.03
+      },
+      {
+       "ing": "maca",
+       "qtd": 0.03
+      },
+      {
+       "ing": "roma",
+       "qtd": 0.03,
+       "nota": "bagos"
+      },
+      {
+       "ing": "creme-queijo-fresco",
+       "qtd": 0.02
+      },
+      {
+       "ing": "azeite",
+       "qtd": 0.006,
+       "nota": "vinagrete"
+      },
+      {
+       "ing": "vinagre-balsamico",
+       "qtd": 0.003,
+       "nota": "vinagrete"
+      },
+      {
+       "ing": "mel",
+       "qtd": 0.001,
+       "nota": "vinagrete"
+      },
+      {
+       "ing": "pimenta",
+       "qtd": null,
+       "medida": "q.b.",
+       "nota": "vinagrete"
+      }
+     ],
+     "preparacao": "Cortar a pera e a maçã em cubos pequenos e juntar os bagos de romã (30 g de cada).\nVinagrete: misturar azeite, vinagre balsâmico, mel e pimenta (10 ml por dose).\nEmpratar sobre 20 g de creme de queijo fresco e regar com o vinagrete.",
+     "obs": "Vinagrete na proporção 6 azeite : 3 balsâmico : 1 mel. Receita do Francisco, 2026-11-23; quantidades e preços que faltavam estimados por Claude: confirmar."
+    },
+    "sopa-de-outono": {
+     "doses": 1,
+     "ingredientes": [
+      {
+       "ing": "abobora",
+       "qtd": 0.125,
+       "nota": "manteiga"
+      },
+      {
+       "ing": "curcuma",
+       "qtd": 0.0005
+      },
+      {
+       "ing": "sal",
+       "qtd": null,
+       "medida": "q.b."
+      },
+      {
+       "ing": "pimenta",
+       "qtd": null,
+       "medida": "q.b."
+      },
+      {
+       "ing": "shiitake",
+       "qtd": 0.015,
+       "nota": "picadinho"
+      },
+      {
+       "ing": "castanhas-cozidas",
+       "qtd": 0.015,
+       "nota": "picadinho"
+      },
+      {
+       "ing": "azeite",
+       "qtd": 0.008,
+       "nota": "saltear e fio por cima"
+      }
+     ],
+     "preparacao": "Assar a abóbora manteiga no forno a 160 °C durante 40 min, com curcuma, sal e pimenta.\nTriturar e levar à panela com água até à textura de creme.\nPicadinho: picar shiitake e castanhas e saltear numa frigideira; reservar.\nServir 150 ml de creme por taça, com o picadinho no fundo e um fio de azeite por cima.",
+     "obs": "Cerca de 1 kg de abóbora para 1,2 L de creme, ou 8 doses de 150 ml. Receita do Francisco, 2026-11-23; quantidades e preços que faltavam estimados por Claude: confirmar."
+    },
+    "brocolo-grelhado": {
+     "doses": 1,
+     "ingredientes": [
+      {
+       "ing": "brocolo",
+       "qtd": 1,
+       "nota": "300 g"
+      },
+      {
+       "ing": "azeite",
+       "qtd": 0.03,
+       "nota": "forno, puré e pesto"
+      },
+      {
+       "ing": "sal",
+       "qtd": null,
+       "medida": "q.b."
+      },
+      {
+       "ing": "pimenta",
+       "qtd": null,
+       "medida": "q.b."
+      },
+      {
+       "ing": "amendoa-descascada",
+       "qtd": 0.04,
+       "nota": "puré"
+      },
+      {
+       "ing": "coentros",
+       "qtd": 0.005,
+       "nota": "pesto"
+      },
+      {
+       "ing": "salsa",
+       "qtd": 0.005,
+       "nota": "pesto"
+      },
+      {
+       "ing": "manjericao",
+       "qtd": 0.005,
+       "nota": "pesto"
+      },
+      {
+       "ing": "hortela",
+       "qtd": 0.003,
+       "nota": "pesto"
+      },
+      {
+       "ing": "cebolinho",
+       "qtd": 0.003,
+       "nota": "pesto"
+      },
+      {
+       "ing": "amendoa-laminada",
+       "qtd": 0.01,
+       "nota": "torrada"
+      }
+     ],
+     "preparacao": "Brócolo: no forno com sal, azeite e pimenta até tostar.\nPuré de amêndoa: tostar a amêndoa no forno e triturar até creme, com um toque de azeite para a cremosidade. Temperar com sal e pimenta.\nPesto: triturar coentros, salsa, manjericão, hortelã e cebolinho com azeite.\nTostar a amêndoa laminada.\nEmpratar: cama de puré de amêndoa, o brócolo por cima, pesto e amêndoa torrada.",
+     "obs": "Amêndoa da Beira Interior. Receita do Francisco, 2026-11-23; quantidades e preços que faltavam estimados por Claude: confirmar."
+    }
+   },
+   "produtos": {
+    "berbigao": {
+     "preco": 14
+    }
+   }
+  }
  }
 ];
