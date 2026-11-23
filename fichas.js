@@ -119,17 +119,26 @@ function fichasComuns(S, render) {
   function editarLinha(f, idx) {
     const r = idx >= 0 ? f.ingredientes[idx] : { ing: "", qtd: null };
     const i = S.ing.get(r.ing);
-    abrirEditor({ titulo: idx >= 0 ? "Ingrediente" : "Juntar ingrediente", dados: { nome: i ? i.nome : "", qtd: r.qtd, medida: r.medida || "", nota: r.nota || "", unidade: i ? i.unidade : (f.tipo === "cocktail" ? "L" : "Kg"), preco: i ? i.preco : null },
+    // the price can be changed here too: an ingredient linked to an order article changes that article's price (one price for both)
+    const a = i && ligado(i) ? S.prod.get(i.artigo) : null;
+    const campoPreco = a ? { k: "preco", label: "Preço do artigo «" + a.nome + "» sem IVA (€ por " + unidadePreco(a) + ")", tipo: "number", dica: "Muda também nas Encomendas e em todas as fichas que o usam." }
+      : { k: "preco", label: "Preço por unidade sem IVA (€)", tipo: "number", dica: i ? "Muda em todas as fichas que usam este ingrediente." : null };
+    abrirEditor({ titulo: idx >= 0 ? "Ingrediente" : "Juntar ingrediente", dados: { nome: i ? i.nome : "", qtd: r.qtd, medida: r.medida || "", nota: r.nota || "", unidade: i ? i.unidade : (f.tipo === "cocktail" ? "L" : "Kg"), preco: a ? a.preco ?? null : i ? i.preco ?? null : null },
       campos: [{ k: "nome", label: "Ingrediente", lista: "ing-nomes", dica: "Escolha da lista. Um nome novo junta-o à lista de preços." },
         { k: "qtd", label: "Quantidade na receita", tipo: "number", dica: f.tipo === "cocktail" ? "Na unidade do ingrediente: 5 cL = 0,05 L." : null },
         { k: "medida", label: "Medida escrita (opcional)", dica: "Mostra isto em vez do número, ex.: q.b., 2 colheres de bar, 8 a 10 folhas." },
         { k: "nota", label: "Nota (opcional)", dica: "Ex.: fresco, opcional, em cubo." },
         { k: "unidade", label: "Unidade (só para ingrediente novo)", tipo: "select", opcoes: UNIDADES },
-        { k: "preco", label: "Preço por unidade € (só para ingrediente novo)", tipo: "number" }],
+        campoPreco],
       apagar: idx >= 0 ? () => gravarFicha(f, { ingredientes: f.ingredientes.filter((_, j) => j !== idx) }) : null,
       guardar: async (d) => {
         let id = [...S.ing].find(([, x]) => norm(x.nome) === norm(d.nome));
         id = id ? id[0] : null;
+        // same ingredient as before: save a changed price (on the linked article when there is one)
+        if (id && i && id === r.ing) {
+          if (a) { if (d.preco !== (a.preco ?? null)) await S.db.collection("produtos").doc(a.id).update({ preco: d.preco }); }
+          else if (d.preco !== (i.preco ?? null)) await S.db.collection("ingredientes").doc(id).update({ preco: d.preco });
+        }
         if (!id) {
           id = slugId(d.nome); while (S.ing.has(id)) id += "-2";
           // an order article with the same name gives the new ingredient its price
